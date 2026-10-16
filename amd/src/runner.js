@@ -6,6 +6,7 @@
 import {execute} from './interpreter';
 import {renderProgram} from './render';
 import {t as tr} from './strings';
+import {Zoom} from './zoom';
 
 const el = (tag, attrs = {}, ...kids) => {
     const e = document.createElement(tag);
@@ -44,12 +45,16 @@ export class AlgorithmRunner {
         const btn = (key, fn) => el('button', {type: 'button', class: 'btn btn-secondary btn-sm', onclick: fn}, this.t(key));
         this.svgHost = el('div', {class: 'alg-view-svg'});
         this.svgHost.innerHTML = renderProgram(this.program);
+        this.zoom = new Zoom(this.svgHost);
         this.speed = el('input', {type: 'range', min: 0, max: 1000, value: 600, class: 'alg-speed', 'aria-label': this.t('speed')});
         this.consoleEl = el('div', {class: 'alg-console', role: 'log', 'aria-live': 'polite'});
         this.bar = el('div', {class: 'alg-view-bar'},
-            btn('run', () => this.onRun()), btn('step', () => this.onStep()), btn('reset', () => this.reset()), this.speed);
+            btn('run', () => this.onRun()), btn('step', () => this.onStep()), btn('reset', () => this.reset()), this.speed,
+            this.zoom.controls((key) => this.t(key)));
         this.root = el('div', {class: 'alg-viewer'}, this.svgHost, this.bar, this.consoleEl);
         host.replaceChildren(this.root);
+        // Large diagrams start fitted to the available width.
+        requestAnimationFrame(() => this.zoom.autoFit());
     }
 
     onRun() {

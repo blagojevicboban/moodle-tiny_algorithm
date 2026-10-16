@@ -11,6 +11,7 @@ import {checkExpr} from './expr';
 import {generate, languages, extensionOf} from './codegen';
 import {importFprg, exportFprg} from './flowgorithm';
 import {t as tr} from './strings';
+import {Zoom} from './zoom';
 
 const PALETTE = ['declare', 'assign', 'input', 'output', 'if', 'for', 'while', 'dowhile', 'call', 'return', 'comment'];
 
@@ -88,10 +89,13 @@ export class AlgorithmEditor {
             this.fnSelect, btn('addfn', () => this.addFunction()), btn('delfn', () => this.removeFunction()),
             el('span', {class: 'alg-sep'}), this.btnUndo, this.btnRedo,
             el('span', {class: 'alg-sep'}), this.btnRun, this.btnStep, this.btnStop, this.speed,
+            el('span', {class: 'alg-sep'}), el('span', {class: 'alg-zoom-slot'}),
             el('span', {class: 'alg-sep'}), btn('import', () => this.fileInput.click()), btn('export', () => this.exportFile()),
             this.fileInput);
         this.canvas = el('div', {class: 'alg-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
             onkeydown: (e) => this.onKey(e)});
+        this.zoom = new Zoom(this.canvas);
+        this.toolbar.querySelector('.alg-zoom-slot').replaceWith(this.zoom.controls((key) => this.t(key)));
         this.props = el('div', {class: 'alg-props'});
         this.consoleEl = el('div', {class: 'alg-console', role: 'log'});
         this.codeEl = el('pre', {class: 'alg-code'});
@@ -154,6 +158,7 @@ export class AlgorithmEditor {
         const {svg, slots} = renderFunction(this.fn, {editable: !this.running});
         this.slots = slots;
         this.canvas.innerHTML = svg;
+        this.zoom.apply();
         this.canvas.querySelectorAll('.alg-node').forEach((n) => {
             n.classList.toggle('alg-selected', n.dataset.id === this.selected);
         });

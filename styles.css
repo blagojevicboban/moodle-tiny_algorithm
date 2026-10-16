@@ -30,3 +30,5 @@
     .alg-main { flex-direction: column; }
     .alg-side { flex-basis: auto; height: auto; }
 }
+.alg-zoom { display: inline-flex; gap: .15rem; align-items: center; }
+.alg-zoom .alg-zoom-btn { min-width: 2.2rem; }
