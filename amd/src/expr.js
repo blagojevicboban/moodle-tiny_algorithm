@@ -8,6 +8,9 @@
 
 const WORD_OPS = {and: '&&', or: '||', not: '!', mod: '%'};
 
+const OP_ALIASES = {'=': '==', '<>': '!='};
+
+// eslint-disable-next-line complexity
 const tokenize = (src) => {
     const tokens = [];
     let i = 0;
@@ -20,7 +23,7 @@ const tokenize = (src) => {
             while (j < src.length && /[0-9.]/.test(src[j])) {
                 j++;
             }
-            tokens.push({t: 'num', v: parseFloat(src.slice(i, j)), int: !src.slice(i, j).includes('.')});
+            tokens.push({t: 'num', v: parseFloat(src.slice(i, j)), 'int': !src.slice(i, j).includes('.')});
             i = j;
         } else if (c === '"') {
             let j = i + 1;
@@ -85,7 +88,7 @@ export const parseExpr = (src) => {
         let l = next();
         while (isOp(...ops)) {
             const op = toks[p++].v;
-            l = {k: 'bin', op: op === '=' ? '==' : op === '<>' ? '!=' : op, l, r: next()};
+            l = {k: 'bin', op: OP_ALIASES[op] || op, l, r: next()};
         }
         return l;
     };
@@ -97,7 +100,7 @@ export const parseExpr = (src) => {
             throw new Error('Unexpected end of expression');
         }
         if (t.t === 'num') {
-            return {k: 'num', v: t.v, int: t.int};
+            return {k: 'num', v: t.v, 'int': t.int};
         }
         if (t.t === 'str') {
             return {k: 'str', v: t.v};

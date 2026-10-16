@@ -65,6 +65,7 @@ const warn = (warnings, msg) => {
 
 const loopBody = (e, warnings) => (child(e, 'body') ? importList(child(e, 'body'), warnings) : importList(e, warnings));
 
+// eslint-disable-next-line complexity
 const importList = (el, warnings) => {
     const list = [];
     for (const e of el ? el.children : []) {
@@ -86,7 +87,7 @@ const importList = (el, warnings) => {
                 break;
             case 'if':
                 list.push(createBlock('if', {cond: a.expression, then: importList(child(e, 'then'), warnings),
-                    else: importList(child(e, 'else'), warnings)}));
+                    'else': importList(child(e, 'else'), warnings)}));
                 break;
             case 'while':
                 list.push(createBlock('while', {cond: a.expression, body: loopBody(e, warnings)}));
@@ -147,6 +148,7 @@ export const importFprg = (text) => {
 
 const attrs = (o) => Object.entries(o).map(([k, v]) => ` ${k}="${escapeXml(v)}"`).join('');
 
+// eslint-disable-next-line complexity
 const exportList = (list, ind) => {
     const pad = '  '.repeat(ind);
     let out = '';

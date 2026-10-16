@@ -18,12 +18,12 @@ const defaults = {
     assign: () => ({target: 'x', expr: '0'}),
     input: () => ({target: 'x'}),
     output: () => ({expr: '"Hello"', newline: true}),
-    if: () => ({cond: 'x > 0', then: [], else: []}),
-    while: () => ({cond: 'x < 10', body: []}),
+    'if': () => ({cond: 'x > 0', then: [], 'else': []}),
+    'while': () => ({cond: 'x < 10', body: []}),
     dowhile: () => ({cond: 'x < 10', body: []}),
-    for: () => ({variable: 'i', start: '1', end: '10', step: '1', body: []}),
+    'for': () => ({variable: 'i', start: '1', end: '10', step: '1', body: []}),
     call: () => ({expr: 'f()'}),
-    return: () => ({expr: ''}),
+    'return': () => ({expr: ''}),
     comment: () => ({text: 'Comment'}),
 };
 

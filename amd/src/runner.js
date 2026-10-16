@@ -49,43 +49,45 @@ export class AlgorithmRunner {
     }
 
     build(host) {
-        const btn = (key, fn) => el('button', {type: 'button', class: 'btn btn-secondary btn-sm', onclick: fn}, this.t(key));
-        this.svgHost = el('div', {class: 'alg-view-svg'});
+        const btn = (key, fn) => el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm', onclick: fn}, this.t(key));
+        this.svgHost = el('div', {'class': 'alg-view-svg'});
         this.svgHost.innerHTML = renderProgram(this.program);
         this.zoom = new Zoom(this.svgHost);
-        this.speed = el('input', {type: 'range', min: 0, max: 1000, value: 600, class: 'alg-speed', 'aria-label': this.t('speed')});
-        this.consoleEl = el('div', {class: 'alg-console', role: 'log', 'aria-live': 'polite'});
-        this.bar = el('div', {class: 'alg-view-bar'},
+        this.speed = el('input', {
+            type: 'range', min: 0, max: 1000, value: 600, 'class': 'alg-speed', 'aria-label': this.t('speed'),
+        });
+        this.consoleEl = el('div', {'class': 'alg-console', role: 'log', 'aria-live': 'polite'});
+        this.bar = el('div', {'class': 'alg-view-bar'},
             btn('run', () => this.onRun()), btn('step', () => this.onStep()), btn('reset', () => this.reset()), this.speed,
             this.zoom.controls((key) => this.t(key)));
         this.watch = new Watch(this.lang);
         const mainParts = [this.svgHost, this.bar, this.consoleEl];
         if (this.showWatch) {
-            this.watchToggle = el('button', {type: 'button', class: 'btn btn-secondary btn-sm alg-watch-toggle',
+            this.watchToggle = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm alg-watch-toggle',
                 onclick: () => this.toggleWatch()});
             this.bar.append(this.watchToggle);
-            mainParts.push(el('div', {class: 'alg-view-watch'}, el('strong', {}, this.t('variables')), this.watch.root));
+            mainParts.push(el('div', {'class': 'alg-view-watch'}, el('strong', {}, this.t('variables')), this.watch.root));
         }
-        const main = el('div', {class: 'alg-view-main'}, ...mainParts);
-        this.root = el('div', {class: 'alg-viewer'}, main);
+        const main = el('div', {'class': 'alg-view-main'}, ...mainParts);
+        this.root = el('div', {'class': 'alg-viewer'}, main);
         if (this.showWatch) {
             this.root.classList.toggle('alg-hide-watch', AlgorithmRunner.watchHidden());
             this.updateWatchToggle();
         }
         if (this.showCode) {
-            this.codeEl = el('pre', {class: 'alg-code', tabindex: '0'});
-            this.codeSelect = el('select', {class: 'custom-select custom-select-sm alg-codelang', 'aria-label': this.t('code'),
+            this.codeEl = el('pre', {'class': 'alg-code', tabindex: '0'});
+            this.codeSelect = el('select', {'class': 'custom-select custom-select-sm alg-codelang', 'aria-label': this.t('code'),
                 onchange: () => {
                     this.codeLang = this.codeSelect.value;
                     this.renderCode();
                 }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
-            this.codeToggle = el('button', {type: 'button', class: 'btn btn-secondary btn-sm alg-code-toggle',
+            this.codeToggle = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm alg-code-toggle',
                 onclick: () => this.toggleCode()});
             this.bar.append(this.codeToggle);
-            const close = el('button', {type: 'button', class: 'btn btn-link btn-sm alg-code-close',
+            const close = el('button', {type: 'button', 'class': 'btn btn-link btn-sm alg-code-close',
                 onclick: () => this.toggleCode(), title: this.t('hidecode'), 'aria-label': this.t('hidecode')}, '×');
-            this.codePane = el('div', {class: 'alg-view-code'},
-                el('div', {class: 'alg-code-bar'}, el('strong', {}, this.t('code')), this.codeSelect,
+            this.codePane = el('div', {'class': 'alg-view-code'},
+                el('div', {'class': 'alg-code-bar'}, el('strong', {}, this.t('code')), this.codeSelect,
                     btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent)), close),
                 this.codeEl);
             this.root.append(this.codePane);
@@ -199,7 +201,7 @@ export class AlgorithmRunner {
     }
 
     log(text, cls = '') {
-        const line = el('div', {class: `alg-line ${cls}`}, text);
+        const line = el('div', {'class': `alg-line ${cls}`}, text);
         this.consoleEl.append(line);
         this.consoleEl.scrollTop = this.consoleEl.scrollHeight;
         return line;
@@ -238,13 +240,14 @@ export class AlgorithmRunner {
         }).then(() => {
             clearTimeout(run.timer);
             run.wake = null;
+            return null;
         });
     }
 
     askInput(run, ev) {
         return new Promise((resolve) => {
             const row = this.log(`${ev.name} (${ev.type}) ? `);
-            const input = el('input', {type: 'text', class: 'form-control form-control-sm alg-input',
+            const input = el('input', {type: 'text', 'class': 'form-control form-control-sm alg-input',
                 'aria-label': `${ev.name} (${ev.type})`, onkeydown: (e) => {
                     if (e.key === 'Enter') {
                         const v = input.value;

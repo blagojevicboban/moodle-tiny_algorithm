@@ -13,10 +13,10 @@ const RETURN = Symbol('return');
 const BUILTINS = {
     abs: Math.abs, sqrt: Math.sqrt, sin: Math.sin, cos: Math.cos, tan: Math.tan,
     log: Math.log, exp: Math.exp, floor: Math.floor, ceiling: Math.ceil, round: Math.round,
-    int: Math.trunc, sign: Math.sign,
+    'int': Math.trunc, sign: Math.sign,
     random: (n) => Math.floor(Math.random() * n),
     len: (s) => (Array.isArray(s) ? s.length : String(s).length),
-    char: (n) => String.fromCharCode(n),
+    'char': (n) => String.fromCharCode(n),
     toint: (v) => Math.trunc(Number(v)),
     toreal: Number,
     tostring: String,
@@ -156,7 +156,10 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
             }
             case 'un': {
                 const e = yield* evalNode(n.e, env);
-                return n.op === '-' ? -e : n.op === '!' ? !e : e;
+                if (n.op === '-') {
+                    return -e;
+                }
+                return n.op === '!' ? !e : e;
             }
             case 'bin': {
                 const l = yield* evalNode(n.l, env);
@@ -286,6 +289,7 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
      * @param {Object} b block
      * @param {Object} env environment
      */
+    // eslint-disable-next-line complexity
     function* runBlock(b, env) {
         yield tick(b.id, env);
         switch (b.type) {

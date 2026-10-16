@@ -21,12 +21,12 @@ const FIELDS = {
     assign: [['target', 'expr'], ['expr', 'expr']],
     input: [['target', 'expr']],
     output: [['expr', 'expr'], ['newline', 'bool']],
-    if: [['cond', 'expr']],
-    while: [['cond', 'expr']],
+    'if': [['cond', 'expr']],
+    'while': [['cond', 'expr']],
     dowhile: [['cond', 'expr']],
-    for: [['variable', 'text'], ['start', 'expr'], ['end', 'expr'], ['step', 'expr']],
+    'for': [['variable', 'text'], ['start', 'expr'], ['end', 'expr'], ['step', 'expr']],
     call: [['expr', 'expr']],
-    return: [['expr', 'expr']],
+    'return': [['expr', 'expr']],
     comment: [['text', 'text']],
 };
 
@@ -72,14 +72,14 @@ export class AlgorithmEditor {
     // ---- DOM construction -------------------------------------------------------------------------------------------------
 
     build(container) {
-        const btn = (key, fn, extra = {}) => el('button', {type: 'button', class: 'btn btn-secondary btn-sm alg-btn', onclick: fn,
+        const btn = (key, fn, extra = {}) => el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm alg-btn', onclick: fn,
             title: this.t(key), ...extra}, this.t(key));
-        this.fnSelect = el('select', {class: 'custom-select custom-select-sm alg-fnselect', onchange: () => {
+        this.fnSelect = el('select', {'class': 'custom-select custom-select-sm alg-fnselect', onchange: () => {
             this.fnIndex = Number(this.fnSelect.value);
             this.selected = null;
             this.refresh();
         }});
-        this.speed = el('input', {type: 'range', min: 0, max: 1000, value: 600, class: 'alg-speed', title: this.t('speed')});
+        this.speed = el('input', {type: 'range', min: 0, max: 1000, value: 600, 'class': 'alg-speed', title: this.t('speed')});
         this.fileInput = el('input', {type: 'file', accept: '.fprg,.xml', hidden: true, onchange: (e) => this.importFile(e)});
         this.btnUndo = btn('undo', () => this.undo());
         this.btnRedo = btn('redo', () => this.redo());
@@ -87,33 +87,33 @@ export class AlgorithmEditor {
         this.btnStep = btn('step', () => this.start(true));
         this.btnStop = btn('stop', () => this.stop());
 
-        this.toolbar = el('div', {class: 'alg-toolbar'},
+        this.toolbar = el('div', {'class': 'alg-toolbar'},
             this.fnSelect, btn('addfn', () => this.addFunction()), btn('delfn', () => this.removeFunction()),
-            el('span', {class: 'alg-sep'}), this.btnUndo, this.btnRedo,
-            el('span', {class: 'alg-sep'}), this.btnRun, this.btnStep, this.btnStop, this.speed,
-            el('span', {class: 'alg-sep'}), el('span', {class: 'alg-zoom-slot'}),
-            el('span', {class: 'alg-sep'}), btn('import', () => this.fileInput.click()), btn('export', () => this.exportFile()),
+            el('span', {'class': 'alg-sep'}), this.btnUndo, this.btnRedo,
+            el('span', {'class': 'alg-sep'}), this.btnRun, this.btnStep, this.btnStop, this.speed,
+            el('span', {'class': 'alg-sep'}), el('span', {'class': 'alg-zoom-slot'}),
+            el('span', {'class': 'alg-sep'}), btn('import', () => this.fileInput.click()), btn('export', () => this.exportFile()),
             this.fileInput);
-        this.canvas = el('div', {class: 'alg-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
+        this.canvas = el('div', {'class': 'alg-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
             onkeydown: (e) => this.onKey(e)});
         this.zoom = new Zoom(this.canvas);
         this.toolbar.querySelector('.alg-zoom-slot').replaceWith(this.zoom.controls((key) => this.t(key)));
-        this.props = el('div', {class: 'alg-props'});
-        this.consoleEl = el('div', {class: 'alg-console', role: 'log'});
-        this.codeEl = el('pre', {class: 'alg-code'});
-        this.codeSelect = el('select', {class: 'custom-select custom-select-sm', onchange: () => {
+        this.props = el('div', {'class': 'alg-props'});
+        this.consoleEl = el('div', {'class': 'alg-console', role: 'log'});
+        this.codeEl = el('pre', {'class': 'alg-code'});
+        this.codeSelect = el('select', {'class': 'custom-select custom-select-sm', onchange: () => {
             this.codeLang = this.codeSelect.value;
             this.renderCode();
         }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
         this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent));
         this.dlBtn = btn('download', () => this.exportCode());
-        this.tabConsole = el('div', {class: 'alg-pane'}, el('h6', {}, this.t('console')), this.consoleEl);
-        this.tabCode = el('div', {class: 'alg-pane'},
+        this.tabConsole = el('div', {'class': 'alg-pane'}, el('h6', {}, this.t('console')), this.consoleEl);
+        this.tabCode = el('div', {'class': 'alg-pane'},
             el('h6', {}, this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn), this.codeEl);
         this.watch = new Watch(this.lang);
-        this.tabWatch = el('div', {class: 'alg-pane'}, el('h6', {}, this.t('variables')), this.watch.root);
-        this.side = el('div', {class: 'alg-side'}, this.props, this.tabConsole, this.tabWatch, this.tabCode);
-        this.root = el('div', {class: 'alg-editor'}, this.toolbar, el('div', {class: 'alg-main'}, this.canvas, this.side));
+        this.tabWatch = el('div', {'class': 'alg-pane'}, el('h6', {}, this.t('variables')), this.watch.root);
+        this.side = el('div', {'class': 'alg-side'}, this.props, this.tabConsole, this.tabWatch, this.tabCode);
+        this.root = el('div', {'class': 'alg-editor'}, this.toolbar, el('div', {'class': 'alg-main'}, this.canvas, this.side));
         container.append(this.root);
         this.palette = null;
     }
@@ -193,10 +193,10 @@ export class AlgorithmEditor {
         if (type === 'bool') {
             input = el('input', {type: 'checkbox', id, checked: value !== false, onchange: () => onInput(input.checked)});
         } else if (type === 'type') {
-            input = el('select', {id, class: 'custom-select custom-select-sm', onchange: () => onInput(input.value)},
+            input = el('select', {id, 'class': 'custom-select custom-select-sm', onchange: () => onInput(input.value)},
                 ['Integer', 'Real', 'String', 'Boolean'].map((v) => el('option', {value: v, selected: v === value}, v)));
         } else {
-            input = el('input', {id, type: 'text', class: 'form-control form-control-sm', value: value ?? '', spellcheck: 'false',
+            input = el('input', {id, type: 'text', 'class': 'form-control form-control-sm', value: value ?? '', spellcheck: 'false',
                 oninput: () => {
                     if (type === 'expr') {
                         const err = checkExpr(input.value || '0');
@@ -206,7 +206,7 @@ export class AlgorithmEditor {
                 },
                 onchange: () => onInput(input.value)});
         }
-        return el('div', {class: 'form-group alg-field'}, el('label', {for: id}, label), input);
+        return el('div', {'class': 'form-group alg-field'}, el('label', {'for': id}, label), input);
     }
 
     renderProps() {
@@ -226,7 +226,7 @@ export class AlgorithmEditor {
                 this.field(this.t('returns'), 'text', this.fn.returnType || '', (v) => this.commit(() => {
                     this.fn.returnType = v.trim() || null;
                 })),
-                el('p', {class: 'text-muted small'}, this.t('hint')));
+                el('p', {'class': 'text-muted small'}, this.t('hint')));
             return;
         }
         const b = found.block;
@@ -235,8 +235,8 @@ export class AlgorithmEditor {
             b[key] = v;
         })));
         const act = (label, fn, cls = 'btn-secondary') =>
-            el('button', {type: 'button', class: `btn btn-sm ${cls}`, onclick: fn}, label);
-        this.props.replaceChildren(el('h6', {}, this.t(`b.${b.type}`)), ...rows, el('div', {class: 'alg-actions'},
+            el('button', {type: 'button', 'class': `btn btn-sm ${cls}`, onclick: fn}, label);
+        this.props.replaceChildren(el('h6', {}, this.t(`b.${b.type}`)), ...rows, el('div', {'class': 'alg-actions'},
             act(this.t('up'), () => this.move(-1)), act(this.t('down'), () => this.move(1)),
             act(this.t('delete'), () => this.deleteSelected(), 'btn-outline-danger')));
     }
@@ -275,16 +275,19 @@ export class AlgorithmEditor {
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX || rect.left + 20) - rect.left + this.canvas.scrollLeft;
         const y = (e.clientY || rect.top + 20) - rect.top + this.canvas.scrollTop;
-        this.palette = el('div', {class: 'alg-palette', role: 'menu', style: `left:${x + 6}px;top:${y + 6}px`},
-            PALETTE.map((type) => el('button', {type: 'button', role: 'menuitem', class: 'btn btn-sm btn-light', onclick: (ev) => {
-                ev.stopPropagation();
-                this.closePalette();
-                const block = createBlock(type);
-                this.commit(() => {
-                    slot.list.splice(slot.index, 0, block);
-                    this.selected = block.id;
-                });
-            }}, this.t(`b.${type}`))));
+        this.palette = el('div', {'class': 'alg-palette', role: 'menu', style: `left:${x + 6}px;top:${y + 6}px`},
+            PALETTE.map((type) => el('button', {
+                type: 'button', role: 'menuitem', 'class': 'btn btn-sm btn-light',
+                onclick: (ev) => {
+                    ev.stopPropagation();
+                    this.closePalette();
+                    const block = createBlock(type);
+                    this.commit(() => {
+                        slot.list.splice(slot.index, 0, block);
+                        this.selected = block.id;
+                    });
+                },
+            }, this.t(`b.${type}`))));
         this.canvas.append(this.palette);
         const first = this.palette.querySelector('button');
         if (first) {
@@ -358,6 +361,7 @@ export class AlgorithmEditor {
                 this.selected = null;
             });
             this.log(warnings.length ? `${this.t('imported')}\n${warnings.join('\n')}` : this.t('imported'), 'alg-info');
+            return null;
         }).catch((err) => this.log(err.message, 'alg-error'));
     }
 
@@ -381,7 +385,7 @@ export class AlgorithmEditor {
     // ---- Execution --------------------------------------------------------------------------------------------------------
 
     log(text, cls = '') {
-        const line = el('div', {class: `alg-line ${cls}`}, text);
+        const line = el('div', {'class': `alg-line ${cls}`}, text);
         this.consoleEl.append(line);
         this.consoleEl.scrollTop = this.consoleEl.scrollHeight;
         return line;
@@ -413,12 +417,13 @@ export class AlgorithmEditor {
         }).then(() => {
             clearTimeout(run.timer);
             run.wake = null;
+            return null;
         });
     }
 
     askInput(run, ev) {
         return new Promise((resolve) => {
-            const input = el('input', {type: 'text', class: 'form-control form-control-sm alg-input',
+            const input = el('input', {type: 'text', 'class': 'form-control form-control-sm alg-input',
                 'aria-label': `${ev.name} (${ev.type})`, onkeydown: (e) => {
                     if (e.key === 'Enter') {
                         const v = input.value;

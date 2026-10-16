@@ -7,8 +7,8 @@ import {parseExpr} from './expr';
 
 const BUILTIN_TYPES = {
     abs: 'Real', sqrt: 'Real', sin: 'Real', cos: 'Real', tan: 'Real', log: 'Real', exp: 'Real', pi: 'Real',
-    floor: 'Integer', ceiling: 'Integer', round: 'Integer', int: 'Integer', sign: 'Integer', random: 'Integer', len: 'Integer',
-    toint: 'Integer', toreal: 'Real', tostring: 'String', char: 'String', isnumeric: 'Boolean',
+    floor: 'Integer', ceiling: 'Integer', round: 'Integer', 'int': 'Integer', sign: 'Integer', random: 'Integer', len: 'Integer',
+    toint: 'Integer', toreal: 'Real', tostring: 'String', 'char': 'String', isnumeric: 'Boolean',
 };
 
 const CMP = ['==', '!=', '<', '<=', '>', '>='];
@@ -20,6 +20,7 @@ const CMP = ['==', '!=', '<', '<=', '>', '>='];
  * @param {Object} syms symbol table (name -> {type, array})
  * @param {Object} fns function table
  */
+// eslint-disable-next-line complexity
 const typeOf = (n, syms, fns) => {
     switch (n.k) {
         case 'num': return n.int ? 'Integer' : 'Real';
@@ -73,8 +74,8 @@ const LANGS = {
         eq: (l, r, op) => `${l} ${op} ${r}`,
         call: (name, args) => {
             const m = {sqrt: 'math.sqrt', abs: 'abs', sin: 'math.sin', cos: 'math.cos', tan: 'math.tan', log: 'math.log',
-                exp: 'math.exp', floor: 'math.floor', ceiling: 'math.ceil', round: 'round', int: 'int', len: 'len',
-                random: 'random.randrange', toint: 'int', toreal: 'float', tostring: 'str', char: 'chr', pi: 'math.pi'};
+                exp: 'math.exp', floor: 'math.floor', ceiling: 'math.ceil', round: 'round', 'int': 'int', len: 'len',
+                random: 'random.randrange', toint: 'int', toreal: 'float', tostring: 'str', 'char': 'chr', pi: 'math.pi'};
             const l = name.toLowerCase();
             if (l === 'pi') {
                 return 'math.pi';
@@ -90,7 +91,7 @@ const LANGS = {
         eq: (l, r, op, t) => (t === 'String' ? `strcmp(${l}, ${r}) ${op} 0` : `${l} ${op} ${r}`),
         call: (name, args) => {
             const m = {sqrt: 'sqrt', abs: 'fabs', sin: 'sin', cos: 'cos', tan: 'tan', log: 'log', exp: 'exp', floor: 'floor',
-                ceiling: 'ceil', round: 'round', int: '(int)', len: 'strlen', random: 'rand_below', toint: '(int)',
+                ceiling: 'ceil', round: 'round', 'int': '(int)', len: 'strlen', random: 'rand_below', toint: '(int)',
                 toreal: '(double)'};
             const l = name.toLowerCase();
             return l === 'pi' ? 'M_PI' : `${m[l] || name}(${args.join(', ')})`;
@@ -105,7 +106,7 @@ const LANGS = {
         eq: (l, r, op, t) => (t === 'String' ? `${op === '!=' ? '!' : ''}${l}.equals(${r})` : `${l} ${op} ${r}`),
         call: (name, args) => {
             const m = {sqrt: 'Math.sqrt', abs: 'Math.abs', sin: 'Math.sin', cos: 'Math.cos', tan: 'Math.tan', log: 'Math.log',
-                exp: 'Math.exp', floor: 'Math.floor', ceiling: 'Math.ceil', round: 'Math.round', int: '(int)',
+                exp: 'Math.exp', floor: 'Math.floor', ceiling: 'Math.ceil', round: 'Math.round', 'int': '(int)',
                 random: 'rnd.nextInt', toint: 'Integer.parseInt', toreal: 'Double.parseDouble', tostring: 'String.valueOf'};
             const l = name.toLowerCase();
             if (l === 'len') {
@@ -123,7 +124,8 @@ const LANGS = {
         eq: (l, r, op) => `${l} ${op} ${r}`,
         call: (name, args) => {
             const m = {sqrt: 'Math.Sqrt', abs: 'Math.Abs', sin: 'Math.Sin', cos: 'Math.Cos', tan: 'Math.Tan', log: 'Math.Log',
-                exp: 'Math.Exp', floor: 'Math.Floor', ceiling: 'Math.Ceiling', round: 'Math.Round', int: '(int)', sign: 'Math.Sign',
+                exp: 'Math.Exp', floor: 'Math.Floor', ceiling: 'Math.Ceiling', round: 'Math.Round',
+                'int': '(int)', sign: 'Math.Sign',
                 random: 'rnd.Next', toint: 'Convert.ToInt32', toreal: 'Convert.ToDouble', tostring: 'Convert.ToString'};
             const l = name.toLowerCase();
             if (l === 'len') {
@@ -155,6 +157,7 @@ export const generate = (lang, program) => {
     let syms = {};
 
     const expr = (src) => {
+        // eslint-disable-next-line complexity
         const walk = (n) => {
             switch (n.k) {
                 case 'num': return String(n.v);
@@ -270,6 +273,7 @@ export const generate = (lang, program) => {
     const open = (head, ind) => emit(ind, lang === 'python' ? `${head}:` : `${head} {`);
     const close = (ind) => lang !== 'python' && emit(ind, '}');
 
+    // eslint-disable-next-line complexity
     const stmt = (b, ind) => {
         switch (b.type) {
             case 'declare': declare(b, ind); break;

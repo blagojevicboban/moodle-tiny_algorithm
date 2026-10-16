@@ -67,8 +67,8 @@ export const linesOf = (b) => (b.type === 'comment' ? wrapText(b.text) : [labelO
 
 const shapeOf = (b) => ({
     declare: 'rect', assign: 'rect', call: 'rect', comment: 'note',
-    input: 'para', output: 'para', if: 'diamond', while: 'diamond', dowhile: 'diamond', for: 'hexagon',
-    return: 'oval',
+    input: 'para', output: 'para', 'if': 'diamond', 'while': 'diamond', dowhile: 'diamond', 'for': 'hexagon',
+    'return': 'oval',
 }[b.type]);
 
 const sizeOf = (b) => {
