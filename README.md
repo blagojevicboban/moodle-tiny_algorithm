@@ -1,132 +1,146 @@
-# Tiny Algorithm – Flowchart Editor (TinyMCE Plugin)
+# Tiny Algorithm - Flowchart Editor for Moodle
 
-**Tiny Algorithm** is a self-contained TinyMCE plugin for Moodle. It lets teachers and students draw algorithms as
-[Flowgorithm](https://www.flowgorithm.org/)-style flowcharts directly in the Moodle text editor, run them step by step,
-import and export Flowgorithm `.fprg` files and generate **Python**, **C**, **Java** or **C#** code – without leaving the editor.
+[![Moodle Plugin CI](https://github.com/blagojevicboban/moodle-tiny_algorithm/actions/workflows/ci.yml/badge.svg)](https://github.com/blagojevicboban/moodle-tiny_algorithm/actions/workflows/ci.yml)
+[![Moodle](https://img.shields.io/badge/Moodle-4.5%20to%205.3-orange.svg)](https://moodle.org)
+[![PHP](https://img.shields.io/badge/PHP-8.2%2B-purple.svg)](https://php.net)
+[![License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
 
-> Status: **alpha**. Developed and tested on Moodle 5.3. This project is inspired by Flowgorithm but is not affiliated with it.
+**Tiny Algorithm** is a TinyMCE plugin for Moodle that lets teachers and students draw algorithms as
+[Flowgorithm](https://www.flowgorithm.org/)-style flowcharts directly in the text editor, run them step by step, import and
+export Flowgorithm `.fprg` files and generate **Python**, **C**, **Java** or **C#** code - without leaving the editor.
 
-## Features
+> Status: **alpha**. Inspired by Flowgorithm, not affiliated with it.
 
-- **Visual Editor**: Build a flowchart from blocks: *Declare, Assign, Input, Output, If, For, While, Do…While, Call, Return,
-  Comment*. Several functions per diagram, undo / redo, and a property panel that checks expressions as you type.
-- **Built-in Interpreter**:
-  - **Run / Step / Stop** with a speed slider, the running block is highlighted on the diagram.
-  - **Console** with input prompts for *Input* blocks.
-  - **Infinite-loop guard** and clear error messages (undeclared variable, division by zero, index out of range).
-  - Flowgorithm-compatible rules: variable names are case insensitive, one *Declare* block may list several names (`a, b, p`),
-      arrays with `name[index]`, user functions (also recursive) and common built-in functions.
-- **Readable Comments**: Long and multi-line comments are wrapped inside the comment block.
-- **Variable Watch**: A table with the current value of every variable while the algorithm runs or is stepped through;
-  changed values are highlighted and long arrays are shortened.
-- **Zoom**: **−**, **+**, **100%** and **Fit** buttons, or **Ctrl + mouse wheel** to zoom around the pointer.
-- **Flowgorithm Import / Export**: Open and save real `.fprg` files. Unsupported elements are reported as warnings instead of
-  being silently dropped.
-- **Code Generation**: Copy or download the diagram as Python, C, Java or C#. The generated C# is compiled and run by the
-  tests and gives the same output as the interpreter.
-- **Editable Images**: The diagram is inserted as an SVG image. The model is stored in the image itself
-  (`data-algorithm` attribute and SVG metadata), so **double-clicking the image re-opens it in the editor**. Moodle's HTML
-  purifier keeps the attribute and TinyMCE stores the SVG as a normal file.
-- **Per-diagram Options**: **Interactive** (readers can run it), **Show generated code** and **Show variable watch**. Turn code
-  and watch off, for example, in quiz questions that would otherwise reveal the answer.
-- **Interactive Option**: Tick **Interactive** in the dialog so that readers can run the diagram themselves
-  (needs the companion filter below).
-- **Languages**: English and Serbian (Latin).
-- **Privacy Compliant**: Implements the Moodle Privacy API (null provider – no personal data stored).
+## ✨ Features
 
-## Related Plugins
+| Feature | Description |
+|---------|-------------|
+| 🧱 **Visual Editor** | Declare, Assign, Input, Output, If, For, While, Do…While, Call, Return, Comment; several functions, undo / redo |
+| ▶️ **Interpreter** | Run / Step / Stop with a speed slider, the running block is highlighted, console with input prompts |
+| 🛡️ **Safe Execution** | Infinite-loop guard and clear errors (undeclared variable, division by zero, index out of range) |
+| 🔍 **Variable Watch** | Current value of every variable while stepping, changed values highlighted, long arrays shortened |
+| 🔎 **Zoom** | **−**, **+**, **100%**, **Fit** buttons or **Ctrl + mouse wheel** |
+| 📂 **Flowgorithm Files** | Import and export real `.fprg` files; unsupported elements are reported, not silently dropped |
+| 💻 **Code Generation** | Python, C, Java and C#; the C# output is compiled and run by the tests |
+| 🖼️ **Editable Images** | The diagram is a normal SVG image that stores its model - double-click it to edit again |
+| ⚙️ **Per-diagram Options** | *Interactive*, *Show generated code*, *Show variable watch* (turn code off in quiz questions) |
+| 🌐 **Languages** | English and Serbian (Latin) |
+| 🔒 **Privacy** | GDPR compliant (Privacy API, no personal data stored) |
 
-- **[qtype_algorithm](https://github.com/blagojevicboban/moodle-qtype_algorithm)** – a quiz question type in which the student
-  draws the algorithm with this editor (manual grading).
-- **[filter_algorithm](https://github.com/blagojevicboban/moodle-filter_algorithm)** – Algorithm viewer: turns diagrams
-  marked *Interactive* into a diagram with **Run / Step / Reset** buttons for readers. The execution happens in the reader's
-  browser. It reuses the `runner`, `render` and `model` modules of this plugin, so install this plugin first.
+## 📋 Requirements
 
-## Compatibility
+- **Moodle**: 4.5 LTS or newer (4.5, 5.0, 5.1, 5.2 and 5.3 tested)
+- **PHP**: 8.2+
+- **Editor**: TinyMCE (the default editor)
+- **Database**: MySQL, MariaDB or PostgreSQL (the plugin has no tables)
 
-| Moodle Version   | Status                                  |
-|------------------|-----------------------------------------|
-| Moodle 5.0 – 5.3 | ✅ Tested                               |
-| Moodle 4.5 LTS   | ✅ Tested                               |
-| Moodle < 4.5     | ❌ Not supported (requires Moodle 4.5+) |
+## 🔌 Related Plugins
 
-**PHP**: whatever your Moodle version requires (tested with PHP 8.3).
+| Plugin | Purpose |
+|--------|---------|
+| [filter_algorithm](https://github.com/blagojevicboban/moodle-filter_algorithm) | Gives readers **Run / Step / Reset** on diagrams marked *Interactive* |
+| [qtype_algorithm](https://github.com/blagojevicboban/moodle-qtype_algorithm) | Quiz question type where the student draws the algorithm |
 
-## Installation
+Both depend on this plugin, so install it first.
 
-1. Place the plugin folder in `lib/editor/tiny/plugins/algorithm` (Moodle 5.0) or
-   `public/lib/editor/tiny/plugins/algorithm` (Moodle 5.1 and later).
-2. Log in to Moodle as an administrator.
-3. Navigate to **Site administration → Notifications** to complete the installation
-   (or run `php admin/cli/upgrade.php`).
-4. The **Algorithm** button appears in the *advanced* toolbar group and under **Insert → Algorithm…** in TinyMCE.
-   To move it, edit the toolbar under **Site administration → Plugins → Text editors → TinyMCE editor → General settings**.
+## 🚀 Installation
 
-The compiled AMD modules are included in `amd/build`.
-
-## Usage
-
-1. Open a TinyMCE editor (e.g. a Page resource, course summary or forum post).
-2. Click the **Algorithm** button (or **Insert → Algorithm…**).
-3. Click a **+** between blocks to insert a block, click a block to edit its properties, use **Up / Down / Delete** to arrange.
-4. Use **Run** or **Step** to test the algorithm, or **Import .fprg** to load a Flowgorithm file.
-5. Optionally tick **Interactive**, then click **Insert**. To edit later, double-click the image in the editor.
-
-**Expressions** follow Flowgorithm: `+ - * / ^ mod`, comparisons `= <> < <= > >=`, logic `and or not`, string join `&`,
-and functions such as `Sqrt`, `Abs`, `Floor`, `Ceiling`, `Round`, `Len`, `ToInt`, `ToReal`, `ToString`, `Random`.
-
-## Permissions
-
-The plugin uses the following capability:
-
-- `tiny/algorithm:viewplugin`: Controls who sees the **Algorithm** button in the editor.
-
-**Default roles with access**: Manager, Teacher, Editing Teacher, Student.
-
-## Building from Source
-
-If you modify the JavaScript source files in `amd/src`, rebuild the AMD modules from the Moodle root:
-
+### Via Git
 ```bash
-npx grunt amd --root=public/lib/editor/tiny/plugins/algorithm
+cd /path/to/moodle/public/lib/editor/tiny/plugins     # Moodle 5.1+; use lib/editor/tiny/plugins before 5.1
+git clone https://github.com/blagojevicboban/moodle-tiny_algorithm.git algorithm
+php admin/cli/upgrade.php
 ```
 
-Moodle's ESLint rules still report style issues (JSDoc, line length) for this plugin, so the build currently needs `--force`.
+### Via Download
+1. Download the [latest release](https://github.com/blagojevicboban/moodle-tiny_algorithm/releases)
+2. Extract to `lib/editor/tiny/plugins/algorithm` (`public/lib/...` in Moodle 5.1+)
+3. Visit Site Administration → Notifications
 
-## Tests
+The **Algorithm** button appears in the *advanced* toolbar group and under **Insert → Algorithm…**. To move it, edit the toolbar
+under Site administration → Plugins → Text editors → TinyMCE editor → General settings. The compiled AMD modules are included
+in `amd/build`.
 
-The parser, interpreter, code generator, `.fprg` import / export and renderer have Node tests (no dependencies):
+## 📖 Usage
+
+### For Teachers and Students
+
+1.  **Open the editor**: In any TinyMCE field (Page, course summary, forum post…) click **Algorithm** (or **Insert → Algorithm…**).
+2.  **Build the flowchart**:
+    -   Click a **+** between blocks to insert a block.
+    -   Click a block to edit its properties; use **Up / Down / Delete** to arrange.
+3.  **Test it**: **Run** or **Step**; the console asks for *Input* values and the variable watch shows the state.
+4.  **Import / Export**: **Import .fprg** loads a Flowgorithm file, **Export** saves one.
+5.  **Insert**: Optionally tick **Interactive**, then click **Insert**. Double-click the image later to edit it.
+
+### Expressions
+
+Follow Flowgorithm: `+ - * / ^ mod`, comparisons `= <> < <= > >=`, logic `and or not`, string join `&`, and functions such as
+`Sqrt`, `Abs`, `Floor`, `Ceiling`, `Round`, `Len`, `ToInt`, `ToReal`, `ToString`, `Random`. Variable names are case insensitive,
+one *Declare* block may list several names (`a, b, p`), arrays use `name[index]`, user functions may be recursive.
+
+## 🔑 Permissions
+
+| Capability | Purpose | Default roles |
+|------------|---------|---------------|
+| `tiny/algorithm:viewplugin` | Shows the **Algorithm** button in the editor | Manager, Teacher, Editing Teacher, Student |
+
+## 🛠️ Development
 
 ```bash
+# Rebuild AMD modules after changing amd/src (from the Moodle root)
+npx grunt amd --root=public/lib/editor/tiny/plugins/algorithm
+
+# Run the Node tests (parser, interpreter, code generator, .fprg import / export, renderer)
 node --import ./tests/register.mjs --test "tests/*.test.mjs"
 ```
 
-The Python and C# generators are also checked by running the generated code (C# needs the .NET SDK and is skipped when `dotnet`
-is not installed). The C and Java output is generated but not compiled by the tests.
+The Python and C# generators are checked by running the generated code (C# needs the .NET SDK and is skipped without `dotnet`).
+C and Java output is generated but not compiled by the tests.
 
-## Known Limitations
+## 📁 Structure
+
+```
+lib/editor/tiny/plugins/algorithm/
+├── amd/
+│   ├── src/          # JavaScript modules (model, parser, interpreter, layout, render, codegen, editor, runner…)
+│   └── build/        # Compiled modules
+├── classes/          # plugininfo, privacy provider
+├── db/               # Capabilities
+├── lang/             # en, sr_lt
+├── tests/            # Node tests
+├── styles.css
+└── version.php       # Plugin metadata
+```
+
+## ⚠️ Known Limitations
 
 - Variable names are case insensitive in the interpreter, but not in the generated Python / C / Java / C# code.
-- Only the editor dialog, saving, re-opening, the reader view and zoom were verified in a browser. Arrays, functions and
-  `.fprg` import were verified with the Node tests and with real Flowgorithm files, not inside the Moodle dialog.
+- Arrays, functions and `.fprg` import are verified by the Node tests and real Flowgorithm files, not inside the Moodle dialog.
 
-## Technical Requirements
+## 🌍 Languages
 
-- Moodle 4.5 or higher (4.5 and 5.0 – 5.3 tested)
-- TinyMCE editor enabled (standard in Moodle 5)
-- Node.js 20.6+ (for running the tests and for building AMD modules if you modify the source)
+- 🇬🇧 English
+- 🇷🇸 Srpski (Serbian, Latin)
 
-## Changelog
+## 📝 Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for version history.
+See [CHANGELOG.md](CHANGELOG.md).
 
-## License
+## 📄 License
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+GNU GPL v3 or later - see [LICENSE](LICENSE).
 
-See [LICENSE](LICENSE) for details.
+## 👤 Author
+
+**Boban Blagojević**  
+[GitHub](https://github.com/blagojevicboban)
+
+## 🙏 Credits
+
+- [Flowgorithm](https://www.flowgorithm.org/) - the flowchart style and `.fprg` file format that inspired this plugin
+- [TinyMCE](https://www.tiny.cloud/) - the editor it extends
 
 ---
 
-© 2026 [Boban Blagojević](https://github.com/blagojevicboban)
+Made with ❤️ for teaching programming
