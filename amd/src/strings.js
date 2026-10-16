@@ -39,6 +39,7 @@ export const STR = {
         'b.for': 'Za', 'b.while': 'Dok', 'b.dowhile': 'Radi … dok', 'b.call': 'Poziv', 'b.return': 'Povratak',
         'b.comment': 'Komentar',
     },
+    // eslint-disable-next-line camelcase
     sr_cr: {
         reset: 'Ресетуј', showcode: 'Прикажи код', hidecode: 'Сакриј код', variables: 'Промјенљиве',
         showwatch: 'Прикажи промјенљиве', hidewatch: 'Сакриј промјенљиве',
