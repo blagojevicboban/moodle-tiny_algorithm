@@ -26,6 +26,6 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'tiny_algorithm';
 $plugin->version   = 2026101800;
-$plugin->requires  = 2025041400; // Moodle 5.0.
+$plugin->requires  = 2024100700; // Moodle 4.5.
 $plugin->maturity  = MATURITY_ALPHA;
 $plugin->release   = '0.3.0';
