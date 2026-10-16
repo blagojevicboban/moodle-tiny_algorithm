@@ -24,7 +24,7 @@ export Flowgorithm `.fprg` files and generate **Python**, **C**, **Java** or **C
 | 💻 **Code Generation** | Python, C, Java and C#; the C# output is compiled and run by the tests |
 | 🖼️ **Editable Images** | The diagram is a normal SVG image that stores its model - double-click it to edit again |
 | ⚙️ **Per-diagram Options** | *Interactive*, *Show generated code*, *Show variable watch* (turn code off in quiz questions) |
-| 🌐 **Languages** | English and Serbian (Latin) |
+| 🌐 **Languages** | English, Serbian Latin and Serbian Cyrillic |
 | 🔒 **Privacy** | GDPR compliant (Privacy API, no personal data stored) |
 
 ## 🖼️ Screenshots
@@ -116,7 +116,7 @@ lib/editor/tiny/plugins/algorithm/
 │   └── build/        # Compiled modules
 ├── classes/          # plugininfo, privacy provider
 ├── db/               # Capabilities
-├── lang/             # en, sr_lt
+├── lang/             # en, sr_lt, sr_cr
 ├── tests/            # Node tests
 ├── styles.css
 └── version.php       # Plugin metadata
@@ -130,7 +130,8 @@ lib/editor/tiny/plugins/algorithm/
 ## 🌍 Languages
 
 - 🇬🇧 English
-- 🇷🇸 Srpski (Serbian, Latin)
+- 🇷🇸 Srpski (Serbian, Latin: sr_lt)
+- 🇷🇸 Српски (Serbian, Cyrillic: sr_cr)
 
 ## 📝 Changelog
 

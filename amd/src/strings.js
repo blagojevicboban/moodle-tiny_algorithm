@@ -39,10 +39,42 @@ export const STR = {
         'b.for': 'Za', 'b.while': 'Dok', 'b.dowhile': 'Radi … dok', 'b.call': 'Poziv', 'b.return': 'Povratak',
         'b.comment': 'Komentar',
     },
+    sr_cr: {
+        reset: 'Ресетуј', showcode: 'Прикажи код', hidecode: 'Сакриј код', variables: 'Промјенљиве',
+        showwatch: 'Прикажи промјенљиве', hidewatch: 'Сакриј промјенљиве',
+        watchempty: 'Покрените алгоритам да видите промјенљиве.', zoomin: 'Увећај', zoomout: 'Умањи',
+        zoomreset: 'Врати зум на 100%', fit: 'Прилагоди', undo: 'Поништи', redo: 'Понови', run: 'Покрени', step: 'Корак',
+        stop: 'Заустави', addfn: '+ Функција', delfn: '− Функција', 'import': 'Увези .fprg', 'export': 'Извези .fprg',
+        copy: 'Копирај', download: 'Преузми', speed: 'Брзина', console: 'Конзола', code: 'Код', 'function': 'Функција',
+        name: 'Назив', params: 'Параметри (a: Integer, b: Real)', returns: 'Тип резултата',
+        hint: 'Кликните + да уметнете блок, кликните блок да га измијените.', up: 'Горе', down: 'Доље', 'delete': 'Обриши',
+        imported: 'Flowgorithm фајл је увезен.', stopped: 'Заустављено.', finished: 'Програм је завршен.', error: 'Грешка',
+        'f.name': 'Назив', 'f.varType': 'Тип', 'f.size': 'Величина низа (празно = једна вриједност)', 'f.target': 'Промјенљива',
+        'f.expr': 'Израз', 'f.newline': 'Нови ред', 'f.cond': 'Услов', 'f.variable': 'Промјенљива', 'f.start': 'Од',
+        'f.end': 'До', 'f.step': 'Корак', 'f.text': 'Текст', 'b.declare': 'Декларација', 'b.assign': 'Додјела',
+        'b.input': 'Унос', 'b.output': 'Испис', 'b.if': 'Ако', 'b.for': 'За', 'b.while': 'Док', 'b.dowhile': 'Ради … док',
+        'b.call': 'Позив', 'b.return': 'Повратак', 'b.comment': 'Коментар',
+    },
+};
+
+/**
+ * UI language code: an explicit Moodle language such as sr_cr wins (html lang is just "sr" for both Serbian scripts),
+ * then the language Moodle reports to JavaScript, then the document language.
+ *
+ * @param {string} [lang] language requested by the caller
+ * @returns {string} key of STR
+ */
+const resolve = (lang) => {
+    const moodleLang = (typeof window !== 'undefined' && window.M && window.M.cfg && window.M.cfg.language) || '';
+    const docLang = (typeof document !== 'undefined' && document.documentElement.lang) || '';
+    const raw = String(lang && lang.includes('_') ? lang : (moodleLang || lang || docLang || 'en')).toLowerCase();
+    if (raw === 'sr_cr') {
+        return 'sr_cr';
+    }
+    return raw.slice(0, 2);
 };
 
 export const t = (key, lang) => {
-    const code = String(lang || (typeof document !== 'undefined' && document.documentElement.lang) || 'en').slice(0, 2);
-    const dict = STR[code] || STR.en;
+    const dict = STR[resolve(lang)] || STR.en;
     return dict[key] ?? STR.en[key] ?? key;
 };
