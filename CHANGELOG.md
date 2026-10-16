@@ -9,6 +9,7 @@
 - Flowgorithm `.fprg` import and export (real file format).
 - Code generation for Python, C and Java.
 - Zoom (−, +, 100%, Fit, Ctrl + mouse wheel).
+- Long and multi-line comment blocks are wrapped.
 - Diagrams are inserted as SVG images that keep their model (`data-algorithm`) and can be edited again by double-click.
 - **Interactive** option (`data-algorithm-run`) for the companion filter `filter_algorithm`.
 - English and Serbian (Latin) strings.

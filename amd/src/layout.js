@@ -32,6 +32,30 @@ export const labelOf = (b) => {
 
 const textW = (s) => Math.ceil(String(s).length * CHAR_W);
 
+const LINE_H = 16;
+const WRAP_CHARS = 44;
+
+/** Split text into lines: keep explicit line breaks and wrap long lines at word boundaries. */
+export const wrapText = (text, max = WRAP_CHARS) => {
+    const out = [];
+    for (const para of String(text).split(/\r?\n/)) {
+        let line = '';
+        for (const word of para.split(/\s+/).filter(Boolean)) {
+            if (line && line.length + 1 + word.length > max) {
+                out.push(line);
+                line = word;
+            } else {
+                line = line ? `${line} ${word}` : word;
+            }
+        }
+        out.push(line);
+    }
+    return out.length ? out : [''];
+};
+
+/** Text lines drawn inside a block: comments wrap, all other blocks use a single line. */
+export const linesOf = (b) => (b.type === 'comment' ? wrapText(b.text) : [labelOf(b)]);
+
 const shapeOf = (b) => ({
     declare: 'rect', assign: 'rect', call: 'rect', comment: 'note',
     input: 'para', output: 'para', if: 'diamond', while: 'diamond', dowhile: 'diamond', for: 'hexagon',
@@ -39,6 +63,13 @@ const shapeOf = (b) => ({
 }[b.type]);
 
 const sizeOf = (b) => {
+    if (b.type === 'comment') {
+        const lines = linesOf(b);
+        return {
+            w: Math.max(100, Math.max(...lines.map(textW)) + 32),
+            h: Math.max(BOX_H, lines.length * LINE_H + 20),
+        };
+    }
     const shape = shapeOf(b);
     const tw = textW(labelOf(b));
     switch (shape) {
@@ -92,7 +123,7 @@ function measureBlock(b) {
 }
 
 const shape = (out, b, cx, y, s) => out.push({
-    t: 'shape', shape: shapeOf(b), x: cx - s.w / 2, y, w: s.w, h: s.h, text: labelOf(b), id: b.id, type: b.type,
+    t: 'shape', shape: shapeOf(b), x: cx - s.w / 2, y, w: s.w, h: s.h, text: labelOf(b), lines: linesOf(b), id: b.id, type: b.type,
 });
 
 const drawList = (out, list, cx, y) => {

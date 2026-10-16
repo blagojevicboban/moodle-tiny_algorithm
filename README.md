@@ -16,6 +16,7 @@ import and export Flowgorithm `.fprg` files and generate **Python**, **C** or **
   - **Infinite-loop guard** and clear error messages (undeclared variable, division by zero, index out of range).
   - Flowgorithm-compatible rules: variable names are case insensitive, one *Declare* block may list several names (`a, b, p`),
       arrays with `name[index]`, user functions (also recursive) and common built-in functions.
+- **Readable Comments**: Long and multi-line comments are wrapped inside the comment block.
 - **Zoom**: **−**, **+**, **100%** and **Fit** buttons, or **Ctrl + mouse wheel** to zoom around the pointer.
 - **Flowgorithm Import / Export**: Open and save real `.fprg` files. Unsupported elements are reported as warnings instead of
   being silently dropped.
@@ -99,7 +100,6 @@ the tests.
 ## Known Limitations
 
 - Variable names are case insensitive in the interpreter, but not in the generated Python / C / Java code.
-- Long comment blocks are drawn on one line.
 - Only the editor dialog, saving, re-opening, the reader view and zoom were verified in a browser. Arrays, functions and
   `.fprg` import were verified with the Node tests and with real Flowgorithm files, not inside the Moodle dialog.
 

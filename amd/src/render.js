@@ -39,8 +39,13 @@ const shapeSvg = (it) => {
         default:
             body = `<rect x="${x}" y="${y}" width="${w}" height="${h}" ${attrs}/>`;
     }
-    const text = `<text x="${x + w / 2}" y="${y + h / 2}" text-anchor="middle" dominant-baseline="central" ` +
-        `font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#111827">${esc(it.text)}</text>`;
+    const lines = it.lines && it.lines.length > 1 ? it.lines : null;
+    const attrsText = 'text-anchor="middle" dominant-baseline="central" font-family="Segoe UI, Arial, sans-serif" ' +
+        'font-size="13" fill="#111827"';
+    const text = lines
+        ? `<text x="${x + w / 2}" ${attrsText}>` + lines.map((ln, i) =>
+            `<tspan x="${x + w / 2}" y="${y + h / 2 + (i - (lines.length - 1) / 2) * 16}">${esc(ln)}</tspan>`).join('') + '</text>'
+        : `<text x="${x + w / 2}" y="${y + h / 2}" ${attrsText}>${esc(it.text)}</text>`;
     return `<g class="alg-node" data-id="${esc(it.id)}">${body}${text}</g>`;
 };
 

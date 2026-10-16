@@ -67,3 +67,17 @@ test('loop bodies are direct children (real Flowgorithm format) and survive a ro
     assert.doesNotMatch(xml, /<for[^>]*>s*<body>/);
     assert.equal(importFprg(xml).program.functions[0].body.find((b) => b.type === 'for').body.length, 1);
 });
+
+test('long and multi-line comments are wrapped into several lines', async() => {
+    const {wrapText, layoutFunction} = await import('../amd/src/layout.js');
+    const lines = wrapText('Kreirati niz od n elemenata Fibonacijevog niza (korisnik unosi n)\r\n0,1,1,2,3,5,8,13,21,34,55');
+    assert.ok(lines.length >= 3, `expected wrapping, got ${JSON.stringify(lines)}`);
+    assert.ok(lines.every((ln) => ln.length <= 44), JSON.stringify(lines));
+    const {createProgram, createBlock} = await import('../amd/src/model.js');
+    const p = createProgram();
+    p.functions[0].body = [createBlock('comment', {text: lines.join(' ') + ' ' + lines.join(' ')})];
+    const node = layoutFunction(p.functions[0]).items.find((it) => it.type === 'comment');
+    assert.ok(node.lines.length > 1);
+    assert.ok(node.h > 40, 'tall comment box');
+    assert.ok(node.w < 500, `comment box width ${node.w}`);
+});
