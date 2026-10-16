@@ -27,6 +27,15 @@ export Flowgorithm `.fprg` files and generate **Python**, **C**, **Java** or **C
 | 🌐 **Languages** | English and Serbian (Latin) |
 | 🔒 **Privacy** | GDPR compliant (Privacy API, no personal data stored) |
 
+## 🖼️ Screenshots
+
+| | |
+|---|---|
+| **Editor** | **Reader view (Run, code, variables)** |
+| ![Editor](docs/screenshots/editor.png) | ![Reader view](docs/screenshots/reader-view.png) |
+| **Quiz: analyse an algorithm** | **Quiz: draw an algorithm** |
+| ![Quiz analyse](docs/screenshots/quiz-analyse.png) | ![Quiz draw](docs/screenshots/quiz-draw.png) |
+
 ## 📋 Requirements
 
 - **Moodle**: 4.5 LTS or newer (4.5, 5.0, 5.1, 5.2 and 5.3 tested)
