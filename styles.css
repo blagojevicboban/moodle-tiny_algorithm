@@ -1,0 +1,32 @@
+.alg-editor { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.alg-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+.alg-toolbar .alg-fnselect { width: auto; }
+.alg-toolbar .alg-sep { width: 1px; align-self: stretch; background: #ced4da; margin: 0 .25rem; }
+.alg-toolbar .alg-speed { width: 90px; }
+.alg-main { display: flex; gap: .75rem; min-height: 0; }
+.alg-canvas { position: relative; flex: 1 1 auto; height: 540px; overflow: auto; background: #fff; border: 1px solid #ced4da;
+    border-radius: .25rem; outline: none; }
+.alg-canvas svg { display: block; margin: 0 auto; }
+.alg-side { flex: 0 0 320px; display: flex; flex-direction: column; gap: .5rem; height: 540px; overflow: auto; }
+.alg-props, .alg-pane { border: 1px solid #dee2e6; border-radius: .25rem; padding: .5rem; background: #f8f9fa; }
+.alg-field { margin-bottom: .4rem; }
+.alg-field label { font-size: .8rem; margin-bottom: .1rem; }
+.alg-actions { display: flex; gap: .3rem; flex-wrap: wrap; }
+.alg-node { cursor: pointer; }
+.alg-node:hover > :first-child { filter: brightness(.95); }
+.alg-node.alg-selected > :first-child { stroke: #2563eb; stroke-width: 3; }
+.alg-node.alg-running > :first-child { fill: #fdba74; }
+.alg-slot { cursor: pointer; opacity: .35; }
+.alg-slot:hover, .alg-slot:focus { opacity: 1; outline: none; }
+.alg-palette { position: absolute; z-index: 10; display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: .2rem;
+    padding: .4rem; background: #fff; border: 1px solid #adb5bd; border-radius: .3rem; box-shadow: 0 4px 12px rgba(0, 0, 0, .2); }
+.alg-console { font-family: Consolas, monospace; font-size: .85rem; min-height: 90px; max-height: 180px; overflow: auto;
+    background: #111827; color: #e5e7eb; padding: .4rem; border-radius: .25rem; white-space: pre-wrap; }
+.alg-console .alg-error { color: #fca5a5; }
+.alg-console .alg-info { color: #93c5fd; }
+.alg-console .alg-input { display: inline-block; width: 10rem; background: #1f2937; color: #fff; border-color: #4b5563; }
+.alg-code { max-height: 220px; overflow: auto; margin: 0; font-size: .8rem; background: #fff; border: 1px solid #dee2e6; padding: .4rem; }
+@media (max-width: 900px) {
+    .alg-main { flex-direction: column; }
+    .alg-side { flex-basis: auto; height: auto; }
+}
