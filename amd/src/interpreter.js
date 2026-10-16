@@ -52,7 +52,11 @@ const defaultValue = (type) => ({Integer: 0, Real: 0, String: '', Boolean: false
 
 const fmt = (v) => (typeof v === 'number' && !Number.isInteger(v) ? String(Math.round(v * 1e10) / 1e10) : String(v));
 
-/** Names declared by a declare block ("a, b, p" declares three variables). */
+/**
+ * Names declared by a declare block ("a, b, p" declares three variables).
+ *
+ * @param {Object} b declare block
+ */
 const declaredNames = (b) => String(b.name).split(',').map((s) => s.trim()).filter(Boolean);
 
 /**
@@ -67,6 +71,13 @@ const snapshot = (env) => Object.values(env || {}).map((v) => ({
 
 const hasText = (s) => s !== undefined && s !== null && String(s).trim() !== '';
 
+/**
+ * Run a program as a generator of events (step, output, input request, end).
+ *
+ * @param {Object} program program model
+ * @param {Object} options options
+ * @param {number} [options.maxSteps] step limit
+ */
 export function* execute(program, {maxSteps = 1000000} = {}) {
     const cache = new Map();
     const ast = (s) => {
@@ -125,6 +136,12 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         }
     };
 
+    /**
+     * Evaluate an expression node.
+     *
+     * @param {Object} n AST node
+     * @param {Object} env environment
+     */
     function* evalNode(n, env) {
         switch (n.k) {
             case 'num':
@@ -171,6 +188,13 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
     }
     const evalStr = (s, env) => evalNode(ast(s), env);
 
+    /**
+     * Store a value in a variable or array element.
+     *
+     * @param {string} targetStr assignment target
+     * @param {*} value value to store
+     * @param {Object} env environment
+     */
     function* assign(targetStr, value, env) {
         const t = ast(targetStr);
         if (t.k === 'var') {
@@ -191,6 +215,12 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         return {event: 'step', id, vars: snapshot(env)};
     };
 
+    /**
+     * Run a list of blocks in order.
+     *
+     * @param {Object[]} list blocks
+     * @param {Object} env environment
+     */
     function* runList(list, env) {
         for (const b of list) {
             const r = yield* runBlock(b, env);
@@ -201,6 +231,12 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         return null;
     }
 
+    /**
+     * Run an input block (asks the host for a value).
+     *
+     * @param {Object} b input block
+     * @param {Object} env environment
+     */
     function* runInput(b, env) {
         const t = ast(b.target);
         const decl = lookup(env, t.name);
@@ -217,6 +253,12 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         yield* assign(b.target, val, env);
     }
 
+    /**
+     * Run a for loop block.
+     *
+     * @param {Object} b for block
+     * @param {Object} env environment
+     */
     function* runFor(b, env) {
         const start = yield* evalStr(b.start, env);
         const end = yield* evalStr(b.end, env);
@@ -238,6 +280,12 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         return null;
     }
 
+    /**
+     * Run a single block.
+     *
+     * @param {Object} b block
+     * @param {Object} env environment
+     */
     function* runBlock(b, env) {
         yield tick(b.id, env);
         switch (b.type) {
@@ -299,6 +347,12 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         return null;
     }
 
+    /**
+     * Call a user function.
+     *
+     * @param {Object} fn function model
+     * @param {Array} args argument values
+     */
     function* callFunction(fn, args) {
         if (args.length !== fn.params.length) {
             throw new Error(`Function '${fn.name}' expects ${fn.params.length} argument(s)`);

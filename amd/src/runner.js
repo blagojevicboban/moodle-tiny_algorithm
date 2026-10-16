@@ -82,8 +82,8 @@ export class AlgorithmRunner {
             this.codeToggle = el('button', {type: 'button', class: 'btn btn-secondary btn-sm alg-code-toggle',
                 onclick: () => this.toggleCode()});
             this.bar.append(this.codeToggle);
-            const close = el('button', {type: 'button', class: 'btn btn-link btn-sm alg-code-close', onclick: () => this.toggleCode(),
-                title: this.t('hidecode'), 'aria-label': this.t('hidecode')}, '×');
+            const close = el('button', {type: 'button', class: 'btn btn-link btn-sm alg-code-close',
+                onclick: () => this.toggleCode(), title: this.t('hidecode'), 'aria-label': this.t('hidecode')}, '×');
             this.codePane = el('div', {class: 'alg-view-code'},
                 el('div', {class: 'alg-code-bar'}, el('strong', {}, this.t('code')), this.codeSelect,
                     btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent)), close),

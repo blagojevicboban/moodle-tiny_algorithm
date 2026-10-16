@@ -40,7 +40,11 @@ export const createProgram = (name = 'Program') => ({
     functions: [{name: 'Main', params: [], returnType: null, body: []}],
 });
 
-/** Child statement lists of a block as [propName, list] pairs. */
+/**
+ * Child statement lists of a block as [propName, list] pairs.
+ *
+ * @param {Object} block block
+ */
 export const childLists = (block) => {
     switch (block.type) {
         case 'if': return [['then', block.then], ['else', block.else]];
@@ -60,22 +64,32 @@ export const walk = (list, fn) => {
     }
 };
 
-/** Find a block by id; returns {block, list, index} or null. */
+/**
+ * Find a block by id; returns {block, list, index} or null.
+ *
+ * @param {Object} program program model
+ * @param {string} id block id
+ */
 export const findBlock = (program, id) => {
     let found = null;
+    const visit = (b, list) => {
+        if (b.id === id) {
+            found = {block: b, list, index: list.indexOf(b)};
+        }
+    };
     for (const f of program.functions) {
-        walk(f.body, (b, list) => {
-            if (b.id === id) {
-                found = {block: b, list, index: list.indexOf(b)};
-            }
-        });
+        walk(f.body, visit);
     }
     return found;
 };
 
 export const cloneProgram = (program) => JSON.parse(JSON.stringify(program));
 
-/** Serialize for storage in an HTML attribute (UTF-8 safe base64). */
+/**
+ * Serialize for storage in an HTML attribute (UTF-8 safe base64).
+ *
+ * @param {Object} program program model
+ */
 export const serialize = (program) => {
     const json = JSON.stringify(program);
     const bytes = new TextEncoder().encode(json);

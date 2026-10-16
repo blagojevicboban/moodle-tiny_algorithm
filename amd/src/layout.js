@@ -35,7 +35,12 @@ const textW = (s) => Math.ceil(String(s).length * CHAR_W);
 const LINE_H = 16;
 const WRAP_CHARS = 44;
 
-/** Split text into lines: keep explicit line breaks and wrap long lines at word boundaries. */
+/**
+ * Split text into lines: keep explicit line breaks and wrap long lines at word boundaries.
+ *
+ * @param {string} text text to wrap
+ * @param {number} max maximum characters per line
+ */
 export const wrapText = (text, max = WRAP_CHARS) => {
     const out = [];
     for (const para of String(text).split(/\r?\n/)) {
@@ -53,7 +58,11 @@ export const wrapText = (text, max = WRAP_CHARS) => {
     return out.length ? out : [''];
 };
 
-/** Text lines drawn inside a block: comments wrap, all other blocks use a single line. */
+/**
+ * Text lines drawn inside a block: comments wrap, all other blocks use a single line.
+ *
+ * @param {Object} b block
+ */
 export const linesOf = (b) => (b.type === 'comment' ? wrapText(b.text) : [labelOf(b)]);
 
 const shapeOf = (b) => ({
@@ -93,6 +102,11 @@ const measureList = (list) => {
     return {l, r, h};
 };
 
+/**
+ * Measure the left/right extent and height of a block.
+ *
+ * @param {Object} b block
+ */
 function measureBlock(b) {
     const s = sizeOf(b);
     switch (b.type) {
@@ -139,6 +153,14 @@ const drawList = (out, list, cx, y) => {
     return cy + G - y;
 };
 
+/**
+ * Draw a block and return the y below it.
+ *
+ * @param {Array} out SVG fragments collected so far
+ * @param {Object} b block
+ * @param {number} cx centre x
+ * @param {number} y top y
+ */
 function drawBlock(out, b, cx, y) {
     const m = measureBlock(b);
     const s = m.s;

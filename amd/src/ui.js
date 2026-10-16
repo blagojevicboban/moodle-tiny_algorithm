@@ -21,7 +21,11 @@ const svgToDataUri = (svg) => {
 
 const escapeAttr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
-/** Load the model stored in an existing algorithm image (attribute first, embedded SVG metadata second). */
+/**
+ * Load the model stored in an existing algorithm image (attribute first, embedded SVG metadata second).
+ *
+ * @param {HTMLImageElement} img algorithm image
+ */
 const loadModel = (img) => {
     try {
         if (img.hasAttribute(dataAttribute)) {
@@ -36,7 +40,8 @@ const loadModel = (img) => {
 
 const imageHtml = (program, svg, interactive, showCode, showWatch) => {
     const m = /width="(\d+)" height="(\d+)"/.exec(svg);
-    return `<img src="${svgToDataUri(svg)}" ${dataAttribute}="${serialize(program)}"${interactive ? ` ${runAttribute}="1"` : ''}${showCode ? '' : ` ${codeAttribute}="0"`}${showWatch ? '' : ` ${watchAttribute}="0"`} ` +
+    return `<img src="${svgToDataUri(svg)}" ${dataAttribute}="${serialize(program)}"${interactive ? ` ${runAttribute}="1"` : ''}` +
+        `${showCode ? '' : ` ${codeAttribute}="0"`}${showWatch ? '' : ` ${watchAttribute}="0"`} ` +
         `alt="${escapeAttr(`Algorithm: ${program.name || ''}`)}" width="${m[1]}" height="${m[2]}">`;
 };
 

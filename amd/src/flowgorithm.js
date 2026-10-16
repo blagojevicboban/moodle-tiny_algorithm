@@ -8,7 +8,8 @@
 import {createBlock, createProgram} from './model';
 
 const ENTITIES = {'&lt;': '<', '&gt;': '>', '&amp;': '&', '&quot;': '"', '&apos;': '\''};
-const unescapeXml = (s) => s.replace(/&(lt|gt|amp|quot|apos);|&#(\d+);/g, (m, n, d) => (d ? String.fromCharCode(Number(d)) : ENTITIES[m]));
+const unescapeXml = (s) => s.replace(
+    /&(lt|gt|amp|quot|apos);|&#(\d+);/g, (m, n, d) => (d ? String.fromCharCode(Number(d)) : ENTITIES[m]));
 const escapeXml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /**
@@ -70,7 +71,9 @@ const importList = (el, warnings) => {
         const a = e.attrs;
         switch (e.name) {
             case 'declare':
-                list.push(createBlock('declare', {name: a.name, varType: a.type || 'Integer', size: isTrue(a.array) ? a.size || '' : ''}));
+                list.push(createBlock('declare', {
+                    name: a.name, varType: a.type || 'Integer', size: isTrue(a.array) ? a.size || '' : '',
+                }));
                 break;
             case 'assign':
                 list.push(createBlock('assign', {target: a.variable, expr: a.expression}));
@@ -151,12 +154,16 @@ const exportList = (list, ind) => {
         switch (b.type) {
             case 'declare': {
                 const arr = String(b.size || '').trim() !== '';
-                out += `${pad}<declare${attrs({name: b.name, type: b.varType, array: arr ? 'True' : 'False', size: arr ? b.size : ''})}/>\n`;
+                out += `${pad}<declare${attrs({
+                    name: b.name, type: b.varType, array: arr ? 'True' : 'False', size: arr ? b.size : '',
+                })}/>\n`;
                 break;
             }
             case 'assign': out += `${pad}<assign${attrs({variable: b.target, expression: b.expr})}/>\n`; break;
             case 'input': out += `${pad}<input${attrs({variable: b.target})}/>\n`; break;
-            case 'output': out += `${pad}<output${attrs({expression: b.expr, newline: b.newline === false ? 'False' : 'True'})}/>\n`; break;
+            case 'output':
+                out += `${pad}<output${attrs({expression: b.expr, newline: b.newline === false ? 'False' : 'True'})}/>\n`;
+                break;
             case 'call': out += `${pad}<call${attrs({expression: b.expr})}/>\n`; break;
             case 'return': out += `${pad}<return${attrs({expression: b.expr || ''})}/>\n`; break;
             case 'comment': out += `${pad}<comment${attrs({text: b.text})}/>\n`; break;
@@ -188,7 +195,8 @@ export const exportFprg = (program) => {
         `    <attribute name="name" value="${escapeXml(program.name || 'Program')}"/>\n  </attributes>\n`;
     for (const f of program.functions) {
         out += `  <function${attrs({name: f.name, type: f.returnType || 'None', variable: ''})}>\n    <parameters>\n` +
-            f.params.map((p) => `      <parameter${attrs({name: p.name, type: p.type, array: p.array ? 'True' : 'False'})}/>\n`).join('') +
+            f.params.map(
+                (p) => `      <parameter${attrs({name: p.name, type: p.type, array: p.array ? 'True' : 'False'})}/>\n`).join('') +
             `    </parameters>\n    <body>\n${exportList(f.body, 3)}    </body>\n  </function>\n`;
     }
     return `${out}</flowgorithm>\n`;

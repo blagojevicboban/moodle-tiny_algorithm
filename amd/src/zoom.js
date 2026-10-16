@@ -30,7 +30,11 @@ export class Zoom {
         return this.el.querySelector('svg');
     }
 
-    /** Unscaled size of the svg, remembered on first use (the editor replaces the svg on every refresh). */
+    /**
+     * Unscaled size of the svg, remembered on first use (the editor replaces the svg on every refresh).
+     *
+     * @param {SVGElement} svg diagram svg
+     */
     base(svg) {
         if (!svg.dataset.bw) {
             svg.dataset.bw = svg.getAttribute('width');

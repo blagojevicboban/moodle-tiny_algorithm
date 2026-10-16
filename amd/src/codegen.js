@@ -13,7 +13,13 @@ const BUILTIN_TYPES = {
 
 const CMP = ['==', '!=', '<', '<=', '>', '>='];
 
-/** Static type of an expression given a symbol table (name -> {type, array}) and function table. */
+/**
+ * Static type of an expression given a symbol table (name -> {type, array}) and function table.
+ *
+ * @param {Object} n AST node
+ * @param {Object} syms symbol table (name -> {type, array})
+ * @param {Object} fns function table
+ */
 const typeOf = (n, syms, fns) => {
     switch (n.k) {
         case 'num': return n.int ? 'Integer' : 'Real';
@@ -44,7 +50,13 @@ const typeOf = (n, syms, fns) => {
     }
 };
 
-/** Flatten string concatenation (& or string +) into parts. */
+/**
+ * Flatten string concatenation (& or string +) into parts.
+ *
+ * @param {Object} n AST node
+ * @param {Object} syms symbol table
+ * @param {Object} fns function table
+ */
 const concatParts = (n, syms, fns) => {
     if (n.k === 'bin' && (n.op === '&' || (n.op === '+' && typeOf(n, syms, fns) === 'String'))) {
         return [...concatParts(n.l, syms, fns), ...concatParts(n.r, syms, fns)];
@@ -72,19 +84,22 @@ const LANGS = {
     },
     c: {
         ext: 'c',
-        and: '&&', or: '||', not: '!', pow: (l, r) => `pow(${l}, ${r})`, div: (l, r, t) => (t === 'Integer' ? `(double)${l} / ${r}` : `${l} / ${r}`),
+        and: '&&', or: '||', not: '!', pow: (l, r) => `pow(${l}, ${r})`,
+        div: (l, r, t) => (t === 'Integer' ? `(double)${l} / ${r}` : `${l} / ${r}`),
         bool: (v) => (v ? '1' : '0'),
         eq: (l, r, op, t) => (t === 'String' ? `strcmp(${l}, ${r}) ${op} 0` : `${l} ${op} ${r}`),
         call: (name, args) => {
             const m = {sqrt: 'sqrt', abs: 'fabs', sin: 'sin', cos: 'cos', tan: 'tan', log: 'log', exp: 'exp', floor: 'floor',
-                ceiling: 'ceil', round: 'round', int: '(int)', len: 'strlen', random: 'rand_below', toint: '(int)', toreal: '(double)'};
+                ceiling: 'ceil', round: 'round', int: '(int)', len: 'strlen', random: 'rand_below', toint: '(int)',
+                toreal: '(double)'};
             const l = name.toLowerCase();
             return l === 'pi' ? 'M_PI' : `${m[l] || name}(${args.join(', ')})`;
         },
     },
     java: {
         ext: 'java',
-        and: '&&', or: '||', not: '!', pow: (l, r) => `Math.pow(${l}, ${r})`, div: (l, r, t) => (t === 'Integer' ? `(double) ${l} / ${r}` : `${l} / ${r}`),
+        and: '&&', or: '||', not: '!', pow: (l, r) => `Math.pow(${l}, ${r})`,
+        div: (l, r, t) => (t === 'Integer' ? `(double) ${l} / ${r}` : `${l} / ${r}`),
         bool: (v) => (v ? 'true' : 'false'),
         concat: (parts) => parts.map((p, i) => (p.type === 'String' || i > 0 ? p.code : `String.valueOf(${p.code})`)).join(' + '),
         eq: (l, r, op, t) => (t === 'String' ? `${op === '!=' ? '!' : ''}${l}.equals(${r})` : `${l} ${op} ${r}`),
@@ -262,7 +277,9 @@ export const generate = (lang, program) => {
             case 'input': inputStmt(b, ind); break;
             case 'output': printStmt(b, ind); break;
             case 'call': emit(ind, `${ex(b.expr)}${lang === 'python' ? '' : ';'}`); break;
-            case 'return': emit(ind, `return${String(b.expr || '').trim() ? ` ${ex(b.expr)}` : ''}${lang === 'python' ? '' : ';'}`); break;
+            case 'return':
+                emit(ind, `return${String(b.expr || '').trim() ? ` ${ex(b.expr)}` : ''}${lang === 'python' ? '' : ';'}`);
+                break;
             case 'comment': emit(ind, `${lang === 'python' ? '#' : '//'} ${b.text}`); break;
             case 'if':
                 open(lang === 'python' ? `if ${ex(b.cond)}` : `if (${ex(b.cond)})`, ind);
@@ -293,7 +310,8 @@ export const generate = (lang, program) => {
                 const step = String(b.step || '1').trim() || '1';
                 const neg = /^-/.test(step);
                 if (lang === 'python') {
-                    open(`for ${b.variable} in range(${ex(b.start)}, ${ex(b.end)} ${neg ? '- 1' : '+ 1'}${step === '1' ? '' : `, ${ex(step)}`})`, ind);
+                    const range = `${ex(b.start)}, ${ex(b.end)} ${neg ? '- 1' : '+ 1'}${step === '1' ? '' : `, ${ex(step)}`}`;
+                    open(`for ${b.variable} in range(${range})`, ind);
                 } else {
                     const decl = syms[b.variable] ? '' : 'int ';
                     open(`for (${decl}${b.variable} = ${ex(b.start)}; ${b.variable} ${neg ? '>=' : '<='} ${ex(b.end)}; ` +
@@ -314,7 +332,8 @@ export const generate = (lang, program) => {
         }
         const tn = TYPE_NAMES[lang];
         const ret = f.returnType ? tn[f.returnType] : 'void';
-        const ps = f.params.map((p) => `${tn[p.type]}${p.array ? (lang === 'java' || lang === 'csharp' ? '[]' : '*') : ''} ${p.name}`).join(', ');
+        const arr = lang === 'java' || lang === 'csharp' ? '[]' : '*';
+        const ps = f.params.map((p) => `${tn[p.type]}${p.array ? arr : ''} ${p.name}`).join(', ');
         if (isMain) {
             return {java: 'public static void main(String[] args)', csharp: 'static void Main()'}[lang] || 'int main(void)';
         }
@@ -376,7 +395,11 @@ export const languages = Object.keys(LANGS);
 export const languageLabels = {python: 'Python', c: 'C', java: 'Java', csharp: 'C#'};
 export const extensionOf = (lang) => LANGS[lang].ext;
 
-/** Convert an expression AST back into source text (used for per-part rendering). */
+/**
+ * Convert an expression AST back into source text (used for per-part rendering).
+ *
+ * @param {Object} n expression AST node
+ */
 export function unparse(n) {
     switch (n.k) {
         case 'num': return String(n.v);

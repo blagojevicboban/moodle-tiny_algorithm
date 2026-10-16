@@ -108,7 +108,8 @@ export class AlgorithmEditor {
         this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent));
         this.dlBtn = btn('download', () => this.exportCode());
         this.tabConsole = el('div', {class: 'alg-pane'}, el('h6', {}, this.t('console')), this.consoleEl);
-        this.tabCode = el('div', {class: 'alg-pane'}, el('h6', {}, this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn), this.codeEl);
+        this.tabCode = el('div', {class: 'alg-pane'},
+            el('h6', {}, this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn), this.codeEl);
         this.watch = new Watch(this.lang);
         this.tabWatch = el('div', {class: 'alg-pane'}, el('h6', {}, this.t('variables')), this.watch.root);
         this.side = el('div', {class: 'alg-side'}, this.props, this.tabConsole, this.tabWatch, this.tabCode);
@@ -158,7 +159,8 @@ export class AlgorithmEditor {
     // ---- Rendering --------------------------------------------------------------------------------------------------------
 
     refresh() {
-        this.fnSelect.replaceChildren(...this.program.functions.map((f, i) => el('option', {value: i, selected: i === this.fnIndex}, f.name)));
+        this.fnSelect.replaceChildren(...this.program.functions.map(
+            (f, i) => el('option', {value: i, selected: i === this.fnIndex}, f.name)));
         const {svg, slots} = renderFunction(this.fn, {editable: !this.running});
         this.slots = slots;
         this.canvas.innerHTML = svg;
@@ -214,7 +216,8 @@ export class AlgorithmEditor {
                 this.field(this.t('name'), 'text', this.fn.name, (v) => this.commit(() => {
                     this.fn.name = v.trim() || this.fn.name;
                 })),
-                this.field(this.t('params'), 'text', this.fn.params.map((p) => `${p.name}: ${p.type}`).join(', '), (v) => this.commit(() => {
+                this.field(this.t('params'), 'text',
+                    this.fn.params.map((p) => `${p.name}: ${p.type}`).join(', '), (v) => this.commit(() => {
                     this.fn.params = v.split(',').map((s) => s.trim()).filter(Boolean).map((s) => {
                         const [name, type] = s.split(':').map((x) => x.trim());
                         return {name, type: type || 'Integer', array: false};
@@ -227,10 +230,12 @@ export class AlgorithmEditor {
             return;
         }
         const b = found.block;
-        const rows = FIELDS[b.type].map(([key, kind]) => this.field(this.t(`f.${key}`), kind, b[key], (v) => this.commit(() => {
+        const rows = FIELDS[b.type].map(([key, kind]) => this.field(
+            this.t(`f.${key}`), kind, b[key], (v) => this.commit(() => {
             b[key] = v;
         })));
-        const act = (label, fn, cls = 'btn-secondary') => el('button', {type: 'button', class: `btn btn-sm ${cls}`, onclick: fn}, label);
+        const act = (label, fn, cls = 'btn-secondary') =>
+            el('button', {type: 'button', class: `btn btn-sm ${cls}`, onclick: fn}, label);
         this.props.replaceChildren(el('h6', {}, this.t(`b.${b.type}`)), ...rows, el('div', {class: 'alg-actions'},
             act(this.t('up'), () => this.move(-1)), act(this.t('down'), () => this.move(1)),
             act(this.t('delete'), () => this.deleteSelected(), 'btn-outline-danger')));
@@ -316,8 +321,9 @@ export class AlgorithmEditor {
 
     addFunction() {
         this.commit(() => {
+            const names = new Set(this.program.functions.map((f) => f.name));
             let n = this.program.functions.length;
-            while (this.program.functions.some((f) => f.name === `Function${n}`)) {
+            while (names.has(`Function${n}`)) {
                 n++;
             }
             this.program.functions.push({name: `Function${n}`, params: [], returnType: null, body: []});

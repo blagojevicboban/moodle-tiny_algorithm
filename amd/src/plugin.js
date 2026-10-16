@@ -9,7 +9,7 @@ import {component, pluginName} from './common';
 import * as Configuration from './configuration';
 import {getSetup} from './commands';
 
-export default new Promise(async(resolve) => {
+const init = async() => {
     const [tinyMCE, setup, pluginMetadata] = await Promise.all([
         getTinyMCE(),
         getSetup(),
@@ -21,5 +21,7 @@ export default new Promise(async(resolve) => {
         return pluginMetadata;
     });
 
-    resolve([pluginName, Configuration]);
-});
+    return [pluginName, Configuration];
+};
+
+export default init();
