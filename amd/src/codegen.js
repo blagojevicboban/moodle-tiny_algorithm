@@ -99,11 +99,36 @@ const LANGS = {
             return l === 'pi' ? 'Math.PI' : `${m[l] || name}(${args.join(', ')})`;
         },
     },
+    csharp: {
+        ext: 'cs',
+        and: '&&', or: '||', not: '!', pow: (l, r) => `Math.Pow(${l}, ${r})`,
+        div: (l, r, t) => (t === 'Integer' ? `(double) ${l} / ${r}` : `${l} / ${r}`),
+        bool: (v) => (v ? 'true' : 'false'),
+        concat: (parts) => parts.map((p, i) => (i === 0 && p.type !== 'String' ? `"" + ${p.code}` : p.code)).join(' + '),
+        eq: (l, r, op) => `${l} ${op} ${r}`,
+        call: (name, args) => {
+            const m = {sqrt: 'Math.Sqrt', abs: 'Math.Abs', sin: 'Math.Sin', cos: 'Math.Cos', tan: 'Math.Tan', log: 'Math.Log',
+                exp: 'Math.Exp', floor: 'Math.Floor', ceiling: 'Math.Ceiling', round: 'Math.Round', int: '(int)', sign: 'Math.Sign',
+                random: 'rnd.Next', toint: 'Convert.ToInt32', toreal: 'Convert.ToDouble', tostring: 'Convert.ToString'};
+            const l = name.toLowerCase();
+            if (l === 'len') {
+                return `${args[0]}.Length`;
+            }
+            if (l === 'char') {
+                return `((char) ${args[0]}).ToString()`;
+            }
+            if (l === 'isnumeric') {
+                return `double.TryParse(${args[0]}, out _)`;
+            }
+            return l === 'pi' ? 'Math.PI' : `${m[l] || name}(${args.join(', ')})`;
+        },
+    },
 };
 
 const TYPE_NAMES = {
     c: {Integer: 'int', Real: 'double', String: 'char*', Boolean: 'int'},
     java: {Integer: 'int', Real: 'double', String: 'String', Boolean: 'boolean'},
+    csharp: {Integer: 'int', Real: 'double', String: 'string', Boolean: 'bool'},
 };
 
 export const generate = (lang, program) => {
@@ -165,6 +190,8 @@ export const generate = (lang, program) => {
             emit(ind, `print(${ex(b.expr)}${nl ? '' : ', end=""'})`);
         } else if (lang === 'java') {
             emit(ind, `System.out.print${nl ? 'ln' : ''}(${ex(b.expr)});`);
+        } else if (lang === 'csharp') {
+            emit(ind, `Console.Write${nl ? 'Line' : ''}(${ex(b.expr)});`);
         } else {
             const parts = concatParts(node, syms, fns);
             const fmt = parts.map((p) => fmtSpec[typeOf(p, syms, fns)]).join('');
@@ -182,6 +209,11 @@ export const generate = (lang, program) => {
         } else if (lang === 'java') {
             const m = {Integer: 'nextInt', Real: 'nextDouble', String: 'next', Boolean: 'nextBoolean'}[sym.type];
             emit(ind, `${target} = in.${m}();`);
+        } else if (lang === 'csharp') {
+            const conv = {Integer: 'int.Parse(Console.ReadLine())',
+                Real: 'double.Parse(Console.ReadLine(), CultureInfo.InvariantCulture)',
+                String: 'Console.ReadLine()', Boolean: 'bool.Parse(Console.ReadLine())'}[sym.type];
+            emit(ind, `${target} = ${conv};`);
         } else {
             const spec = {Integer: '%d', Real: '%lf', String: '%255s', Boolean: '%d'}[sym.type];
             emit(ind, `scanf("${spec}", ${sym.type === 'String' ? target : `&${target}`});`);
@@ -200,6 +232,10 @@ export const generate = (lang, program) => {
             emit(ind, arr ? `${b.name} = [${dv}] * ${ex(b.size)}` : `${b.name} = ${dv}`);
         } else if (lang === 'java') {
             const tn = TYPE_NAMES.java[b.varType];
+            const dv = {Integer: '0', Real: '0.0', String: '""', Boolean: 'false'}[b.varType];
+            emit(ind, arr ? `${tn}[] ${b.name} = new ${tn}[${ex(b.size)}];` : `${tn} ${b.name} = ${dv};`);
+        } else if (lang === 'csharp') {
+            const tn = TYPE_NAMES.csharp[b.varType];
             const dv = {Integer: '0', Real: '0.0', String: '""', Boolean: 'false'}[b.varType];
             emit(ind, arr ? `${tn}[] ${b.name} = new ${tn}[${ex(b.size)}];` : `${tn} ${b.name} = ${dv};`);
         } else if (b.varType === 'String') {
@@ -278,11 +314,11 @@ export const generate = (lang, program) => {
         }
         const tn = TYPE_NAMES[lang];
         const ret = f.returnType ? tn[f.returnType] : 'void';
-        const ps = f.params.map((p) => `${tn[p.type]}${p.array ? (lang === 'java' ? '[]' : '*') : ''} ${p.name}`).join(', ');
+        const ps = f.params.map((p) => `${tn[p.type]}${p.array ? (lang === 'java' || lang === 'csharp' ? '[]' : '*') : ''} ${p.name}`).join(', ');
         if (isMain) {
-            return lang === 'java' ? 'public static void main(String[] args)' : 'int main(void)';
+            return {java: 'public static void main(String[] args)', csharp: 'static void Main()'}[lang] || 'int main(void)';
         }
-        return `${lang === 'java' ? 'static ' : ''}${ret} ${f.name}(${ps})`;
+        return `${lang === 'java' || lang === 'csharp' ? 'static ' : ''}${ret} ${f.name}(${ps})`;
     };
 
     const funcs = [...program.functions].sort((a, b) => (a.name.toLowerCase() === 'main') - (b.name.toLowerCase() === 'main'));
@@ -297,6 +333,13 @@ export const generate = (lang, program) => {
         emit(0, '');
         emit(0, 'static int rand_below(int n) { return rand() % n; }');
         emit(0, '');
+    } else if (lang === 'csharp') {
+        emit(0, 'using System;');
+        emit(0, 'using System.Globalization;');
+        emit(0, '');
+        emit(0, 'class Program {');
+        emit(1, 'static Random rnd = new Random();');
+        emit(1, '');
     } else {
         emit(0, 'import java.util.*;');
         emit(0, '');
@@ -305,7 +348,7 @@ export const generate = (lang, program) => {
         emit(1, 'static Random rnd = new Random();');
         emit(1, '');
     }
-    const base = lang === 'java' ? 1 : 0;
+    const base = lang === 'java' || lang === 'csharp' ? 1 : 0;
     funcs.forEach((f) => {
         const isMain = f.name.toLowerCase() === mainName;
         syms = {};
@@ -320,7 +363,7 @@ export const generate = (lang, program) => {
         close(base);
         emit(0, '');
     });
-    if (lang === 'java') {
+    if (lang === 'java' || lang === 'csharp') {
         emit(0, '}');
     } else if (lang === 'python') {
         emit(0, `if __name__ == "__main__":`);
@@ -330,6 +373,7 @@ export const generate = (lang, program) => {
 };
 
 export const languages = Object.keys(LANGS);
+export const languageLabels = {python: 'Python', c: 'C', java: 'Java', csharp: 'C#'};
 export const extensionOf = (lang) => LANGS[lang].ext;
 
 /** Convert an expression AST back into source text (used for per-part rendering). */

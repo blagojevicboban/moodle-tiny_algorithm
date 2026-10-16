@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 – 2026-10-16 (alpha)
+
+- Code generation for **C#** (compiled and run in the tests when the .NET SDK is available).
+- The reader view (`runner`) shows the generated code next to the diagram, with a language selector (Python, C, Java, C#),
+  a Copy button and a **Code** button that hides or shows the panel.
+
 ## 0.1.0 – 2026-10-16 (alpha)
 
 - Visual flowchart editor in TinyMCE (declare, assign, input, output, if, for, while, do…while, call, return, comment;

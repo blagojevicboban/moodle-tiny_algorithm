@@ -2,7 +2,7 @@
 
 **Tiny Algorithm** is a self-contained TinyMCE plugin for Moodle. It lets teachers and students draw algorithms as
 [Flowgorithm](https://www.flowgorithm.org/)-style flowcharts directly in the Moodle text editor, run them step by step,
-import and export Flowgorithm `.fprg` files and generate **Python**, **C** or **Java** code – without leaving the editor.
+import and export Flowgorithm `.fprg` files and generate **Python**, **C**, **Java** or **C#** code – without leaving the editor.
 
 > Status: **alpha**. Developed and tested on Moodle 5.3. This project is inspired by Flowgorithm but is not affiliated with it.
 
@@ -20,7 +20,8 @@ import and export Flowgorithm `.fprg` files and generate **Python**, **C** or **
 - **Zoom**: **−**, **+**, **100%** and **Fit** buttons, or **Ctrl + mouse wheel** to zoom around the pointer.
 - **Flowgorithm Import / Export**: Open and save real `.fprg` files. Unsupported elements are reported as warnings instead of
   being silently dropped.
-- **Code Generation**: Copy or download the diagram as Python, C or Java.
+- **Code Generation**: Copy or download the diagram as Python, C, Java or C#. The generated C# is compiled and run by the
+  tests and gives the same output as the interpreter.
 - **Editable Images**: The diagram is inserted as an SVG image. The model is stored in the image itself
   (`data-algorithm` attribute and SVG metadata), so **double-clicking the image re-opens it in the editor**. Moodle's HTML
   purifier keeps the attribute and TinyMCE stores the SVG as a normal file.
@@ -94,12 +95,12 @@ The parser, interpreter, code generator, `.fprg` import / export and renderer ha
 node --import ./tests/register.mjs --test "tests/*.test.mjs"
 ```
 
-The Python generator is also checked by running the generated code. The C and Java output is generated but not compiled by
-the tests.
+The Python and C# generators are also checked by running the generated code (C# needs the .NET SDK and is skipped when `dotnet`
+is not installed). The C and Java output is generated but not compiled by the tests.
 
 ## Known Limitations
 
-- Variable names are case insensitive in the interpreter, but not in the generated Python / C / Java code.
+- Variable names are case insensitive in the interpreter, but not in the generated Python / C / Java / C# code.
 - Only the editor dialog, saving, re-opening, the reader view and zoom were verified in a browser. Arrays, functions and
   `.fprg` import were verified with the Node tests and with real Flowgorithm files, not inside the Moodle dialog.
 

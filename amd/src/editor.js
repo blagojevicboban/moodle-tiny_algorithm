@@ -8,7 +8,7 @@ import {createBlock, createProgram, findBlock, cloneProgram} from './model';
 import {renderFunction, renderProgram} from './render';
 import {execute} from './interpreter';
 import {checkExpr} from './expr';
-import {generate, languages, extensionOf} from './codegen';
+import {generate, languages, languageLabels, extensionOf} from './codegen';
 import {importFprg, exportFprg} from './flowgorithm';
 import {t as tr} from './strings';
 import {Zoom} from './zoom';
@@ -102,7 +102,7 @@ export class AlgorithmEditor {
         this.codeSelect = el('select', {class: 'custom-select custom-select-sm', onchange: () => {
             this.codeLang = this.codeSelect.value;
             this.renderCode();
-        }}, languages.map((l) => el('option', {value: l}, l === 'c' ? 'C' : l[0].toUpperCase() + l.slice(1))));
+        }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
         this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent));
         this.dlBtn = btn('download', () => this.exportCode());
         this.tabConsole = el('div', {class: 'alg-pane'}, el('h6', {}, this.t('console')), this.consoleEl);

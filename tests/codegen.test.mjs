@@ -45,3 +45,26 @@ test('python output matches interpreter', (t) => {
     const out = execFileSync(py, ['-I', file], {timeout: 10000}).toString().replace(/\r\n/g, '\n');
     assert.equal(out, runSync(sample()));
 });
+
+test('C# generator output has the expected shape', () => {
+    const code = generate('csharp', sample());
+    assert.match(code, /^using System;/);
+    assert.match(code, /static void Main\(\) \{/);
+    assert.match(code, /Console\.WriteLine\("Sum = " \+ s\);/);
+});
+
+test('C# output compiles and matches interpreter', {timeout: 240000}, (t) => {
+    let major;
+    try {
+        major = /^(\d+)\./.exec(execFileSync('dotnet', ['--version'], {timeout: 30000}).toString().trim())[1];
+    } catch {
+        t.skip('dotnet not available');
+        return;
+    }
+    const dir = mkdtempSync(join(tmpdir(), 'alg-cs-'));
+    writeFileSync(join(dir, 'app.csproj'), '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType>' +
+        `<TargetFramework>net${major}.0</TargetFramework></PropertyGroup></Project>`);
+    writeFileSync(join(dir, 'Program.cs'), generate('csharp', sample()));
+    const out = execFileSync('dotnet', ['run', '--project', dir], {timeout: 200000}).toString().replace(/\r\n/g, '\n');
+    assert.equal(out, runSync(sample()));
+});

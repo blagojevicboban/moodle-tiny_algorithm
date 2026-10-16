@@ -7,6 +7,7 @@ import {execute} from './interpreter';
 import {renderProgram} from './render';
 import {t as tr} from './strings';
 import {Zoom} from './zoom';
+import {generate, languages, languageLabels} from './codegen';
 
 const el = (tag, attrs = {}, ...kids) => {
     const e = document.createElement(tag);
@@ -34,6 +35,7 @@ export class AlgorithmRunner {
         this.program = program;
         this.lang = lang;
         this.running = null;
+        this.codeLang = 'python';
         this.build(host);
     }
 
@@ -50,11 +52,32 @@ export class AlgorithmRunner {
         this.consoleEl = el('div', {class: 'alg-console', role: 'log', 'aria-live': 'polite'});
         this.bar = el('div', {class: 'alg-view-bar'},
             btn('run', () => this.onRun()), btn('step', () => this.onStep()), btn('reset', () => this.reset()), this.speed,
-            this.zoom.controls((key) => this.t(key)));
-        this.root = el('div', {class: 'alg-viewer'}, this.svgHost, this.bar, this.consoleEl);
+            this.zoom.controls((key) => this.t(key)),
+            btn('code', () => this.root.classList.toggle('alg-hide-code')));
+        this.codeEl = el('pre', {class: 'alg-code', tabindex: '0'});
+        this.codeSelect = el('select', {class: 'custom-select custom-select-sm alg-codelang', 'aria-label': this.t('code'),
+            onchange: () => {
+                this.codeLang = this.codeSelect.value;
+                this.renderCode();
+            }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
+        this.codePane = el('div', {class: 'alg-view-code'},
+            el('div', {class: 'alg-code-bar'}, el('strong', {}, this.t('code')), this.codeSelect,
+                btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent))),
+            this.codeEl);
+        this.root = el('div', {class: 'alg-viewer'},
+            el('div', {class: 'alg-view-main'}, this.svgHost, this.bar, this.consoleEl), this.codePane);
+        this.renderCode();
         host.replaceChildren(this.root);
         // Large diagrams start fitted to the available width.
         requestAnimationFrame(() => this.zoom.autoFit());
+    }
+
+    renderCode() {
+        try {
+            this.codeEl.textContent = generate(this.codeLang, this.program);
+        } catch (err) {
+            this.codeEl.textContent = `// ${err.message}`;
+        }
     }
 
     onRun() {
