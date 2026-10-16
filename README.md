@@ -46,9 +46,9 @@ import and export Flowgorithm `.fprg` files and generate **Python**, **C**, **Ja
 
 | Moodle Version   | Status                                  |
 |------------------|-----------------------------------------|
-| Moodle 5.3       | ✅ Tested                               |
-| Moodle 5.0 – 5.2 | ⚠️ Declared minimum is 5.0, not tested |
-| Moodle 4.x       | ❌ Not supported (requires Moodle 5.0+) |
+| Moodle 5.0 – 5.3 | ✅ Tested                               |
+| Moodle 4.5 LTS   | ✅ Tested                               |
+| Moodle < 4.5     | ❌ Not supported (requires Moodle 4.5+) |
 
 **PHP**: whatever your Moodle version requires (tested with PHP 8.3).
 
@@ -112,7 +112,7 @@ is not installed). The C and Java output is generated but not compiled by the te
 
 ## Technical Requirements
 
-- Moodle 5.0 or higher (5.3 tested)
+- Moodle 4.5 or higher (4.5 and 5.0 – 5.3 tested)
 - TinyMCE editor enabled (standard in Moodle 5)
 - Node.js 20.6+ (for running the tests and for building AMD modules if you modify the source)
 

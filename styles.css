@@ -1,67 +1,328 @@
-.alg-editor { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
-.alg-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
-.alg-toolbar .alg-fnselect { width: auto; }
-.alg-toolbar .alg-sep { width: 1px; align-self: stretch; background: #ced4da; margin: 0 .25rem; }
-.alg-toolbar .alg-speed { width: 90px; }
-.alg-main { display: flex; gap: .75rem; min-height: 0; }
-.alg-canvas { position: relative; flex: 1 1 auto; height: 540px; overflow: auto; background: #fff; border: 1px solid #ced4da;
-    border-radius: .25rem; outline: none; }
-.alg-canvas svg { display: block; margin: 0 auto; }
-.alg-side { flex: 0 0 320px; display: flex; flex-direction: column; gap: .5rem; height: 540px; overflow: auto; }
-.alg-props, .alg-pane { border: 1px solid #dee2e6; border-radius: .25rem; padding: .5rem; background: #f8f9fa; }
-.alg-field { margin-bottom: .4rem; }
-.alg-field label { font-size: .8rem; margin-bottom: .1rem; }
-.alg-actions { display: flex; gap: .3rem; flex-wrap: wrap; }
-.alg-node { cursor: pointer; }
-.alg-node:hover > :first-child { filter: brightness(.95); }
-.alg-node.alg-selected > :first-child { stroke: #2563eb; stroke-width: 3; }
-.alg-node.alg-running > :first-child { fill: #fdba74; }
-.alg-slot { cursor: pointer; opacity: .35; }
-.alg-slot:hover, .alg-slot:focus { opacity: 1; outline: none; }
-.alg-palette { position: absolute; z-index: 10; display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: .2rem;
-    padding: .4rem; background: #fff; border: 1px solid #adb5bd; border-radius: .3rem; box-shadow: 0 4px 12px rgba(0, 0, 0, .2); }
-.alg-console { font-family: Consolas, monospace; font-size: .85rem; min-height: 90px; max-height: 180px; overflow: auto;
-    background: #111827; color: #e5e7eb; padding: .4rem; border-radius: .25rem; white-space: pre-wrap; }
-.alg-console .alg-error { color: #fca5a5; }
-.alg-console .alg-info { color: #93c5fd; }
-.alg-console .alg-input { display: inline-block; width: 10rem; background: #1f2937; color: #fff; border-color: #4b5563; }
-.alg-code { max-height: 220px; overflow: auto; margin: 0; font-size: .8rem; background: #fff; border: 1px solid #dee2e6; padding: .4rem; }
-@media (max-width: 900px) {
-    .alg-main { flex-direction: column; }
-    .alg-side { flex-basis: auto; height: auto; }
+.alg-editor {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    min-width: 0;
 }
-.alg-zoom { display: inline-flex; gap: .15rem; align-items: center; }
-.alg-zoom .alg-zoom-btn { min-width: 2.2rem; }
 
-/* Reader view (runner): diagram on the left, generated code on the right; stacked when the content area is narrow. */
-.alg-viewer-host, .qtype_algorithm_container { container-type: inline-size; }
-.alg-viewer { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1rem; align-items: start;
-    max-width: 100%; margin: .5rem 0; }
-.alg-viewer.alg-no-code, .alg-viewer.alg-hide-code { grid-template-columns: minmax(0, 1fr); }
-.alg-viewer.alg-hide-code .alg-view-code { display: none; }
-.alg-viewer .alg-view-main, .alg-viewer .alg-view-code { min-width: 0; }
-.alg-viewer .alg-view-svg { overflow: auto; max-height: 640px; background: #fff; border: 1px solid #ced4da; border-radius: .25rem; }
-.alg-viewer .alg-view-svg svg { display: block; margin: 0 auto; }
-.alg-viewer .alg-view-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin: .4rem 0; }
-.alg-viewer .alg-speed { width: 100px; }
-.alg-viewer .alg-console { min-height: 70px; max-height: 220px; }
-.alg-viewer .alg-node.alg-running > :first-child { fill: #fdba74; }
-.alg-viewer .alg-code-bar { display: flex; align-items: center; gap: .4rem; margin-bottom: .4rem; }
-.alg-viewer .alg-code-bar .alg-codelang { width: auto; }
-.alg-viewer .alg-code-bar .alg-code-close { margin-left: auto; font-size: 1.4rem; line-height: 1; padding: 0 .4rem; }
-.alg-viewer .alg-code { max-height: 640px; overflow: auto; margin: 0; padding: .6rem; font-size: .85rem; background: #f8f9fa;
-    border: 1px solid #ced4da; border-radius: .25rem; white-space: pre; }
+.alg-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+}
+
+.alg-toolbar .alg-fnselect {
+    width: auto;
+}
+
+.alg-toolbar .alg-sep {
+    width: 1px;
+    align-self: stretch;
+    background: #ced4da;
+    margin: 0 .25rem;
+}
+
+.alg-toolbar .alg-speed {
+    width: 90px;
+}
+
+.alg-main {
+    display: flex;
+    gap: .75rem;
+    min-height: 0;
+}
+
+.alg-canvas {
+    position: relative;
+    flex: 1 1 auto;
+    height: 540px;
+    overflow: auto;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    outline: none;
+}
+
+.alg-canvas svg {
+    display: block;
+    margin: 0 auto;
+}
+
+.alg-side {
+    flex: 0 0 320px;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    height: 540px;
+    overflow: auto;
+}
+
+.alg-props,
+.alg-pane {
+    border: 1px solid #dee2e6;
+    border-radius: .25rem;
+    padding: .5rem;
+    background: #f8f9fa;
+}
+
+.alg-field {
+    margin-bottom: .4rem;
+}
+
+.alg-field label {
+    font-size: .8rem;
+    margin-bottom: .1rem;
+}
+
+.alg-actions {
+    display: flex;
+    gap: .3rem;
+    flex-wrap: wrap;
+}
+
+.alg-node {
+    cursor: pointer;
+}
+
+.alg-node:hover > :first-child {
+    filter: brightness(.95);
+}
+
+.alg-node.alg-selected > :first-child {
+    stroke: #2563eb;
+    stroke-width: 3;
+}
+
+.alg-node.alg-running > :first-child {
+    fill: #fdba74;
+}
+
+.alg-slot {
+    cursor: pointer;
+    opacity: .35;
+}
+
+.alg-slot:hover,
+.alg-slot:focus {
+    opacity: 1;
+    outline: none;
+}
+
+.alg-palette {
+    position: absolute;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(110px, 1fr));
+    gap: .2rem;
+    padding: .4rem;
+    background: #fff;
+    border: 1px solid #adb5bd;
+    border-radius: .3rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+}
+
+.alg-console {
+    font-family: Consolas, monospace;
+    font-size: .85rem;
+    min-height: 90px;
+    max-height: 180px;
+    overflow: auto;
+    background: #111827;
+    color: #e5e7eb;
+    padding: .4rem;
+    border-radius: .25rem;
+    white-space: pre-wrap;
+}
+
+.alg-console .alg-error {
+    color: #fca5a5;
+}
+
+.alg-console .alg-info {
+    color: #93c5fd;
+}
+
+.alg-console .alg-input {
+    display: inline-block;
+    width: 10rem;
+    background: #1f2937;
+    color: #fff;
+    border-color: #4b5563;
+}
+
+.alg-code {
+    max-height: 220px;
+    overflow: auto;
+    margin: 0;
+    font-size: .8rem;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    padding: .4rem;
+}
+
+@media (max-width: 900px) {
+    .alg-main {
+        flex-direction: column;
+    }
+    .alg-side {
+        flex-basis: auto;
+        height: auto;
+    }
+
+}
+
+.alg-zoom {
+    display: inline-flex;
+    gap: .15rem;
+    align-items: center;
+}
+
+.alg-zoom .alg-zoom-btn {
+    min-width: 2.2rem;
+}
+
+/* Reader view (runner): diagram on the left,
+generated code on the right; stacked when the content area is narrow. */
+.alg-viewer-host,
+.qtype_algorithm_container {
+    /* stylelint-disable-next-line csstree/validator */
+    container-type: inline-size;
+}
+
+.alg-viewer {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 1rem;
+    align-items: start;
+    max-width: 100%;
+    margin: .5rem 0;
+}
+
+.alg-viewer.alg-no-code,
+.alg-viewer.alg-hide-code {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.alg-viewer.alg-hide-code .alg-view-code {
+    display: none;
+}
+
+.alg-viewer .alg-view-main,
+.alg-viewer .alg-view-code {
+    min-width: 0;
+}
+
+.alg-viewer .alg-view-svg {
+    overflow: auto;
+    max-height: 640px;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+}
+
+.alg-viewer .alg-view-svg svg {
+    display: block;
+    margin: 0 auto;
+}
+
+.alg-viewer .alg-view-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+    margin: .4rem 0;
+}
+
+.alg-viewer .alg-speed {
+    width: 100px;
+}
+
+.alg-viewer .alg-console {
+    min-height: 70px;
+    max-height: 220px;
+}
+
+.alg-viewer .alg-node.alg-running > :first-child {
+    fill: #fdba74;
+}
+
+.alg-viewer .alg-code-bar {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin-bottom: .4rem;
+}
+
+.alg-viewer .alg-code-bar .alg-codelang {
+    width: auto;
+}
+
+.alg-viewer .alg-code-bar .alg-code-close {
+    margin-left: auto;
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 0 .4rem;
+}
+
+.alg-viewer .alg-code {
+    max-height: 640px;
+    overflow: auto;
+    margin: 0;
+    padding: .6rem;
+    font-size: .85rem;
+    background: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    white-space: pre;
+}
+
+/* stylelint-disable-next-line csstree/validator */
 @container (max-width: 819px) {
-    .alg-viewer { grid-template-columns: minmax(0, 1fr); }
+    .alg-viewer {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 /* Variable watch */
-.alg-watch { font-size: .85rem; }
-.alg-watch .alg-watch-empty { color: #6b7280; margin: 0; }
-.alg-watch table { width: 100%; margin: 0; border-collapse: collapse; font-family: Consolas, monospace; }
-.alg-watch th, .alg-watch td { padding: .15rem .4rem; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: top;
-    word-break: break-word; }
-.alg-watch th { width: 30%; font-weight: 600; }
-.alg-watch td.alg-changed { background: #fef3c7; }
-.alg-viewer .alg-view-watch { margin-top: .5rem; }
-.alg-viewer.alg-hide-watch .alg-view-watch { display: none; }
+.alg-watch {
+    font-size: .85rem;
+}
+
+.alg-watch .alg-watch-empty {
+    color: #6b7280;
+    margin: 0;
+}
+
+.alg-watch table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+    font-family: Consolas, monospace;
+}
+
+.alg-watch th,
+.alg-watch td {
+    padding: .15rem .4rem;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.alg-watch th {
+    width: 30%;
+    font-weight: 600;
+}
+
+.alg-watch td.alg-changed {
+    background: #fef3c7;
+}
+
+.alg-viewer .alg-view-watch {
+    margin-top: .5rem;
+}
+
+.alg-viewer.alg-hide-watch .alg-view-watch {
+    display: none;
+}
