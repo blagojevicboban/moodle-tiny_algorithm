@@ -55,6 +55,16 @@ const fmt = (v) => (typeof v === 'number' && !Number.isInteger(v) ? String(Math.
 /** Names declared by a declare block ("a, b, p" declares three variables). */
 const declaredNames = (b) => String(b.name).split(',').map((s) => s.trim()).filter(Boolean);
 
+/**
+ * Copy of the variables of a scope for the watch panel (arrays are copied so later steps cannot change them).
+ *
+ * @param {object} env variables of one function call
+ * @returns {Array<{name: string, type: string, value: *}>}
+ */
+const snapshot = (env) => Object.values(env || {}).map((v) => ({
+    name: v.name, type: v.type, value: Array.isArray(v.value) ? v.value.slice() : v.value,
+}));
+
 const hasText = (s) => s !== undefined && s !== null && String(s).trim() !== '';
 
 export function* execute(program, {maxSteps = 1000000} = {}) {
@@ -67,6 +77,7 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
     };
     const funcs = new Map(program.functions.map((f) => [f.name.toLowerCase(), f]));
     let steps = 0;
+    let lastEnv = {};
 
     const lookup = (env, name) => {
         const v = env[name.toLowerCase()];
@@ -173,11 +184,11 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         }
     }
 
-    const tick = (id) => {
+    const tick = (id, env) => {
         if (++steps > maxSteps) {
             throw new Error('Step limit exceeded (possible infinite loop)');
         }
-        return {event: 'step', id};
+        return {event: 'step', id, vars: snapshot(env)};
     };
 
     function* runList(list, env) {
@@ -214,7 +225,7 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
             throw new Error('For loop step cannot be 0');
         }
         if (!env[b.variable.toLowerCase()]) {
-            env[b.variable.toLowerCase()] = {type: 'Integer', value: 0};
+            env[b.variable.toLowerCase()] = {type: 'Integer', value: 0, name: b.variable};
         }
         for (let i = start; step > 0 ? i <= end : i >= end; i += step) {
             env[b.variable.toLowerCase()].value = i;
@@ -222,18 +233,19 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
             if (r) {
                 return r;
             }
-            yield tick(b.id);
+            yield tick(b.id, env);
         }
         return null;
     }
 
     function* runBlock(b, env) {
-        yield tick(b.id);
+        yield tick(b.id, env);
         switch (b.type) {
             case 'declare': {
                 const size = hasText(b.size) ? yield* evalStr(b.size, env) : null;
                 for (const nm of declaredNames(b)) {
                     env[nm.toLowerCase()] = {
+                        name: nm,
                         type: b.varType,
                         value: size === null ? defaultValue(b.varType) : Array.from({length: size}, () => defaultValue(b.varType)),
                     };
@@ -259,7 +271,7 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
                     if (r) {
                         return r;
                     }
-                    yield tick(b.id);
+                    yield tick(b.id, env);
                 }
                 break;
             case 'dowhile': {
@@ -269,7 +281,7 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
                     if (r) {
                         return r;
                     }
-                    yield tick(b.id);
+                    yield tick(b.id, env);
                     again = yield* evalStr(b.cond, env);
                 }
                 break;
@@ -293,15 +305,16 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         }
         const env = {};
         fn.params.forEach((p, i) => {
-            env[p.name.toLowerCase()] = {type: p.type, value: p.array ? args[i] : coerce(p.type, args[i], p.name)};
+            env[p.name.toLowerCase()] = {name: p.name, type: p.type, value: p.array ? args[i] : coerce(p.type, args[i], p.name)};
         });
         const r = yield* runList(fn.body, env);
+        lastEnv = env; // The last function to finish is the main one.
         return r ? r[1] : undefined;
     }
 
     const main = funcs.get('main') || program.functions[0];
     yield* callFunction(main, []);
-    yield {event: 'done'};
+    yield {event: 'done', vars: snapshot(lastEnv)};
 }
 
 /**

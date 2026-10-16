@@ -12,6 +12,7 @@ import {generate, languages, languageLabels, extensionOf} from './codegen';
 import {importFprg, exportFprg} from './flowgorithm';
 import {t as tr} from './strings';
 import {Zoom} from './zoom';
+import {Watch} from './watch';
 
 const PALETTE = ['declare', 'assign', 'input', 'output', 'if', 'for', 'while', 'dowhile', 'call', 'return', 'comment'];
 
@@ -45,8 +46,9 @@ const el = (tag, attrs = {}, ...kids) => {
 };
 
 export class AlgorithmEditor {
-    constructor(container, {program = null, lang = null} = {}) {
+    constructor(container, {program = null, lang = null, onChange = null} = {}) {
         this.lang = lang;
+        this.onChange = onChange;
         this.program = program || createProgram();
         this.fnIndex = 0;
         this.selected = null;
@@ -107,7 +109,9 @@ export class AlgorithmEditor {
         this.dlBtn = btn('download', () => this.exportCode());
         this.tabConsole = el('div', {class: 'alg-pane'}, el('h6', {}, this.t('console')), this.consoleEl);
         this.tabCode = el('div', {class: 'alg-pane'}, el('h6', {}, this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn), this.codeEl);
-        this.side = el('div', {class: 'alg-side'}, this.props, this.tabConsole, this.tabCode);
+        this.watch = new Watch(this.lang);
+        this.tabWatch = el('div', {class: 'alg-pane'}, el('h6', {}, this.t('variables')), this.watch.root);
+        this.side = el('div', {class: 'alg-side'}, this.props, this.tabConsole, this.tabWatch, this.tabCode);
         this.root = el('div', {class: 'alg-editor'}, this.toolbar, el('div', {class: 'alg-main'}, this.canvas, this.side));
         container.append(this.root);
         this.palette = null;
@@ -168,6 +172,9 @@ export class AlgorithmEditor {
         this.btnStop.disabled = !this.running;
         this.renderProps();
         this.renderCode();
+        if (this.onChange) {
+            this.onChange(this.program);
+        }
     }
 
     renderCode() {
@@ -434,6 +441,7 @@ export class AlgorithmEditor {
         const run = {stepMode, stopped: false, wake: null};
         this.running = run;
         this.consoleEl.replaceChildren();
+        this.watch.clear();
         this.refresh();
         try {
             const gen = execute(this.program);
@@ -442,7 +450,10 @@ export class AlgorithmEditor {
                 const ev = res.value;
                 if (ev.event === 'step') {
                     this.highlight(ev.id);
+                    this.watch.update(ev.vars);
                     await this.waitNext(run);
+                } else if (ev.event === 'done') {
+                    this.watch.update(ev.vars);
                 } else if (ev.event === 'output') {
                     this.flushOutput(ev.text);
                 } else if (ev.event === 'input') {

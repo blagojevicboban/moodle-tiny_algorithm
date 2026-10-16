@@ -17,6 +17,8 @@ import and export Flowgorithm `.fprg` files and generate **Python**, **C**, **Ja
   - Flowgorithm-compatible rules: variable names are case insensitive, one *Declare* block may list several names (`a, b, p`),
       arrays with `name[index]`, user functions (also recursive) and common built-in functions.
 - **Readable Comments**: Long and multi-line comments are wrapped inside the comment block.
+- **Variable Watch**: A table with the current value of every variable while the algorithm runs or is stepped through;
+  changed values are highlighted and long arrays are shortened.
 - **Zoom**: **−**, **+**, **100%** and **Fit** buttons, or **Ctrl + mouse wheel** to zoom around the pointer.
 - **Flowgorithm Import / Export**: Open and save real `.fprg` files. Unsupported elements are reported as warnings instead of
   being silently dropped.
@@ -25,6 +27,8 @@ import and export Flowgorithm `.fprg` files and generate **Python**, **C**, **Ja
 - **Editable Images**: The diagram is inserted as an SVG image. The model is stored in the image itself
   (`data-algorithm` attribute and SVG metadata), so **double-clicking the image re-opens it in the editor**. Moodle's HTML
   purifier keeps the attribute and TinyMCE stores the SVG as a normal file.
+- **Per-diagram Options**: **Interactive** (readers can run it), **Show generated code** and **Show variable watch**. Turn code
+  and watch off, for example, in quiz questions that would otherwise reveal the answer.
 - **Interactive Option**: Tick **Interactive** in the dialog so that readers can run the diagram themselves
   (needs the companion filter below).
 - **Languages**: English and Serbian (Latin).
@@ -32,6 +36,8 @@ import and export Flowgorithm `.fprg` files and generate **Python**, **C**, **Ja
 
 ## Related Plugins
 
+- **[qtype_algorithm](https://github.com/blagojevicboban/moodle-qtype_algorithm)** – a quiz question type in which the student
+  draws the algorithm with this editor (manual grading).
 - **[filter_algorithm](https://github.com/blagojevicboban/moodle-filter_algorithm)** – Algorithm viewer: turns diagrams
   marked *Interactive* into a diagram with **Run / Step / Reset** buttons for readers. The execution happens in the reader's
   browser. It reuses the `runner`, `render` and `model` modules of this plugin, so install this plugin first.

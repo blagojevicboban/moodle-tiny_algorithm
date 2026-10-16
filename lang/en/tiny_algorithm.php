@@ -8,3 +8,5 @@ $string['dialogtitle'] = 'Algorithm editor';
 $string['insert'] = 'Insert';
 $string['cancel'] = 'Cancel';
 $string['interactive'] = 'Interactive (readers can Run and Step)';
+$string['showcode'] = 'Show generated code next to the diagram';
+$string['showwatch'] = 'Show variable watch next to the diagram';

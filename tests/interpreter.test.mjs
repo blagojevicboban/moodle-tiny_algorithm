@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createProgram, createBlock as B} from '../amd/src/model.js';
-import {runSync} from '../amd/src/interpreter.js';
+import {execute, runSync} from '../amd/src/interpreter.js';
 
 const prog = (...body) => {
     const p = createProgram();
@@ -67,4 +67,21 @@ test('variable names are case insensitive and declare accepts a name list', () =
         B('output', {expr: 'c'}),
     );
     assert.equal(runSync(p), '6\n');
+});
+
+test('steps carry a snapshot of the variables and done carries the final ones', () => {
+    const p = prog(B('declare', {name: 'n, s'}), B('assign', {target: 'n', expr: '5'}), B('assign', {target: 's', expr: 'n * 2'}));
+    const events = [...execute(p)];
+    const step = events.find((ev) => ev.event === 'step');
+    assert.ok(Array.isArray(step.vars));
+    const done = events.find((ev) => ev.event === 'done');
+    assert.deepEqual(done.vars.map((x) => [x.name, x.value]), [['n', 5], ['s', 10]]);
+});
+
+test('watch snapshots copy arrays', () => {
+    const p = prog(B('declare', {name: 'a', size: '2'}), B('assign', {target: 'a[0]', expr: '7'}), B('assign', {target: 'a[1]', expr: '9'}));
+    const steps = [...execute(p)].filter((ev) => ev.event === 'step');
+    const afterDeclare = steps[1].vars.find((x) => x.name === 'a').value;
+    assert.deepEqual(afterDeclare, [0, 0]);
+    assert.deepEqual([...execute(p)].find((ev) => ev.event === 'done').vars[0].value, [7, 9]);
 });

@@ -7,6 +7,7 @@ import {execute} from './interpreter';
 import {renderProgram} from './render';
 import {t as tr} from './strings';
 import {Zoom} from './zoom';
+import {Watch} from './watch';
 import {generate, languages, languageLabels} from './codegen';
 
 const el = (tag, attrs = {}, ...kids) => {
@@ -30,10 +31,14 @@ export class AlgorithmRunner {
      * @param {object} program algorithm model
      * @param {object} [opts]
      * @param {string} [opts.lang] UI language code
+     * @param {boolean} [opts.showCode] show the generated code panel (and its toggle button)
+     * @param {boolean} [opts.showWatch] show the variable watch panel (and its toggle button)
      */
-    constructor(host, program, {lang = null} = {}) {
+    constructor(host, program, {lang = null, showCode = true, showWatch = true} = {}) {
         this.program = program;
         this.lang = lang;
+        this.showCode = showCode;
+        this.showWatch = showWatch;
         this.running = null;
         this.codeLang = 'python';
         this.build(host);
@@ -52,24 +57,101 @@ export class AlgorithmRunner {
         this.consoleEl = el('div', {class: 'alg-console', role: 'log', 'aria-live': 'polite'});
         this.bar = el('div', {class: 'alg-view-bar'},
             btn('run', () => this.onRun()), btn('step', () => this.onStep()), btn('reset', () => this.reset()), this.speed,
-            this.zoom.controls((key) => this.t(key)),
-            btn('code', () => this.root.classList.toggle('alg-hide-code')));
-        this.codeEl = el('pre', {class: 'alg-code', tabindex: '0'});
-        this.codeSelect = el('select', {class: 'custom-select custom-select-sm alg-codelang', 'aria-label': this.t('code'),
-            onchange: () => {
-                this.codeLang = this.codeSelect.value;
-                this.renderCode();
-            }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
-        this.codePane = el('div', {class: 'alg-view-code'},
-            el('div', {class: 'alg-code-bar'}, el('strong', {}, this.t('code')), this.codeSelect,
-                btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent))),
-            this.codeEl);
-        this.root = el('div', {class: 'alg-viewer'},
-            el('div', {class: 'alg-view-main'}, this.svgHost, this.bar, this.consoleEl), this.codePane);
-        this.renderCode();
+            this.zoom.controls((key) => this.t(key)));
+        this.watch = new Watch(this.lang);
+        const mainParts = [this.svgHost, this.bar, this.consoleEl];
+        if (this.showWatch) {
+            this.watchToggle = el('button', {type: 'button', class: 'btn btn-secondary btn-sm alg-watch-toggle',
+                onclick: () => this.toggleWatch()});
+            this.bar.append(this.watchToggle);
+            mainParts.push(el('div', {class: 'alg-view-watch'}, el('strong', {}, this.t('variables')), this.watch.root));
+        }
+        const main = el('div', {class: 'alg-view-main'}, ...mainParts);
+        this.root = el('div', {class: 'alg-viewer'}, main);
+        if (this.showWatch) {
+            this.root.classList.toggle('alg-hide-watch', AlgorithmRunner.watchHidden());
+            this.updateWatchToggle();
+        }
+        if (this.showCode) {
+            this.codeEl = el('pre', {class: 'alg-code', tabindex: '0'});
+            this.codeSelect = el('select', {class: 'custom-select custom-select-sm alg-codelang', 'aria-label': this.t('code'),
+                onchange: () => {
+                    this.codeLang = this.codeSelect.value;
+                    this.renderCode();
+                }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
+            this.codeToggle = el('button', {type: 'button', class: 'btn btn-secondary btn-sm alg-code-toggle',
+                onclick: () => this.toggleCode()});
+            this.bar.append(this.codeToggle);
+            const close = el('button', {type: 'button', class: 'btn btn-link btn-sm alg-code-close', onclick: () => this.toggleCode(),
+                title: this.t('hidecode'), 'aria-label': this.t('hidecode')}, '×');
+            this.codePane = el('div', {class: 'alg-view-code'},
+                el('div', {class: 'alg-code-bar'}, el('strong', {}, this.t('code')), this.codeSelect,
+                    btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent)), close),
+                this.codeEl);
+            this.root.append(this.codePane);
+            this.renderCode();
+            this.root.classList.toggle('alg-hide-code', AlgorithmRunner.codeHidden());
+            this.updateCodeToggle();
+        } else {
+            this.root.classList.add('alg-no-code');
+        }
+        host.classList.add('alg-viewer-host');
         host.replaceChildren(this.root);
         // Large diagrams start fitted to the available width.
         requestAnimationFrame(() => this.zoom.autoFit());
+    }
+
+    /** Whether the reader chose to hide the code panel (remembered in this browser). */
+    static codeHidden() {
+        try {
+            return window.localStorage.getItem('tiny_algorithm_hidecode') === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /** Show or hide the code panel and remember the choice. */
+    toggleCode() {
+        const hidden = this.root.classList.toggle('alg-hide-code');
+        try {
+            window.localStorage.setItem('tiny_algorithm_hidecode', hidden ? '1' : '0');
+        } catch (e) {
+            // Storage can be unavailable (private window); the choice then only lasts for this page.
+        }
+        this.updateCodeToggle();
+        requestAnimationFrame(() => this.zoom.autoFit());
+    }
+
+    updateCodeToggle() {
+        const hidden = this.root.classList.contains('alg-hide-code');
+        this.codeToggle.textContent = this.t(hidden ? 'showcode' : 'hidecode');
+        this.codeToggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+    }
+
+    /** Whether the reader chose to hide the variable watch (remembered in this browser). */
+    static watchHidden() {
+        try {
+            return window.localStorage.getItem('tiny_algorithm_hidewatch') === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /** Show or hide the variable watch and remember the choice. */
+    toggleWatch() {
+        const hidden = this.root.classList.toggle('alg-hide-watch');
+        try {
+            window.localStorage.setItem('tiny_algorithm_hidewatch', hidden ? '1' : '0');
+        } catch (e) {
+            // Storage can be unavailable (private window); the choice then only lasts for this page.
+        }
+        this.updateWatchToggle();
+    }
+
+    updateWatchToggle() {
+        const hidden = this.root.classList.contains('alg-hide-watch');
+        this.watchToggle.textContent = this.t(hidden ? 'showwatch' : 'hidewatch');
+        this.watchToggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
     }
 
     renderCode() {
@@ -112,6 +194,7 @@ export class AlgorithmRunner {
             return;
         }
         this.consoleEl.replaceChildren();
+        this.watch.clear();
         this.highlight(null);
     }
 
@@ -181,6 +264,7 @@ export class AlgorithmRunner {
         const run = {stepMode, stopped: false, clear: false, wake: null, timer: null};
         this.running = run;
         this.consoleEl.replaceChildren();
+        this.watch.clear();
         try {
             const gen = execute(this.program);
             let res = gen.next();
@@ -188,7 +272,10 @@ export class AlgorithmRunner {
                 const ev = res.value;
                 if (ev.event === 'step') {
                     this.highlight(ev.id);
+                    this.watch.update(ev.vars);
                     await this.waitNext(run);
+                } else if (ev.event === 'done') {
+                    this.watch.update(ev.vars);
                 } else if (ev.event === 'output') {
                     this.write(ev.text);
                 } else if (ev.event === 'input') {
@@ -211,6 +298,7 @@ export class AlgorithmRunner {
             this.highlight(null);
             if (run.clear) {
                 this.consoleEl.replaceChildren();
+                this.watch.clear();
             }
         }
     }

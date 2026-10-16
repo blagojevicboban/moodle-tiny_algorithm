@@ -8,3 +8,5 @@ $string['dialogtitle'] = 'Editor algoritama';
 $string['insert'] = 'Umetni';
 $string['cancel'] = 'Otkaži';
 $string['interactive'] = 'Interaktivno (čitaoci mogu pokrenuti i izvršavati korak po korak)';
+$string['showcode'] = 'Prikaži generisani kôd pored dijagrama';
+$string['showwatch'] = 'Prikaži praćenje promjenljivih pored dijagrama';

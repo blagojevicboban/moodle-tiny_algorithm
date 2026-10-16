@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 – 2026-10-17 (alpha)
+
+- **Variable watch** panel (editor and reader view): shows the value of every variable at each step, highlights values that
+  changed, and truncates long arrays.
+- The code panel in the reader view can be **hidden or shown** with a button that remembers the choice; on a narrow content area
+  it moves below the diagram (layout follows the width of the content, not of the screen).
+- Per-diagram author options in the dialog: **Show generated code** and **Show variable watch** (`data-algorithm-code="0"` and
+  `data-algorithm-watch="0"` hide them, for example in quiz questions that would reveal the answer).
+- `AlgorithmEditor` gets an `onChange` callback (used by `qtype_algorithm`).
+- The viewer styles moved from `filter_algorithm` to this plugin, next to the runner that builds the markup.
+
 ## 0.2.0 – 2026-10-16 (alpha)
 
 - Code generation for **C#** (compiled and run in the tests when the .NET SDK is available).

@@ -5,7 +5,8 @@
  */
 export const STR = {
     en: {
-        reset: 'Reset', zoomin: 'Zoom in', zoomout: 'Zoom out', zoomreset: 'Reset zoom (100%)', fit: 'Fit', undo: 'Undo', redo: 'Redo', run: 'Run', step: 'Step', stop: 'Stop', addfn: '+ Function', delfn: '− Function',
+        reset: 'Reset', showcode: 'Show code', hidecode: 'Hide code', variables: 'Variables', showwatch: 'Show variables',
+        hidewatch: 'Hide variables', watchempty: 'Run or step the algorithm to see the variables.', zoomin: 'Zoom in', zoomout: 'Zoom out', zoomreset: 'Reset zoom (100%)', fit: 'Fit', undo: 'Undo', redo: 'Redo', run: 'Run', step: 'Step', stop: 'Stop', addfn: '+ Function', delfn: '− Function',
         import: 'Import .fprg', export: 'Export .fprg', copy: 'Copy', download: 'Download', speed: 'Speed',
         console: 'Console', code: 'Code', function: 'Function', name: 'Name', params: 'Parameters (a: Integer, b: Real)',
         returns: 'Return type', hint: 'Click a + to insert a block, click a block to edit it.',
@@ -19,7 +20,8 @@ export const STR = {
         'b.comment': 'Comment',
     },
     sr: {
-        reset: 'Resetuj', zoomin: 'Uvećaj', zoomout: 'Umanji', zoomreset: 'Vrati zoom na 100%', fit: 'Prilagodi', undo: 'Poništi', redo: 'Ponovi', run: 'Pokreni', step: 'Korak', stop: 'Zaustavi', addfn: '+ Funkcija', delfn: '− Funkcija',
+        reset: 'Resetuj', showcode: 'Prikaži kôd', hidecode: 'Sakrij kôd', variables: 'Promjenljive', showwatch: 'Prikaži promjenljive',
+        hidewatch: 'Sakrij promjenljive', watchempty: 'Pokrenite algoritam da vidite promjenljive.', zoomin: 'Uvećaj', zoomout: 'Umanji', zoomreset: 'Vrati zoom na 100%', fit: 'Prilagodi', undo: 'Poništi', redo: 'Ponovi', run: 'Pokreni', step: 'Korak', stop: 'Zaustavi', addfn: '+ Funkcija', delfn: '− Funkcija',
         import: 'Uvezi .fprg', export: 'Izvezi .fprg', copy: 'Kopiraj', download: 'Preuzmi', speed: 'Brzina',
         console: 'Konzola', code: 'Kôd', function: 'Funkcija', name: 'Naziv', params: 'Parametri (a: Integer, b: Real)',
         returns: 'Tip rezultata', hint: 'Kliknite + da umetnete blok, kliknite blok da ga izmijenite.',

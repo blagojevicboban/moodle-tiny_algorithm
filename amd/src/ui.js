@@ -5,7 +5,7 @@
  */
 import Modal from 'core/modal';
 import {getStrings} from 'core/str';
-import {component, dataAttribute, runAttribute} from './common';
+import {component, dataAttribute, runAttribute, codeAttribute, watchAttribute} from './common';
 import {AlgorithmEditor} from './editor';
 import {deserialize, serialize} from './model';
 import {extractModel} from './render';
@@ -34,9 +34,9 @@ const loadModel = (img) => {
     }
 };
 
-const imageHtml = (program, svg, interactive) => {
+const imageHtml = (program, svg, interactive, showCode, showWatch) => {
     const m = /width="(\d+)" height="(\d+)"/.exec(svg);
-    return `<img src="${svgToDataUri(svg)}" ${dataAttribute}="${serialize(program)}"${interactive ? ` ${runAttribute}="1"` : ''} ` +
+    return `<img src="${svgToDataUri(svg)}" ${dataAttribute}="${serialize(program)}"${interactive ? ` ${runAttribute}="1"` : ''}${showCode ? '' : ` ${codeAttribute}="0"`}${showWatch ? '' : ` ${watchAttribute}="0"`} ` +
         `alt="${escapeAttr(`Algorithm: ${program.name || ''}`)}" width="${m[1]}" height="${m[2]}">`;
 };
 
@@ -46,17 +46,21 @@ export const openEditor = async(editor) => {
         /^data:image\/svg\+xml/.test(selected.getAttribute('src') || '')) ? selected : null;
     const program = existing ? loadModel(existing) : null;
 
-    const [title, insert, cancel, interactiveLabel] = await getStrings([
+    const [title, insert, cancel, interactiveLabel, showCodeLabel, showWatchLabel] = await getStrings([
         {key: 'dialogtitle', component},
         {key: 'insert', component},
         {key: 'cancel', component},
         {key: 'interactive', component},
+        {key: 'showcode', component},
+        {key: 'showwatch', component},
     ]);
 
     const modal = await Modal.create({
         title,
         body: '<div class="tiny_algorithm-root"></div>',
-        footer: `<label class="mr-auto mb-0"><input type="checkbox" data-action="interactive"> ${interactiveLabel}</label>` +
+        footer: `<label class="mb-0 mr-3"><input type="checkbox" data-action="interactive"> ${interactiveLabel}</label>` +
+            `<label class="mb-0 mr-3"><input type="checkbox" data-action="showcode"> ${showCodeLabel}</label>` +
+            `<label class="mr-auto mb-0"><input type="checkbox" data-action="showwatch"> ${showWatchLabel}</label>` +
             `<button type="button" class="btn btn-primary" data-action="insert">${insert}</button>` +
             `<button type="button" class="btn btn-secondary" data-action="cancel">${cancel}</button>`,
         large: true,
@@ -67,6 +71,10 @@ export const openEditor = async(editor) => {
     const root = modal.getRoot()[0];
     const interactive = root.querySelector('[data-action="interactive"]');
     interactive.checked = Boolean(existing && existing.hasAttribute(runAttribute));
+    const showCode = root.querySelector('[data-action="showcode"]');
+    showCode.checked = existing ? existing.getAttribute(codeAttribute) !== '0' : true;
+    const showWatch = root.querySelector('[data-action="showwatch"]');
+    showWatch.checked = existing ? existing.getAttribute(watchAttribute) !== '0' : true;
     const widget = new AlgorithmEditor(root.querySelector('.tiny_algorithm-root'), {
         program,
         lang: document.documentElement.lang,
@@ -75,7 +83,7 @@ export const openEditor = async(editor) => {
     root.querySelector('[data-action="cancel"]').addEventListener('click', () => modal.destroy());
     root.querySelector('[data-action="insert"]').addEventListener('click', () => {
         widget.stop();
-        const html = imageHtml(widget.getProgram(), widget.getSvg(), interactive.checked);
+        const html = imageHtml(widget.getProgram(), widget.getSvg(), interactive.checked, showCode.checked, showWatch.checked);
         editor.undoManager.transact(() => editor.insertContent(html));
         modal.destroy();
     });
