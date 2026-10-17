@@ -1,15 +1,33 @@
-<div class="algorithm-description" style="line-height: 1.6; max-width: 800px;">
+<div class="algorithm-description">
   <h2>Tiny Algorithm: Flowchart Editor</h2>
   <p><em>Draw algorithms as flowcharts right in the Moodle text editor, run them step by step and turn them into code.</em></p>
+
+  <h3>Features</h3>
   <ul>
-    <li><strong>Visual editor:</strong> Declare, Assign, Input, Output, If, For, While, Do…While, Call, Return, Comment; several functions, undo / redo.</li>
+    <li><strong>Visual editor:</strong> Declare, Assign, Input, Output, If, For, While, Do...While, Call, Return, Comment; several functions, undo / redo.</li>
     <li><strong>Interpreter:</strong> Run / Step / Stop, console with input, variable watch, infinite-loop guard and clear error messages.</li>
     <li><strong>Flowgorithm files:</strong> import and export real <code>.fprg</code> files.</li>
     <li><strong>Code generation:</strong> Python, C, Java and C#.</li>
     <li><strong>Editable images:</strong> the diagram is an SVG image that keeps its model; double-click to edit again. Zoom and per-diagram options included.</li>
   </ul>
-  <p>Companion plugins: filter_algorithm (Run / Step for readers) and qtype_algorithm (quiz question type).</p>
-  <p>Supports Moodle 4.5 LTS and 5.0 – 5.3. Languages: English and Serbian (Latin and Cyrillic). Source, documentation and issue tracker:
+
+  <h3>What's new in 0.4.0</h3>
+  <ul>
+    <li>Supports Moodle 4.5 LTS and 5.0 - 5.3 (tested on all of them).</li>
+    <li>Serbian Cyrillic language files; the editor picks Latin or Cyrillic from the Moodle language.</li>
+    <li>Moodle coding standard (phpcs, ESLint, stylelint) and GitHub Actions with moodle-plugin-ci.</li>
+  </ul>
+
+  <h3>Requirements</h3>
+  <ul>
+    <li>Moodle 4.5 LTS to 5.3 (PHP as required by your Moodle version).</li>
+    <li>Companion plugins (optional): filter_algorithm (Run / Step for readers) and qtype_algorithm (quiz question type).</li>
+  </ul>
+
+  <h3>Privacy</h3>
+  <p>The editor and interpreter run in the browser; nothing is sent to external services. The diagram is stored in the text you save. The plugin keeps two display preferences (code and variable panels) in the browser's local storage and implements the Moodle Privacy API (no personal data stored).</p>
+
+  <p>Languages: English and Serbian (Latin and Cyrillic). Source, documentation and issue tracker:
     <a href="https://github.com/blagojevicboban/moodle-tiny_algorithm" target="_blank" rel="noreferrer noopener">github.com/blagojevicboban/moodle-tiny_algorithm</a>.
     Licensed under the GNU GPL v3 or later.</p>
 </div>
