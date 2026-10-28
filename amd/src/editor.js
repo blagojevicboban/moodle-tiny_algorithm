@@ -152,6 +152,20 @@ export class AlgorithmEditor {
         return cloneProgram(this.program);
     }
 
+    /**
+     * Replace the whole program (undoable).
+     *
+     * @param {Object} program new program model
+     */
+    setProgram(program) {
+        this.stop();
+        this.commit(() => {
+            this.program = cloneProgram(program);
+            this.fnIndex = 0;
+            this.selected = null;
+        });
+    }
+
     getSvg() {
         return renderProgram(this.program);
     }

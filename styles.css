@@ -326,3 +326,148 @@ generated code on the right; stacked when the content area is narrow. */
 .alg-viewer.alg-hide-watch .alg-view-watch {
     display: none;
 }
+
+/* Student workspace (editable diagrams in content) */
+.alg-workspace {
+    margin: .5rem 0;
+    outline: none;
+}
+
+.alg-workspace .alg-ws-bar,
+.alg-tests .alg-tests-bar,
+.alg-template-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+    margin-bottom: .4rem;
+}
+
+.alg-workspace .alg-ws-modified {
+    padding: .1rem .5rem;
+    border-radius: 1rem;
+    background: #dbeafe;
+    color: #1e3a8a;
+    font-size: .8rem;
+}
+
+.alg-workspace .alg-ws-body .alg-viewer {
+    margin-top: 0;
+}
+
+.alg-workspace .alg-ws-solution {
+    margin-top: .75rem;
+    padding-top: .5rem;
+    border-top: 1px dashed #ced4da;
+}
+
+.alg-workspace.alg-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    margin: 0;
+    padding: .75rem;
+    overflow: auto;
+    background: #fff;
+}
+
+.alg-workspace.alg-fullscreen .alg-canvas,
+.alg-workspace.alg-fullscreen .alg-side {
+    height: calc(100vh - 160px);
+}
+
+.alg-workspace.alg-fullscreen .alg-view-svg {
+    max-height: calc(100vh - 260px);
+}
+
+/* Tests */
+.alg-tests {
+    margin-top: .75rem;
+}
+
+.alg-tests .alg-tests-list {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+}
+
+.alg-tests .alg-test {
+    padding: .4rem 0;
+    border-top: 1px solid #e5e7eb;
+}
+
+.alg-tests .alg-test-head {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.alg-tests-teacher .alg-test-head .btn-link {
+    margin-left: auto;
+}
+
+.alg-tests .alg-test-inputs {
+    color: #4b5563;
+}
+
+.alg-tests .alg-test-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: .5rem;
+    margin-top: .3rem;
+    font-size: .85rem;
+}
+
+.alg-tests .alg-test-out {
+    min-height: 2rem;
+    max-height: 160px;
+    overflow: auto;
+    margin: 0;
+    padding: .3rem .4rem;
+    background: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    white-space: pre;
+}
+
+.alg-tests .alg-diff-line {
+    background: #fee2e2;
+}
+
+.alg-tests .alg-pass {
+    color: #15803d;
+    font-weight: 600;
+}
+
+.alg-tests .alg-fail {
+    color: #b91c1c;
+    font-weight: 600;
+}
+
+.alg-tests .alg-test-mark {
+    width: 1.2rem;
+    text-align: center;
+}
+
+.alg-tests .alg-test-note,
+.alg-tests .alg-tests-empty,
+.alg-pane-note {
+    color: #6b7280;
+    font-size: .85rem;
+}
+
+.alg-tests .alg-error {
+    color: #b91c1c;
+    font-size: .85rem;
+}
+
+/* Dialog tabs and options */
+.alg-tabs {
+    margin-bottom: .5rem;
+}
+
+.alg-footer-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 0;
+}

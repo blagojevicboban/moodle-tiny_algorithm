@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 – 2026-10-28 (alpha)
+
+- **Students can edit and test** a diagram in any content (Page, Text and media area, Book, Lesson…) when the teacher ticks
+  *Students can edit and test the algorithm*. Students get an **Edit** button for their own copy (kept in their browser),
+  **Restore original**, **Full screen** and, when allowed, **Show solution** (new `workspace` module).
+- **Tests**: the teacher enters only the inputs (one value per line); the expected outputs are computed from the teacher's
+  solution. Students run the tests and see ✓/✗ with the expected and actual output side by side and the first different line
+  highlighted (new `tests` module, Node tests in `tests/tests.test.mjs`).
+- **Starting template**: students can start from a separate template (empty, or copied from the solution) instead of the
+  solution. The dialog has the tabs *Solution*, *Starting template* and *Tests*.
+- New attributes: `data-algorithm-edit`, `data-algorithm-solution`, `data-algorithm-tests`, `data-algorithm-showsolution`.
+  Diagrams without them behave as before.
+- `AlgorithmEditor.setProgram()` (undoable).
+
 ## 0.4.0 – 2026-10-16 (alpha)
 
 - Supports **Moodle 4.5 LTS** (`requires` lowered to 4.5, `supported` 4.5 – 5.3); tested on 4.5, 5.0 – 5.3.

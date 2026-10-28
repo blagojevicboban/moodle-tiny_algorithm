@@ -100,10 +100,20 @@ export const serialize = (program) => {
     return btoa(bin);
 };
 
-export const deserialize = (text) => {
+/**
+ * Decode any value written by serialize().
+ *
+ * @param {string} text base64 of UTF-8 JSON
+ * @returns {*} decoded value
+ */
+export const decodeData = (text) => {
     const bin = atob(text);
     const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-    const program = JSON.parse(new TextDecoder().decode(bytes));
+    return JSON.parse(new TextDecoder().decode(bytes));
+};
+
+export const deserialize = (text) => {
+    const program = decodeData(text);
     if (!program || !Array.isArray(program.functions)) {
         throw new Error('Invalid algorithm data');
     }

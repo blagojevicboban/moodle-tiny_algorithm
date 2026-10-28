@@ -25,13 +25,22 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['algorithm:viewplugin'] = 'Коришћење едитора алгоритама';
+$string['allowsolution'] = 'Ученици могу да прикажу рјешење';
 $string['button'] = 'Алгоритам';
 $string['cancel'] = 'Откажи';
+$string['copyfromsolution'] = 'Копирај из рјешења';
 $string['dialogtitle'] = 'Едитор алгоритама';
+$string['editable'] = 'Ученици могу да мијењају и тестирају алгоритам';
+$string['emptytemplate'] = 'Празан';
 $string['insert'] = 'Уметни';
 $string['interactive'] = 'Интерактивно (читаоци могу покренути и извршавати корак по корак)';
 $string['menuitem'] = 'Алгоритам...';
+$string['onlyeditable'] = 'Користи се само када је укључено "Ученици могу да мијењају и тестирају алгоритам".';
 $string['pluginname'] = 'Алгоритам (дијаграм тока)';
 $string['privacy:metadata'] = 'Додатак Алгоритам не чува никакве личне податке.';
+$string['separatetemplate'] = 'Ученици почињу од посебног шаблона, а не од рјешења';
 $string['showcode'] = 'Прикажи генерисани код поред дијаграма';
 $string['showwatch'] = 'Прикажи праћење промјенљивих поред дијаграма';
+$string['tabsolution'] = 'Рјешење';
+$string['tabtemplate'] = 'Почетни шаблон';
+$string['tabtests'] = 'Тестови';

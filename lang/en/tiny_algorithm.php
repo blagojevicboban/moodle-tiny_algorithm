@@ -25,13 +25,22 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['algorithm:viewplugin'] = 'Use the Algorithm editor plugin';
+$string['allowsolution'] = 'Students can show the solution';
 $string['button'] = 'Algorithm';
 $string['cancel'] = 'Cancel';
+$string['copyfromsolution'] = 'Copy from the solution';
 $string['dialogtitle'] = 'Algorithm editor';
+$string['editable'] = 'Students can edit and test the algorithm';
+$string['emptytemplate'] = 'Empty';
 $string['insert'] = 'Insert';
 $string['interactive'] = 'Interactive (readers can Run and Step)';
 $string['menuitem'] = 'Algorithm...';
+$string['onlyeditable'] = 'Used only when "Students can edit and test the algorithm" is ticked.';
 $string['pluginname'] = 'Algorithm (flowchart)';
 $string['privacy:metadata'] = 'The Algorithm plugin does not store any personal data.';
+$string['separatetemplate'] = 'Students start from a separate template, not from the solution';
 $string['showcode'] = 'Show generated code next to the diagram';
 $string['showwatch'] = 'Show variable watch next to the diagram';
+$string['tabsolution'] = 'Solution';
+$string['tabtemplate'] = 'Starting template';
+$string['tabtests'] = 'Tests';

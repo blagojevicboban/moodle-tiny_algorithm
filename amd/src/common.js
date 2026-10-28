@@ -12,6 +12,10 @@ export const dataAttribute = 'data-algorithm';
 export const runAttribute = 'data-algorithm-run';
 export const codeAttribute = 'data-algorithm-code';
 export const watchAttribute = 'data-algorithm-watch';
+export const editAttribute = 'data-algorithm-edit';
+export const solutionAttribute = 'data-algorithm-solution';
+export const testsAttribute = 'data-algorithm-tests';
+export const showSolutionAttribute = 'data-algorithm-showsolution';
 export const iconSvg =
     '<svg width="24" height="24" viewBox="0 0 24 24">' +
     '<rect x="8" y="2" width="8" height="4" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>' +

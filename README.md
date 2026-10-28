@@ -23,6 +23,9 @@ export Flowgorithm `.fprg` files and generate **Python**, **C**, **Java** or **C
 | 📂 **Flowgorithm Files** | Import and export real `.fprg` files; unsupported elements are reported, not silently dropped |
 | 💻 **Code Generation** | Python, C, Java and C#; the C# output is compiled and run by the tests |
 | 🖼️ **Editable Images** | The diagram is a normal SVG image that stores its model - double-click it to edit again |
+| ✍️ **Students Edit and Test** | Let students change their own copy of a diagram in any content, run the teacher's tests and see the differences (with `filter_algorithm`) |
+| 🧪 **Tests from the Solution** | The teacher enters only the inputs; the expected outputs are computed from the teacher's solution |
+| 🧩 **Starting Template** | Students can start from an empty or partial template instead of the solution; the solution can be shown on request |
 | ⚙️ **Per-diagram Options** | *Interactive*, *Show generated code*, *Show variable watch* (turn code off in quiz questions) |
 | 🌐 **Languages** | English, Serbian Latin and Serbian Cyrillic |
 | 🔒 **Privacy** | GDPR compliant (Privacy API, no personal data stored) |
@@ -82,6 +85,19 @@ in `amd/build`.
 4.  **Import / Export**: **Import .fprg** loads a Flowgorithm file, **Export** saves one.
 5.  **Insert**: Optionally tick **Interactive**, then click **Insert**. Double-click the image later to edit it.
 
+### Exercises: Students Edit and Test
+
+1.  Draw the solution in the **Solution** tab and tick **Students can edit and test the algorithm**.
+2.  Optionally, in **Starting template**, tick *Students start from a separate template* and click **Empty** or
+    **Copy from the solution**, then remove the parts students should add.
+3.  In **Tests**, add tests and type the inputs (one value per line). The expected outputs are computed from the solution
+    when you click **Compute expected outputs** and again on **Insert**; if the solution fails on a test, the dialog says so.
+4.  Tick **Students can show the solution** if they may look at it, then **Insert** and save.
+
+With `filter_algorithm` enabled, students see **Edit**, **Restore original**, **Full screen**, **Show solution** (when allowed)
+and **Test**: every test is marked ✓ or ✗, failed tests show the expected and actual output side by side with the first
+different line highlighted. The student's copy is kept in their browser, so it is still there after a reload.
+
 ### Expressions
 
 Follow Flowgorithm: `+ - * / ^ mod`, comparisons `= <> < <= > >=`, logic `and or not`, string join `&`, and functions such as
@@ -126,6 +142,10 @@ lib/editor/tiny/plugins/algorithm/
 
 - Variable names are case insensitive in the interpreter, but not in the generated Python / C / Java / C# code.
 - Arrays, functions and `.fprg` import are verified by the Node tests and real Flowgorithm files, not inside the Moodle dialog.
+- Exercises are for practice, not for assessment: the solution and the expected outputs are part of the page HTML, and nothing
+  is graded or sent to the server.
+- A student's edited copy lives in the browser (`localStorage`) and does not follow them to another device or browser. When the
+  teacher changes the diagram or its tests, students start again from the new version.
 
 ## 🌍 Languages
 
