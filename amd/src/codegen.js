@@ -9,6 +9,28 @@ const BUILTIN_TYPES = {
     abs: 'Real', sqrt: 'Real', sin: 'Real', cos: 'Real', tan: 'Real', log: 'Real', exp: 'Real', pi: 'Real',
     floor: 'Integer', ceiling: 'Integer', round: 'Integer', 'int': 'Integer', sign: 'Integer', random: 'Integer', len: 'Integer',
     toint: 'Integer', toreal: 'Real', tostring: 'String', 'char': 'String', isnumeric: 'Boolean',
+    tochar: 'String', tocode: 'Integer',
+};
+
+// Wrap generated code in parentheses unless it is a plain name.
+const atom = (code) => (/^[\w.]+$/.test(code) ? code : `(${code})`);
+
+/**
+ * Flowgorithm string functions: Char(s, i) (Char(n) for older diagrams), ToChar(n), ToCode(s).
+ *
+ * @param {String} l lower case function name
+ * @param {Array} args generated argument code
+ * @param {Object} f per-language templates: at(s, i), fromCode(n), code(s)
+ * @returns {String|null} code, or null for other functions
+ */
+const charCall = (l, args, f) => {
+    if (l === 'char') {
+        return args.length > 1 ? f.at(atom(args[0]), args[1]) : f.fromCode(args[0]);
+    }
+    if (l === 'tochar') {
+        return f.fromCode(args[0]);
+    }
+    return l === 'tocode' ? f.code(atom(args[0])) : null;
 };
 
 const CMP = ['==', '!=', '<', '<=', '>', '>='];
@@ -75,8 +97,12 @@ const LANGS = {
         call: (name, args) => {
             const m = {sqrt: 'math.sqrt', abs: 'abs', sin: 'math.sin', cos: 'math.cos', tan: 'math.tan', log: 'math.log',
                 exp: 'math.exp', floor: 'math.floor', ceiling: 'math.ceil', round: 'round', 'int': 'int', len: 'len',
-                random: 'random.randrange', toint: 'int', toreal: 'float', tostring: 'str', 'char': 'chr', pi: 'math.pi'};
+                random: 'random.randrange', toint: 'int', toreal: 'float', tostring: 'str', pi: 'math.pi'};
             const l = name.toLowerCase();
+            const ch = charCall(l, args, {at: (t, i) => `${t}[${i}]`, fromCode: (n) => `chr(${n})`, code: (t) => `ord(${t})`});
+            if (ch) {
+                return ch;
+            }
             if (l === 'pi') {
                 return 'math.pi';
             }
@@ -94,6 +120,11 @@ const LANGS = {
                 ceiling: 'ceil', round: 'round', 'int': '(int)', len: 'strlen', random: 'rand_below', toint: '(int)',
                 toreal: '(double)'};
             const l = name.toLowerCase();
+            const ch = charCall(l, args, {at: (t, i) => `char_str(${t}[${i}])`, fromCode: (n) => `char_str(${n})`,
+                code: (t) => `(int) (unsigned char) ${t}[0]`});
+            if (ch) {
+                return ch;
+            }
             return l === 'pi' ? 'M_PI' : `${m[l] || name}(${args.join(', ')})`;
         },
     },
@@ -111,6 +142,11 @@ const LANGS = {
             const l = name.toLowerCase();
             if (l === 'len') {
                 return `${args[0]}.length()`;
+            }
+            const ch = charCall(l, args, {at: (t, i) => `String.valueOf(${t}.charAt(${i}))`,
+                fromCode: (n) => `String.valueOf((char) (${n}))`, code: (t) => `(int) ${t}.charAt(0)`});
+            if (ch) {
+                return ch;
             }
             return l === 'pi' ? 'Math.PI' : `${m[l] || name}(${args.join(', ')})`;
         },
@@ -131,8 +167,10 @@ const LANGS = {
             if (l === 'len') {
                 return `${args[0]}.Length`;
             }
-            if (l === 'char') {
-                return `((char) ${args[0]}).ToString()`;
+            const ch = charCall(l, args, {at: (t, i) => `${t}[${i}].ToString()`,
+                fromCode: (n) => `((char) (${n})).ToString()`, code: (t) => `(int) ${t}[0]`});
+            if (ch) {
+                return ch;
             }
             if (l === 'isnumeric') {
                 return `double.TryParse(${args[0]}, out _)`;
@@ -356,6 +394,18 @@ export const generate = (lang, program) => {
         emit(0, '');
         emit(0, 'static int rand_below(int n) { return rand() % n; }');
         emit(0, '');
+        if (program.functions.some((f) => /\b(char|tochar)\s*\(/i.test(JSON.stringify(f.body)))) {
+            // One character as a string (Char, ToChar); a few buffers so one printf may use several.
+            emit(0, 'static char *char_str(int c) {');
+            emit(1, 'static char buf[8][2];');
+            emit(1, 'static int k;');
+            emit(1, 'k = (k + 1) % 8;');
+            emit(1, 'buf[k][0] = (char) c;');
+            emit(1, 'buf[k][1] = 0;');
+            emit(1, 'return buf[k];');
+            emit(0, '}');
+            emit(0, '');
+        }
     } else if (lang === 'csharp') {
         emit(0, 'using System;');
         emit(0, 'using System.Globalization;');

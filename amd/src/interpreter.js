@@ -16,7 +16,25 @@ const BUILTINS = {
     'int': Math.trunc, sign: Math.sign,
     random: (n) => Math.floor(Math.random() * n),
     len: (s) => (Array.isArray(s) ? s.length : String(s).length),
-    'char': (n) => String.fromCharCode(n),
+    // Flowgorithm Char(s, i): character at index i (0-based). Char(n) with one argument is kept for older diagrams.
+    'char': (s, i) => {
+        if (i === undefined) {
+            return String.fromCharCode(s);
+        }
+        const text = String(s);
+        const k = Number(i);
+        if (!Number.isInteger(k) || k < 0 || k >= text.length) {
+            throw new Error(`Char: index ${i} is outside the string "${text}"`);
+        }
+        return text[k];
+    },
+    tochar: (n) => String.fromCharCode(n),
+    tocode: (s) => {
+        if (String(s) === '') {
+            throw new Error('ToCode: empty string');
+        }
+        return String(s).charCodeAt(0);
+    },
     toint: (v) => Math.trunc(Number(v)),
     toreal: Number,
     tostring: String,

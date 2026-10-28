@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1 – 2026-10-28 (alpha)
+
+- Flowgorithm string functions: **`Char(s, i)`** returns the character at index `i` (from 0), **`ToChar(n)`** the character
+  with code `n`, **`ToCode(s)`** the code of the first character. Python, C, Java and C# code uses them too.
+  `Char(n)` with one argument still means `ToChar(n)`, so older diagrams keep working.
+- `Char` with an index outside the string and `ToCode` of an empty string stop the run with an error, as in Flowgorithm.
+
 ## 0.5.0 – 2026-10-28 (alpha)
 
 - **Students can edit and test** a diagram in any content (Page, Text and media area, Book, Lesson…) when the teacher ticks

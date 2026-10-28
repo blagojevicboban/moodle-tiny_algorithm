@@ -85,3 +85,17 @@ test('watch snapshots copy arrays', () => {
     assert.deepEqual(afterDeclare, [0, 0]);
     assert.deepEqual([...execute(p)].find((ev) => ev.event === 'done').vars[0].value, [7, 9]);
 });
+
+test('Flowgorithm string functions Char, ToChar, ToCode', () => {
+    const p = prog(
+        B('declare', {name: 's', varType: 'String'}), B('declare', {name: 'r', varType: 'String'}),
+        B('input', {target: 's'}),
+        B('for', {variable: 'i', start: 'len(s) - 1', end: '0', step: '-1', body: [
+            B('assign', {target: 'r', expr: 'r & Char(s, i)'}),
+        ]}),
+        B('output', {expr: 'r & " " & ToCode(s) & " " & ToChar(ToCode(s) + 1) & char(65)'}),
+    );
+    assert.equal(runSync(p, ['abc']), 'cba 97 bA\n');
+    assert.throws(() => runSync(prog(B('output', {expr: 'Char("ab", 2)'}))), /Char: index 2/);
+    assert.throws(() => runSync(prog(B('output', {expr: 'ToCode("")'}))), /ToCode/);
+});

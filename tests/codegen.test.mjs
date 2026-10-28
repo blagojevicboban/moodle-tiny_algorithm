@@ -30,6 +30,32 @@ test('generators produce code for all languages', () => {
     assert.match(generate('java', sample()), /System\.out\.println\("Sum = " \+ s\);/);
 });
 
+// Reverse a string and print character codes (Flowgorithm Char, ToChar, ToCode).
+const strings = () => {
+    const p = createProgram();
+    p.functions[0].body = [
+        B('declare', {name: 's, r', varType: 'String'}),
+        B('assign', {target: 's', expr: '"Ana voli Milovana"'}),
+        B('for', {variable: 'i', start: 'len(s) - 1', end: '0', step: '-1', body: [
+            B('assign', {target: 'r', expr: 'r & Char(s, i)'}),
+        ]}),
+        B('output', {expr: 'r & " " & ToCode(s) & " " & ToChar(ToCode(Char(s, 1)) - 32) & Char(s, len(s) - 1)'}),
+    ];
+    return p;
+};
+
+test('string functions in every language', () => {
+    assert.match(generate('python', strings()), /r = r \+ s\[i\]/);
+    assert.match(generate('python', strings()), /ord\(s\)/);
+    assert.match(generate('c', strings()), /static char \*char_str\(int c\)/);
+    assert.match(generate('c', strings()), /char_str\(s\[i\]\)/);
+    assert.doesNotMatch(generate('c', sample()), /char_str/);
+    assert.match(generate('java', strings()), /String\.valueOf\(s\.charAt\(i\)\)/);
+    assert.match(generate('java', strings()), /\(int\) s\.charAt\(0\)/);
+    assert.match(generate('csharp', strings()), /s\[i\]\.ToString\(\)/);
+    assert.match(generate('csharp', strings()), /\(\(char\) \(/);
+});
+
 test('python output matches interpreter', (t) => {
     let py;
     try {

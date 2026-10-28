@@ -101,7 +101,8 @@ different line highlighted. The student's copy is kept in their browser, so it i
 ### Expressions
 
 Follow Flowgorithm: `+ - * / ^ mod`, comparisons `= <> < <= > >=`, logic `and or not`, string join `&`, and functions such as
-`Sqrt`, `Abs`, `Floor`, `Ceiling`, `Round`, `Len`, `ToInt`, `ToReal`, `ToString`, `Random`. Variable names are case insensitive,
+`Sqrt`, `Abs`, `Floor`, `Ceiling`, `Round`, `Len`, `ToInt`, `ToReal`, `ToString`, `Random`, and for strings `Char(s, i)`
+(character at index `i`, from 0), `ToChar(n)` and `ToCode(s)`. Variable names are case insensitive,
 one *Declare* block may list several names (`a, b, p`), arrays use `name[index]`, user functions may be recursive.
 
 ## 🔑 Permissions
