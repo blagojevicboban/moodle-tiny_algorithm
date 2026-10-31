@@ -174,6 +174,9 @@ export class AlgorithmWorkspace {
         } catch (e) {
             // Storage can be unavailable (private window, quota); the copy then only lasts for this page.
         }
+        if (this.testsPanel) {
+            this.testsPanel.markStale();
+        }
         this.updateModified();
     }
 

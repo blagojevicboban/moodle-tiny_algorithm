@@ -56,6 +56,13 @@ test('string functions in every language', () => {
     assert.match(generate('csharp', strings()), /\(\(char\) \(/);
 });
 
+test('C copies strings instead of assigning arrays', () => {
+    const code = generate('c', strings());
+    assert.match(code, /strcpy\(s, "Ana voli Milovana"\);/);
+    assert.match(code, /snprintf\(tmp, sizeof tmp, "%s%s", r, char_str\(s\[i\]\)\);\n\s+strcpy\(r, tmp\);/);
+    assert.doesNotMatch(code, /\bs = "/);
+});
+
 test('python output matches interpreter', (t) => {
     let py;
     try {

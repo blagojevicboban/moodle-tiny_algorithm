@@ -37,13 +37,16 @@ const fill = (text, values) => Object.entries(values).reduce((s, [k, v]) => s.re
 export const normalize = (text) => String(text ?? '').replace(/\r\n?/g, '\n').split('\n')
     .map((line) => line.replace(/\s+$/, '')).join('\n').replace(/\n+$/, '');
 
+/** A line with only two double quotes is an empty value (an empty line at the end would be dropped). */
+const EMPTY_VALUE = '""';
+
 /**
- * Split the inputs of a test (one value per line) into a list.
+ * Lines of the inputs of a test as written, without the empty lines at the end.
  *
  * @param {string} text inputs
  * @returns {string[]}
  */
-export const parseInputs = (text) => {
+const inputLines = (text) => {
     const lines = String(text ?? '').replace(/\r\n?/g, '\n').split('\n');
     while (lines.length && lines[lines.length - 1] === '') {
         lines.pop();
@@ -52,37 +55,66 @@ export const parseInputs = (text) => {
 };
 
 /**
+ * Split the inputs of a test (one value per line) into a list; a line "" gives an empty value.
+ *
+ * @param {string} text inputs
+ * @returns {string[]}
+ */
+export const parseInputs = (text) => inputLines(text).map((line) => (line === EMPTY_VALUE ? '' : line));
+
+/**
  * Run a program with the given inputs.
  *
  * @param {Object} program algorithm model
  * @param {string} inputs one value per line
  * @param {string} [lang] UI language for the error messages
- * @returns {{output: string, error: (string|null)}} output written so far, and the error that stopped the run
+ * @returns {{output: string, after: string, error: (string|null)}} output written so far, the part of it written
+ *     after the last input, and the error that stopped the run
  */
 export const runProgram = (program, inputs, lang = null) => {
     const queue = parseInputs(inputs);
-    let output = '';
+    const pieces = [];
+    let read = 0;
+    const result = (error) => {
+        const after = pieces.filter((p) => p.read >= read).map((p) => p.text).join('');
+        return {output: pieces.map((p) => p.text).join(''), after, error};
+    };
     try {
         const gen = execute(program, {maxSteps: MAX_STEPS});
         let res = gen.next();
         while (!res.done) {
             const ev = res.value;
             if (ev.event === 'output') {
-                output += ev.text;
+                pieces.push({text: ev.text, read});
             }
             if (ev.event === 'input') {
                 if (!queue.length) {
                     throw new Error(tr('noinput', lang));
                 }
+                read++;
                 res = gen.next(queue.shift());
             } else {
                 res = gen.next();
             }
         }
-        return {output, error: null};
+        return result(null);
     } catch (err) {
-        return {output, error: err.message};
+        return result(err.message);
     }
+};
+
+/**
+ * The part of the output that tests compare.
+ *
+ * @param {{output: string, after: string}} run result of runProgram
+ * @param {object} [check]
+ * @param {boolean} [check.afterinput] only the output written after the last input
+ * @param {boolean} [check.numbers] only the numbers in it, one per line
+ * @returns {string}
+ */
+export const checkedOutput = (run, {afterinput = false, numbers = false} = {}) => {
+    const text = afterinput ? run.after : run.output;
+    return numbers ? (text.match(/-?\d+(?:\.\d+)?/g) || []).join('\n') : text;
 };
 
 /**
@@ -109,12 +141,14 @@ export const firstDiffLine = (expected, actual) => {
  * @param {Object} program algorithm model
  * @param {Array} tests [{inputs, expected}]
  * @param {string} [lang] UI language for the error messages
+ * @param {object} [check] what is compared, see checkedOutput
  * @returns {Array} [{pass, actual, error, diffLine}]
  */
-export const runTests = (program, tests, lang = null) => tests.map((tc) => {
-    const {output, error} = runProgram(program, tc.inputs, lang);
-    const diffLine = firstDiffLine(tc.expected, output);
-    return {pass: !error && diffLine === -1, actual: output, error, diffLine};
+export const runTests = (program, tests, lang = null, check = {}) => tests.map((tc) => {
+    const run = runProgram(program, tc.inputs, lang);
+    const actual = checkedOutput(run, check);
+    const diffLine = firstDiffLine(tc.expected, actual);
+    return {pass: !run.error && diffLine === -1, actual, error: run.error, diffLine};
 });
 
 /**
@@ -123,16 +157,17 @@ export const runTests = (program, tests, lang = null) => tests.map((tc) => {
  * @param {Object} solution the teacher's algorithm
  * @param {Array} tests [{inputs}]
  * @param {string} [lang] UI language for the error messages
+ * @param {object} [check] what is compared, see checkedOutput
  * @returns {{tests: Array, errors: Array}} tests with expected output, and [{index, error}] for runs that failed
  */
-export const computeExpected = (solution, tests, lang = null) => {
+export const computeExpected = (solution, tests, lang = null, check = {}) => {
     const errors = [];
     const result = tests.map((tc, index) => {
-        const {output, error} = runProgram(solution, tc.inputs, lang);
-        if (error) {
-            errors.push({index, error});
+        const run = runProgram(solution, tc.inputs, lang);
+        if (run.error) {
+            errors.push({index, error: run.error});
         }
-        return {inputs: String(tc.inputs ?? ''), expected: output};
+        return {...tc, inputs: String(tc.inputs ?? ''), expected: checkedOutput(run, check)};
     });
     return {tests: result, errors};
 };
@@ -174,17 +209,32 @@ export class TestsPanel {
      * @param {string} [opts.lang] UI language code
      * @param {Function} [opts.getProgram] () => program the tests run against (student)
      * @param {Function} [opts.getSolution] () => solution the expected outputs come from (teacher)
+     * @param {object} [opts.check] what is compared, see checkedOutput
+     * @param {boolean} [opts.hiddenOption] the teacher can hide a test from students (question type)
+     * @param {Function} [opts.onChange] (tests) => called when the teacher changes the tests
      */
-    constructor(host, {tests = [], mode = 'student', lang = null, getProgram = null, getSolution = null} = {}) {
+    constructor(host, {tests = [], mode = 'student', lang = null, getProgram = null, getSolution = null, check = {},
+            hiddenOption = false, onChange = null} = {}) {
         this.tests = tests.map((tc) => ({...tc}));
         this.mode = mode;
         this.lang = lang;
         this.getProgram = getProgram;
         this.getSolution = getSolution;
+        this.check = check;
+        this.hiddenOption = hiddenOption;
+        this.onChange = onChange;
         this.results = null;
+        this.stale = false;
         this.root = el('div', {'class': `alg-tests alg-tests-${mode}`});
         host.append(this.root);
         this.render();
+    }
+
+    /** Tell the owner that the teacher changed the tests. */
+    changed() {
+        if (this.onChange) {
+            this.onChange(this.tests);
+        }
     }
 
     t(key, values = {}) {
@@ -197,7 +247,7 @@ export class TestsPanel {
      * @returns {{tests: Array, errors: Array}}
      */
     getTests() {
-        return computeExpected(this.getSolution(), this.tests, this.lang);
+        return computeExpected(this.getSolution(), this.tests, this.lang, this.check);
     }
 
     /** Recompute the expected outputs from the solution and show any run that failed. */
@@ -207,13 +257,23 @@ export class TestsPanel {
         this.results = null;
         this.errors = errors;
         this.render();
+        this.changed();
         return errors;
     }
 
     /** Run the tests against the student's program. */
     run() {
-        this.results = runTests(this.getProgram(), this.tests, this.lang);
+        this.results = runTests(this.getProgram(), this.tests, this.lang, this.check);
+        this.stale = false;
         this.render();
+    }
+
+    /** The student changed the algorithm: the results shown are from the previous version. */
+    markStale() {
+        if (this.results && !this.stale) {
+            this.stale = true;
+            this.render();
+        }
     }
 
     render() {
@@ -224,6 +284,7 @@ export class TestsPanel {
             head.append(btn('addtest', () => {
                 this.tests.push({inputs: '', expected: ''});
                 this.render();
+                this.changed();
                 const areas = this.root.querySelectorAll('textarea');
                 areas[areas.length - 1].focus();
             }), btn('refreshexpected', () => this.refreshExpected()));
@@ -231,13 +292,21 @@ export class TestsPanel {
             head.append(btn('runtests', () => this.run(), 'btn-primary'));
             if (this.results) {
                 const passed = this.results.filter((r) => r.pass).length;
-                head.append(el('span', {'class': `alg-tests-summary ${passed === this.results.length ? 'alg-pass' : 'alg-fail'}`,
-                    role: 'status'}, this.t('passed', {passed, total: this.results.length})));
+                let state = passed === this.results.length ? 'alg-pass' : 'alg-fail';
+                if (this.stale) {
+                    state = 'alg-stale';
+                }
+                head.append(el('span', {'class': `alg-tests-summary ${state}`, role: 'status'},
+                    this.t('passed', {passed, total: this.results.length})));
+                if (this.stale) {
+                    head.append(el('span', {'class': 'alg-test-note'}, this.t('stale')));
+                }
             }
         }
         const list = el('ol', {'class': 'alg-tests-list'});
         this.tests.forEach((tc, i) => list.append(this.mode === 'teacher' ? this.teacherRow(tc, i) : this.studentRow(tc, i)));
         this.root.replaceChildren(head);
+        this.root.classList.toggle('alg-tests-stale', this.stale);
         if (!this.tests.length && this.mode === 'teacher') {
             this.root.append(el('p', {'class': 'alg-tests-empty'}, this.t('notests')));
         }
@@ -250,14 +319,25 @@ export class TestsPanel {
             'aria-label': `${this.t('testcase', {n: i + 1})}: ${this.t('inputs')}`,
             oninput: () => {
                 tc.inputs = inputs.value;
+                this.changed();
             }});
         inputs.value = tc.inputs;
+        let hidden = '';
+        if (this.hiddenOption) {
+            const box = el('input', {type: 'checkbox', 'class': 'form-check-input', onchange: () => {
+                tc.hidden = box.checked;
+                this.changed();
+            }});
+            box.checked = Boolean(tc.hidden);
+            hidden = el('label', {'class': 'alg-test-hidden'}, box, ' ', this.t('hiddentest'));
+        }
         return el('li', {'class': 'alg-test'},
-            el('div', {'class': 'alg-test-head'}, el('span', {}, this.t('testcase', {n: i + 1})),
+            el('div', {'class': 'alg-test-head'}, el('span', {}, this.t('testcase', {n: i + 1})), hidden,
                 el('button', {type: 'button', 'class': 'btn btn-link btn-sm', onclick: () => {
                     this.tests.splice(i, 1);
                     this.errors = null;
                     this.render();
+                    this.changed();
                 }}, tr('delete', this.lang))),
             el('div', {'class': 'alg-test-cols'},
                 el('label', {}, el('span', {}, this.t('inputs')), inputs),
@@ -272,7 +352,7 @@ export class TestsPanel {
         r.pass ? '✓' : '✗') : '';
         const row = el('li', {'class': 'alg-test'},
             el('div', {'class': 'alg-test-head'}, mark, el('span', {}, this.t('testcase', {n: i + 1})),
-                el('code', {'class': 'alg-test-inputs'}, parseInputs(tc.inputs).join(', ') || this.t('noinputs'))));
+                el('code', {'class': 'alg-test-inputs'}, inputLines(tc.inputs).join(', ') || this.t('noinputs'))));
         if (r && !r.pass) {
             const lines = (text) => normalize(text).split('\n').map((line, n) =>
                 el('span', {'class': n === r.diffLine ? 'alg-diff-line' : ''}, `${line}\n`));

@@ -402,6 +402,19 @@ generated code on the right; stacked when the content area is narrow. */
     gap: .5rem;
 }
 
+.alg-tests .alg-test-hidden {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    margin: 0 0 0 .75rem;
+    font-size: .85rem;
+}
+
+.alg-tests .alg-test-hidden .form-check-input {
+    position: static;
+    margin: 0;
+}
+
 .alg-tests-teacher .alg-test-head .btn-link {
     margin-left: auto;
 }
@@ -442,6 +455,16 @@ generated code on the right; stacked when the content area is narrow. */
 .alg-tests .alg-fail {
     color: #b91c1c;
     font-weight: 600;
+}
+
+.alg-tests .alg-stale {
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.alg-tests-stale .alg-test-mark,
+.alg-tests-stale .alg-test-cols {
+    opacity: .55;
 }
 
 .alg-tests .alg-test-mark {

@@ -90,13 +90,15 @@ in `amd/build`.
 1.  Draw the solution in the **Solution** tab and tick **Students can edit and test the algorithm**.
 2.  Optionally, in **Starting template**, tick *Students start from a separate template* and click **Empty** or
     **Copy from the solution**, then remove the parts students should add.
-3.  In **Tests**, add tests and type the inputs (one value per line). The expected outputs are computed from the solution
+3.  In **Tests**, add tests and type the inputs (one value per line; a line with only `""` is an
+    empty value, e.g. an empty text). The expected outputs are computed from the solution
     when you click **Compute expected outputs** and again on **Insert**; if the solution fails on a test, the dialog says so.
 4.  Tick **Students can show the solution** if they may look at it, then **Insert** and save.
 
 With `filter_algorithm` enabled, students see **Edit**, **Restore original**, **Full screen**, **Show solution** (when allowed)
 and **Test**: every test is marked ✓ or ✗, failed tests show the expected and actual output side by side with the first
-different line highlighted. The student's copy is kept in their browser, so it is still there after a reload.
+different line highlighted. When the student changes the algorithm after a test run, the results are greyed out until
+they test again. The student's copy is kept in their browser, so it is still there after a reload.
 
 ### Expressions
 

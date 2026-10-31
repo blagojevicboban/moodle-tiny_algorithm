@@ -276,6 +276,28 @@ export const generate = (lang, program) => {
         }
     };
 
+    const assignStmt = (b, ind) => {
+        const target = ex(b.target);
+        if (lang !== 'c' || typeOf(parseExpr(b.target), syms, fns) !== 'String') {
+            emit(ind, `${target} = ${ex(b.expr)}${lang === 'python' ? '' : ';'}`);
+            return;
+        }
+        // C strings are char arrays: copy a single string, format a joined one into a buffer first
+        // (the target may be part of the expression, e.g. r = r & c).
+        const parts = concatParts(expr(b.expr).node, syms, fns);
+        if (parts.length === 1 && typeOf(parts[0], syms, fns) === 'String') {
+            emit(ind, `strcpy(${target}, ${ex(b.expr)});`);
+            return;
+        }
+        const fmt = parts.map((p) => fmtSpec[typeOf(p, syms, fns)]).join('');
+        const args = parts.map((p) => ex(unparse(p))).join(', ');
+        emit(ind, '{');
+        emit(ind + 1, 'char tmp[256];');
+        emit(ind + 1, `snprintf(tmp, sizeof tmp, "${fmt}", ${args});`);
+        emit(ind + 1, `strcpy(${target}, tmp);`);
+        emit(ind, '}');
+    };
+
     const declare = (block, ind) => {
         String(block.name).split(',').map((s) => s.trim()).filter(Boolean)
             .forEach((name) => declareOne({...block, name}, ind));
@@ -315,7 +337,7 @@ export const generate = (lang, program) => {
     const stmt = (b, ind) => {
         switch (b.type) {
             case 'declare': declare(b, ind); break;
-            case 'assign': emit(ind, `${ex(b.target)} = ${ex(b.expr)}${lang === 'python' ? '' : ';'}`); break;
+            case 'assign': assignStmt(b, ind); break;
             case 'input': inputStmt(b, ind); break;
             case 'output': printStmt(b, ind); break;
             case 'call': emit(ind, `${ex(b.expr)}${lang === 'python' ? '' : ';'}`); break;

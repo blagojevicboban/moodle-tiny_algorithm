@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.2 – 2026-10-28 (alpha)
+
+- Tests: a line with only `""` in the inputs is an empty value, so a test can enter an empty text.
+- After the student changes the algorithm, the last test results are greyed out with a note to test again.
+- C code: string assignment uses `strcpy`, and a joined string (`r = r & c`) is formatted with `snprintf` first.
+- `tests` module: `runProgram` also returns the output written after the last input; `checkedOutput` compares only that part
+  and/or only the numbers in it (`runTests`, `computeExpected`, `TestsPanel` take the same `check` option). Used by
+  qtype_algorithm 0.3.0, which also uses the new `hiddenOption` and `onChange` of the teacher's test list.
+
 ## 0.5.1 – 2026-10-28 (alpha)
 
 - Flowgorithm string functions: **`Char(s, i)`** returns the character at index `i` (from 0), **`ToChar(n)`** the character
