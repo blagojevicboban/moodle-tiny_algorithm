@@ -354,7 +354,6 @@ export const generate = (lang, program) => {
 
     const expr = (src) => {
         // Code of a node; ctx is the precedence the surrounding code needs, so lower precedence gets parentheses.
-        // eslint-disable-next-line complexity
         const walk = (n, ctx = 0) => {
             let code;
             switch (n.k) {
@@ -370,7 +369,6 @@ export const generate = (lang, program) => {
             }
             return precOf(n) < ctx ? `(${code})` : code;
         };
-        // eslint-disable-next-line complexity
         const walkBin = (n) => {
             const p = PREC[n.op] ?? 4;
             const t = typeOf(n.l, syms, fns);
@@ -409,7 +407,6 @@ export const generate = (lang, program) => {
     const out = [];
     const emit = (ind, line) => out.push('    '.repeat(ind) + line);
 
-    // eslint-disable-next-line complexity
     const printStmt = (b, ind) => {
         const {node, walk} = expr(b.expr);
         const nl = b.newline !== false;
@@ -437,7 +434,6 @@ export const generate = (lang, program) => {
             emit(ind, `printf("${fmt}${nl ? '\\n' : ''}", ${args});`);
         }
     };
-    // eslint-disable-next-line complexity
     const inputStmt = (b, ind) => {
         const t = parseExpr(b.target);
         const sym = syms[t.name] || {type: 'Integer'};
@@ -495,7 +491,6 @@ export const generate = (lang, program) => {
         String(block.name).split(',').map((s) => s.trim()).filter(Boolean)
             .forEach((name) => declareOne({...block, name}, ind));
     };
-    // eslint-disable-next-line complexity
     const declareOne = (b, ind) => {
         syms[b.name] = {type: b.varType, array: Boolean(String(b.size || '').trim())};
         const arr = syms[b.name].array;
@@ -713,109 +708,115 @@ export const generate = (lang, program) => {
     });
     const body = out.splice(0);
 
-    if (lang === 'python') {
-        emit(0, 'import math');
-        emit(0, 'import random');
-        emit(0, '');
-    } else if (lang === 'c') {
-        ['stdio.h', 'stdlib.h', 'string.h', 'math.h'].forEach((h) => emit(0, `#include <${h}>`));
-        emit(0, '');
-        emit(0, 'static int rand_below(int n) { return rand() % n; }');
-        emit(0, '');
-        if (program.functions.some((f) => /\b(char|tochar)\s*\(/i.test(JSON.stringify(f.body)))) {
-            // One character as a string (Char, ToChar); a few buffers so one printf may use several.
-            emit(0, 'static char *char_str(int c) {');
-            emit(1, 'static char buf[8][2];');
-            emit(1, 'static int k;');
-            emit(1, 'k = (k + 1) % 8;');
-            emit(1, 'buf[k][0] = (char) c;');
-            emit(1, 'buf[k][1] = 0;');
-            emit(1, 'return buf[k];');
+    const emitHeader = () => {
+        if (lang === 'python') {
+            emit(0, 'import math');
+            emit(0, 'import random');
+            emit(0, '');
+        } else if (lang === 'c') {
+            ['stdio.h', 'stdlib.h', 'string.h', 'math.h'].forEach((h) => emit(0, `#include <${h}>`));
+            emit(0, '');
+            emit(0, 'static int rand_below(int n) { return rand() % n; }');
+            emit(0, '');
+            if (program.functions.some((f) => /\b(char|tochar)\s*\(/i.test(JSON.stringify(f.body)))) {
+                // One character as a string (Char, ToChar); a few buffers so one printf may use several.
+                emit(0, 'static char *char_str(int c) {');
+                emit(1, 'static char buf[8][2];');
+                emit(1, 'static int k;');
+                emit(1, 'k = (k + 1) % 8;');
+                emit(1, 'buf[k][0] = (char) c;');
+                emit(1, 'buf[k][1] = 0;');
+                emit(1, 'return buf[k];');
+                emit(0, '}');
+                emit(0, '');
+            }
+        } else if (lang === 'cpp') {
+            ['iostream', 'string', 'vector', 'cmath', 'cstdlib'].concat(needs.str ? ['sstream'] : [])
+                .forEach((h) => emit(0, `#include <${h}>`));
+            emit(0, '');
+            emit(0, 'using namespace std;');
+            emit(0, '');
+            if (needs.str) {
+                // Text of a number or truth value, printed the way cout prints it.
+                emit(0, 'template <typename T> string str(T value) {');
+                emit(1, 'ostringstream out;');
+                emit(1, 'out << boolalpha << value;');
+                emit(1, 'return out.str();');
+                emit(0, '}');
+                emit(0, '');
+            }
+            if (needs.random) {
+                emit(0, 'int rand_below(int n) { return rand() % n; }');
+                emit(0, '');
+            }
+            const protos = funcs.filter((f) => f.name.toLowerCase() !== mainName).map((f) => `${fnHead(f, false)};`);
+            if (protos.length) {
+                protos.forEach((p) => emit(0, p));
+                emit(0, '');
+            }
+        } else if (lang === 'javascript') {
+            emit(0, '// Run with Node.js: node main.js');
+            emit(0, "const lines = require('fs').readFileSync(0, 'utf8').split(/\\r?\\n/);");
+            emit(0, 'let nextLine = 0;');
+            emit(0, 'const input = () => lines[nextLine++] ?? \'\';');
+            emit(0, '');
+        } else if (pascal) {
+            emit(0, 'program Main;');
+            emit(0, '');
+            emit(0, '{$mode objfpc}{$H+}');
+            emit(0, '');
+            emit(0, 'uses SysUtils, Math;');
+            emit(0, '');
+            if (/isnumeric\s*\(/i.test(JSON.stringify(program.functions))) {
+                emit(0, 'var');
+                emit(1, 'Dummy: Double;');
+                emit(0, '');
+            }
+            if (/"varType":"Boolean"/.test(JSON.stringify(program.functions))) {
+                emit(0, 'function ReadBoolean: Boolean;');
+                emit(0, 'var');
+                emit(1, 'S: string;');
+                emit(0, 'begin');
+                emit(1, 'readln(S);');
+                emit(1, "Result := LowerCase(Trim(S)) = 'true';");
+                emit(0, 'end;');
+                emit(0, '');
+            }
+            const others = funcs.filter((f) => f.name.toLowerCase() !== mainName);
+            if (others.length > 1) {
+                // Forward declarations, so functions may call each other in any order.
+                others.forEach((f) => emit(0, `${pascalHead(f)} forward;`));
+                emit(0, '');
+            }
+        } else if (lang === 'csharp') {
+            emit(0, 'using System;');
+            emit(0, 'using System.Globalization;');
+            emit(0, '');
+            emit(0, 'class Program {');
+            emit(1, 'static Random rnd = new Random();');
+            emit(1, '');
+        } else {
+            emit(0, 'import java.util.*;');
+            emit(0, '');
+            emit(0, 'public class Main {');
+            emit(1, 'static Scanner in = new Scanner(System.in);');
+            emit(1, 'static Random rnd = new Random();');
+            emit(1, '');
+        }
+    };
+    const emitFooter = () => {
+        if (lang === 'java' || lang === 'csharp') {
             emit(0, '}');
-            emit(0, '');
+        } else if (lang === 'python') {
+            emit(0, `if __name__ == "__main__":`);
+            emit(1, `${mainName === 'main' ? 'main' : mainName}()`);
+        } else if (lang === 'javascript') {
+            emit(0, `${mainName === 'main' ? 'main' : mainName}();`);
         }
-    } else if (lang === 'cpp') {
-        ['iostream', 'string', 'vector', 'cmath', 'cstdlib'].concat(needs.str ? ['sstream'] : [])
-            .forEach((h) => emit(0, `#include <${h}>`));
-        emit(0, '');
-        emit(0, 'using namespace std;');
-        emit(0, '');
-        if (needs.str) {
-            // Text of a number or truth value, printed the way cout prints it.
-            emit(0, 'template <typename T> string str(T value) {');
-            emit(1, 'ostringstream out;');
-            emit(1, 'out << boolalpha << value;');
-            emit(1, 'return out.str();');
-            emit(0, '}');
-            emit(0, '');
-        }
-        if (needs.random) {
-            emit(0, 'int rand_below(int n) { return rand() % n; }');
-            emit(0, '');
-        }
-        const protos = funcs.filter((f) => f.name.toLowerCase() !== mainName).map((f) => `${fnHead(f, false)};`);
-        if (protos.length) {
-            protos.forEach((p) => emit(0, p));
-            emit(0, '');
-        }
-    } else if (lang === 'javascript') {
-        emit(0, '// Run with Node.js: node main.js');
-        emit(0, "const lines = require('fs').readFileSync(0, 'utf8').split(/\\r?\\n/);");
-        emit(0, 'let nextLine = 0;');
-        emit(0, 'const input = () => lines[nextLine++] ?? \'\';');
-        emit(0, '');
-    } else if (pascal) {
-        emit(0, 'program Main;');
-        emit(0, '');
-        emit(0, '{$mode objfpc}{$H+}');
-        emit(0, '');
-        emit(0, 'uses SysUtils, Math;');
-        emit(0, '');
-        if (/isnumeric\s*\(/i.test(JSON.stringify(program.functions))) {
-            emit(0, 'var');
-            emit(1, 'Dummy: Double;');
-            emit(0, '');
-        }
-        if (/"varType":"Boolean"/.test(JSON.stringify(program.functions))) {
-            emit(0, 'function ReadBoolean: Boolean;');
-            emit(0, 'var');
-            emit(1, 'S: string;');
-            emit(0, 'begin');
-            emit(1, 'readln(S);');
-            emit(1, "Result := LowerCase(Trim(S)) = 'true';");
-            emit(0, 'end;');
-            emit(0, '');
-        }
-        const others = funcs.filter((f) => f.name.toLowerCase() !== mainName);
-        if (others.length > 1) {
-            // Forward declarations, so functions may call each other in any order.
-            others.forEach((f) => emit(0, `${pascalHead(f)} forward;`));
-            emit(0, '');
-        }
-    } else if (lang === 'csharp') {
-        emit(0, 'using System;');
-        emit(0, 'using System.Globalization;');
-        emit(0, '');
-        emit(0, 'class Program {');
-        emit(1, 'static Random rnd = new Random();');
-        emit(1, '');
-    } else {
-        emit(0, 'import java.util.*;');
-        emit(0, '');
-        emit(0, 'public class Main {');
-        emit(1, 'static Scanner in = new Scanner(System.in);');
-        emit(1, 'static Random rnd = new Random();');
-        emit(1, '');
-    }
+    };
+    emitHeader();
     out.push(...body);
-    if (lang === 'java' || lang === 'csharp') {
-        emit(0, '}');
-    } else if (lang === 'python') {
-        emit(0, `if __name__ == "__main__":`);
-        emit(1, `${mainName === 'main' ? 'main' : mainName}()`);
-    } else if (lang === 'javascript') {
-        emit(0, `${mainName === 'main' ? 'main' : mainName}();`);
-    }
+    emitFooter();
     return out.join('\n').replace(/\n*$/, '\n');
 };
 
