@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.0 – 2026-10-31 (stable)
+
+- **Stable release.**
+- **Code generation in C++, JavaScript and Pascal**, next to Python, C, Java and C#. C++ uses `iostream`, `string` and
+  `vector`; JavaScript runs with Node.js and reads the input from standard input; Pascal is for Free Pascal
+  (`{$mode objfpc}`, a `var` section per function, `repeat … until`, strings from index 1).
+- **Fixed:** the generated code lost the parentheses of the expression (`(a + b) * 2` became `a + b * 2`,
+  `not (a or b)` became `!a || b`) in every language. Parentheses now follow the operator precedence of the target language.
+- **Translation:** the texts of the editor, viewer, workspace and tests panel moved from `amd/src/strings.js` to the language
+  files (`ui_*` strings in en, sr_lt, sr_cr) and are loaded through `core/str` by the new `tiny_algorithm/langstrings`
+  module, so they can be translated in AMOS. `strings.js` keeps the English texts as a fallback (Fixes #2).
+- Every source file has the Moodle GPL boilerplate (Fixes #1).
+- The tests compile and run the generated C++, JavaScript and Pascal programs and compare them with the interpreter;
+  the GitHub workflow runs the Node tests (with .NET and Free Pascal).
+
 ## 0.5.2 – 2026-10-28 (alpha)
 
 - Tests: a line with only `""` in the inputs is an empty value, so a test can enter an empty text.

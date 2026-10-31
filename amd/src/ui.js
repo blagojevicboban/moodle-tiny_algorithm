@@ -1,7 +1,24 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Modal dialog hosting the algorithm editor, and insertion of the result into TinyMCE.
  *
  * @module tiny_algorithm/ui
+ * @copyright  2026 Boban Blagojević
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import Modal from 'core/modal';
 import {getStrings} from 'core/str';
@@ -10,6 +27,7 @@ import {
     showSolutionAttribute,
 } from './common';
 import {AlgorithmEditor} from './editor';
+import {load as loadStrings} from './langstrings';
 import {createProgram, deserialize, serialize} from './model';
 import {extractModel} from './render';
 import {TestsPanel, deserializeTests, serializeTests} from './tests';
@@ -94,6 +112,7 @@ const imageHtml = ({program, svg, solution = null, tests = [], flags}) => {
 };
 
 export const openEditor = async(editor) => {
+    await loadStrings();
     const selected = editor.selection.getNode();
     const existing = selected && selected.nodeName === 'IMG' && (selected.hasAttribute(dataAttribute) ||
         /^data:image\/svg\+xml/.test(selected.getAttribute('src') || '')) ? selected : null;

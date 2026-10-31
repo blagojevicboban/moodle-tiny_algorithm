@@ -1,12 +1,29 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Test cases for an algorithm: inputs given by the teacher, expected output computed from the teacher's solution,
  * and the panel that edits them (teacher) or runs them against the student's version (student).
  *
  * @module tiny_algorithm/tests
+ * @copyright  2026 Boban Blagojević
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import {execute} from './interpreter';
 import {decodeData, serialize} from './model';
-import {t as tr} from './strings';
+import {fill, t as tr} from './strings';
 
 /** Step limit for one test run, so that an endless loop fails the test instead of freezing the page. */
 export const MAX_STEPS = 200000;
@@ -25,8 +42,6 @@ const el = (tag, attrs = {}, ...kids) => {
     kids.flat().forEach((c) => e.append(c));
     return e;
 };
-
-const fill = (text, values) => Object.entries(values).reduce((s, [k, v]) => s.replace(`{${k}}`, v), text);
 
 /**
  * Normalise program output for comparison: Unix line ends, no trailing spaces, no trailing empty lines.

@@ -7,26 +7,25 @@
     <li><strong>Visual editor:</strong> Declare, Assign, Input, Output, If, For, While, Do...While, Call, Return, Comment; several functions, undo / redo.</li>
     <li><strong>Interpreter:</strong> Run / Step / Stop, console with input, variable watch, infinite-loop guard and clear error messages.</li>
     <li><strong>Flowgorithm files:</strong> import and export real <code>.fprg</code> files.</li>
-    <li><strong>Code generation:</strong> Python, C, Java and C#.</li>
+    <li><strong>Code generation:</strong> Python, C, C++, Java, C#, JavaScript and Pascal.</li>
     <li><strong>Editable images:</strong> the diagram is an SVG image that keeps its model; double-click to edit again. Zoom and per-diagram options included.</li>
     <li><strong>Students edit and test:</strong> with filter_algorithm, students can change their own copy of a diagram in any content and run the teacher's tests.</li>
     <li><strong>Tests from the solution:</strong> the teacher enters only the inputs; the expected outputs are computed from the teacher's solution.</li>
   </ul>
 
-  <h3>What's new in 0.5.2</h3>
+  <h3>What's new in 1.0.0</h3>
   <ul>
-    <li><strong>Students can edit and test</strong> a diagram in any content (Page, Book, Lesson and others) when the teacher allows it: Edit an own copy, Restore original, Full screen and optionally Show solution.</li>
-    <li><strong>Tests:</strong> students see which tests pass, with the expected and actual output side by side and the first different line highlighted. Results are greyed out after the student changes the algorithm.</li>
-    <li><strong>Starting template:</strong> students can start from an empty or partial template instead of the solution.</li>
-    <li>New Flowgorithm text functions: Char with an index, ToChar and ToCode, also in the generated code.</li>
-    <li>Output checks used by the automatic grading of qtype_algorithm 0.3.0.</li>
-    <li>Diagrams inserted with older versions work as before.</li>
+    <li><strong>Stable release.</strong></li>
+    <li><strong>Three more languages:</strong> the generated code is now also available in C++, JavaScript (Node.js) and Pascal (Free Pascal), next to Python, C, Java and C#.</li>
+    <li>Generated code keeps the parentheses of the expression, so <em>(a + b) * 2</em> and <em>not (a or b)</em> compute what the diagram computes.</li>
+    <li>All texts of the editor come from the Moodle language files and can be translated in AMOS.</li>
+    <li>Since 0.5: students can edit and test a diagram in any content when the teacher allows it, tests computed from the teacher's solution, a starting template.</li>
   </ul>
 
   <h3>Requirements</h3>
   <ul>
     <li>Moodle 4.5 LTS to 5.3 (PHP as required by your Moodle version).</li>
-    <li>Companion plugins (optional): filter_algorithm 0.5.0 (Run / Step and the student features for readers) and qtype_algorithm 0.3.0 (quiz question type with automatic grading).</li>
+    <li>Companion plugins (optional): filter_algorithm 1.0.0 (Run / Step and the student features for readers) and qtype_algorithm 1.0.0 (quiz question type with automatic grading).</li>
   </ul>
 
   <h3>Privacy</h3>

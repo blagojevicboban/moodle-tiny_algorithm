@@ -1,7 +1,26 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
- * UI strings of the editor widget (kept inside the widget so it works without Moodle).
+ * UI strings of the editor widget. In Moodle they come from the language files (ui_* strings of tiny_algorithm, loaded by
+ * tiny_algorithm/langstrings); the English table below is the fallback that keeps the widget and its tests working
+ * without Moodle.
  *
  * @module tiny_algorithm/strings
+ * @copyright  2026 Boban Blagojević
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 export const STR = {
     en: {
@@ -32,89 +51,50 @@ export const STR = {
         addtest: '+ Test', refreshexpected: 'Compute expected outputs',
         notests: 'No tests yet. Enter the inputs; the expected outputs are computed from the solution.',
         noinput: 'The algorithm asks for more input than the test provides.', difffirst: 'First difference in line {n}.',
-        passmark: 'Passed', failmark: 'Failed', solutionfails: 'The solution fails on test {n}: {error}',
+        insertblock: 'Insert block', passmark: 'Passed', failmark: 'Failed',
+        solutionfails: 'The solution fails on test {n}: {error}',
     },
-    sr: {
-        reset: 'Resetuj', showcode: 'Prikaži kôd', hidecode: 'Sakrij kôd', variables: 'Promjenljive',
-        showwatch: 'Prikaži promjenljive',
-        hidewatch: 'Sakrij promjenljive', watchempty: 'Pokrenite algoritam da vidite promjenljive.', zoomin: 'Uvećaj',
-        zoomout: 'Umanji', zoomreset: 'Vrati zoom na 100%', fit: 'Prilagodi', undo: 'Poništi', redo: 'Ponovi', run: 'Pokreni',
-        step: 'Korak', stop: 'Zaustavi', addfn: '+ Funkcija', delfn: '− Funkcija',
-        'import': 'Uvezi .fprg', 'export': 'Izvezi .fprg', copy: 'Kopiraj', download: 'Preuzmi', speed: 'Brzina',
-        console: 'Konzola', code: 'Kôd', 'function': 'Funkcija', name: 'Naziv', params: 'Parametri (a: Integer, b: Real)',
-        returns: 'Tip rezultata', hint: 'Kliknite + da umetnete blok, kliknite blok da ga izmijenite.',
-        up: 'Gore', down: 'Dolje', 'delete': 'Obriši', imported: 'Flowgorithm fajl je uvezen.', stopped: 'Zaustavljeno.',
-        finished: 'Program je završen.', error: 'Greška',
-        'f.name': 'Naziv', 'f.varType': 'Tip', 'f.size': 'Veličina niza (prazno = jedna vrijednost)', 'f.target': 'Promjenljiva',
-        'f.expr': 'Izraz', 'f.newline': 'Novi red', 'f.cond': 'Uslov', 'f.variable': 'Promjenljiva', 'f.start': 'Od',
-        'f.end': 'Do', 'f.step': 'Korak', 'f.text': 'Tekst',
-        'b.declare': 'Deklaracija', 'b.assign': 'Dodjela', 'b.input': 'Unos', 'b.output': 'Ispis', 'b.if': 'Ako',
-        'b.for': 'Za', 'b.while': 'Dok', 'b.dowhile': 'Radi … dok', 'b.call': 'Poziv', 'b.return': 'Povratak',
-        'b.comment': 'Komentar',
-        edit: 'Izmijeni', done: 'Završi izmjene', resetwork: 'Vrati original',
-        resetconfirm: 'Odbaciti vaše izmjene i vratiti originalni algoritam?', modified: 'Vaša verzija',
-        fullscreen: 'Cijeli ekran', exitfullscreen: 'Zatvori cijeli ekran', showsolution: 'Prikaži rješenje',
-        hidesolution: 'Sakrij rješenje', solutionconfirm: 'Prikazati rješenje nastavnika?', solution: 'Rješenje', tests: 'Testovi',
-        runtests: 'Testiraj', testcase: 'Test {n}', passed: 'Prošlo testova: {passed} od {total}', inputs: 'Ulaz',
-        inputshint: 'Jedna vrijednost po redu, "" za praznu vrijednost',
-        expected: 'Očekivani izlaz', actual: 'Vaš izlaz', noinputs: '(bez ulaza)',
-        stale: 'Algoritam je izmijenjen poslije ovog pokretanja. Testirajte ponovo.',
-        hiddentest: 'Skriven od učenika',
-        addtest: '+ Test', refreshexpected: 'Izračunaj očekivane izlaze',
-        notests: 'Još nema testova. Unesite ulaze; očekivani izlazi se računaju iz rješenja.',
-        noinput: 'Algoritam traži više ulaza nego što test sadrži.', difffirst: 'Prva razlika u redu {n}.',
-        passmark: 'Prošao', failmark: 'Nije prošao', solutionfails: 'Rješenje ne radi na testu {n}: {error}',
-    },
-    // eslint-disable-next-line camelcase
-    sr_cr: {
-        reset: 'Ресетуј', showcode: 'Прикажи код', hidecode: 'Сакриј код', variables: 'Промјенљиве',
-        showwatch: 'Прикажи промјенљиве', hidewatch: 'Сакриј промјенљиве',
-        watchempty: 'Покрените алгоритам да видите промјенљиве.', zoomin: 'Увећај', zoomout: 'Умањи',
-        zoomreset: 'Врати зум на 100%', fit: 'Прилагоди', undo: 'Поништи', redo: 'Понови', run: 'Покрени', step: 'Корак',
-        stop: 'Заустави', addfn: '+ Функција', delfn: '− Функција', 'import': 'Увези .fprg', 'export': 'Извези .fprg',
-        copy: 'Копирај', download: 'Преузми', speed: 'Брзина', console: 'Конзола', code: 'Код', 'function': 'Функција',
-        name: 'Назив', params: 'Параметри (a: Integer, b: Real)', returns: 'Тип резултата',
-        hint: 'Кликните + да уметнете блок, кликните блок да га измијените.', up: 'Горе', down: 'Доље', 'delete': 'Обриши',
-        imported: 'Flowgorithm фајл је увезен.', stopped: 'Заустављено.', finished: 'Програм је завршен.', error: 'Грешка',
-        'f.name': 'Назив', 'f.varType': 'Тип', 'f.size': 'Величина низа (празно = једна вриједност)', 'f.target': 'Промјенљива',
-        'f.expr': 'Израз', 'f.newline': 'Нови ред', 'f.cond': 'Услов', 'f.variable': 'Промјенљива', 'f.start': 'Од',
-        'f.end': 'До', 'f.step': 'Корак', 'f.text': 'Текст', 'b.declare': 'Декларација', 'b.assign': 'Додјела',
-        'b.input': 'Унос', 'b.output': 'Испис', 'b.if': 'Ако', 'b.for': 'За', 'b.while': 'Док', 'b.dowhile': 'Ради … док',
-        'b.call': 'Позив', 'b.return': 'Повратак', 'b.comment': 'Коментар',
-        edit: 'Измијени', done: 'Заврши измјене', resetwork: 'Врати оригинал',
-        resetconfirm: 'Одбацити ваше измјене и вратити оригинални алгоритам?', modified: 'Ваша верзија',
-        fullscreen: 'Цијели екран', exitfullscreen: 'Затвори цијели екран', showsolution: 'Прикажи рјешење',
-        hidesolution: 'Сакриј рјешење', solutionconfirm: 'Приказати рјешење наставника?', solution: 'Рјешење', tests: 'Тестови',
-        runtests: 'Тестирај', testcase: 'Тест {n}', passed: 'Прошло тестова: {passed} од {total}', inputs: 'Улаз',
-        inputshint: 'Једна вриједност по реду, "" за празну вриједност',
-        expected: 'Очекивани излаз', actual: 'Ваш излаз', noinputs: '(без улаза)',
-        stale: 'Алгоритам је измијењен послије овог покретања. Тестирајте поново.',
-        hiddentest: 'Скривен од ученика',
-        addtest: '+ Тест', refreshexpected: 'Израчунај очекиване излазе',
-        notests: 'Још нема тестова. Унесите улазе; очекивани излази се рачунају из рјешења.',
-        noinput: 'Алгоритам тражи више улаза него што тест садржи.', difffirst: 'Прва разлика у реду {n}.',
-        passmark: 'Прошао', failmark: 'Није прошао', solutionfails: 'Рјешење не ради на тесту {n}: {error}',
-    },
+};
+
+/** Strings loaded from Moodle (key without the ui_ prefix => text). */
+let loaded = {};
+
+/**
+ * Language string identifier in lang/<lang>/tiny_algorithm.php for a widget key ('f.name' => 'ui_f_name').
+ *
+ * @param {string} key widget key
+ * @returns {string}
+ */
+export const langKey = (key) => `ui_${key.replace(/\./g, '_')}`;
+
+/**
+ * Use these strings instead of the English fallback.
+ *
+ * @param {Object} strings widget key => text
+ */
+export const setStrings = (strings) => {
+    loaded = {...loaded, ...strings};
 };
 
 /**
- * UI language code: an explicit Moodle language such as sr_cr wins (html lang is just "sr" for both Serbian scripts),
- * then the language Moodle reports to JavaScript, then the document language.
+ * Fill {$a->name} (Moodle) and {name} placeholders.
  *
- * @param {string} [lang] language requested by the caller
- * @returns {string} key of STR
+ * @param {string} text string with placeholders
+ * @param {Object} values name => value
+ * @returns {string}
  */
-const resolve = (lang) => {
-    const moodleLang = (typeof window !== 'undefined' && window.M && window.M.cfg && window.M.cfg.language) || '';
-    const docLang = (typeof document !== 'undefined' && document.documentElement.lang) || '';
-    const raw = String(lang && lang.includes('_') ? lang : (moodleLang || lang || docLang || 'en')).toLowerCase();
-    if (raw === 'sr_cr') {
-        return 'sr_cr';
-    }
-    return raw.slice(0, 2);
-};
+export const fill = (text, values = {}) => Object.entries(values).reduce(
+    (s, [k, v]) => s.split(`{$a->${k}}`).join(v).split(`{${k}}`).join(v), text);
 
-export const t = (key, lang) => {
-    const dict = STR[resolve(lang)] || STR.en;
-    return dict[key] ?? STR.en[key] ?? key;
+/**
+ * Text of a widget string. The language is the one Moodle loaded for the user (the second argument is kept for older
+ * callers and ignored).
+ *
+ * @param {string} key widget key
+ * @param {string|Object} [values] placeholder values (a language code from older callers is ignored)
+ * @returns {string}
+ */
+export const t = (key, values) => {
+    const text = loaded[key] ?? STR.en[key] ?? key;
+    return values && typeof values === 'object' ? fill(text, values) : text;
 };

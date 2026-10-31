@@ -7,9 +7,10 @@
 
 **Tiny Algorithm** is a TinyMCE plugin for Moodle that lets teachers and students draw algorithms as
 [Flowgorithm](https://www.flowgorithm.org/)-style flowcharts directly in the text editor, run them step by step, import and
-export Flowgorithm `.fprg` files and generate **Python**, **C**, **Java** or **C#** code - without leaving the editor.
+export Flowgorithm `.fprg` files and generate **Python**, **C**, **C++**, **Java**, **C#**, **JavaScript** or **Pascal** code -
+without leaving the editor.
 
-> Status: **alpha**. Inspired by Flowgorithm, not affiliated with it.
+> Status: **stable** (1.0). Inspired by Flowgorithm, not affiliated with it.
 
 ## ✨ Features
 
@@ -21,7 +22,7 @@ export Flowgorithm `.fprg` files and generate **Python**, **C**, **Java** or **C
 | 🔍 **Variable Watch** | Current value of every variable while stepping, changed values highlighted, long arrays shortened |
 | 🔎 **Zoom** | **−**, **+**, **100%**, **Fit** buttons or **Ctrl + mouse wheel** |
 | 📂 **Flowgorithm Files** | Import and export real `.fprg` files; unsupported elements are reported, not silently dropped |
-| 💻 **Code Generation** | Python, C, Java and C#; the C# output is compiled and run by the tests |
+| 💻 **Code Generation** | Python, C, C++, Java, C#, JavaScript and Pascal; the tests compile and run the generated programs and compare them with the interpreter |
 | 🖼️ **Editable Images** | The diagram is a normal SVG image that stores its model - double-click it to edit again |
 | ✍️ **Students Edit and Test** | Let students change their own copy of a diagram in any content, run the teacher's tests and see the differences (with `filter_algorithm`) |
 | 🧪 **Tests from the Solution** | The teacher enters only the inputs; the expected outputs are computed from the teacher's solution |
@@ -123,7 +124,9 @@ npx grunt amd --root=public/lib/editor/tiny/plugins/algorithm
 node --import ./tests/register.mjs --test "tests/*.test.mjs"
 ```
 
-The Python and C# generators are checked by running the generated code (C# needs the .NET SDK and is skipped without `dotnet`).
+The generators are checked by running the generated code and comparing it with the interpreter: Python, JavaScript (Node),
+C# (needs the .NET SDK), C++ (`g++`, or `python -m ziglang c++`) and Pascal (`fpc`); a test is skipped when its tool is missing.
+The GitHub workflow runs all of them.
 C and Java output is generated but not compiled by the tests.
 
 ## 📁 Structure
@@ -143,7 +146,7 @@ lib/editor/tiny/plugins/algorithm/
 
 ## ⚠️ Known Limitations
 
-- Variable names are case insensitive in the interpreter, but not in the generated Python / C / Java / C# code.
+- Variable names are case insensitive in the interpreter, but not in the generated code.
 - Arrays, functions and `.fprg` import are verified by the Node tests and real Flowgorithm files, not inside the Moodle dialog.
 - Exercises are for practice, not for assessment: the solution and the expected outputs are part of the page HTML, and nothing
   is graded or sent to the server.
