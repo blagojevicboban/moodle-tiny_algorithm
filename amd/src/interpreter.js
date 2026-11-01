@@ -24,8 +24,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import {parseExpr} from './expr';
+import {AlgorithmError} from './strings';
 
 const RETURN = Symbol('return');
+
+/** Largest array a Declare block may create (the PHP interpreter of qtype_algorithm has the same limit). */
+export const MAX_ARRAY_SIZE = 100000;
 
 const BUILTINS = {
     abs: Math.abs, sqrt: Math.sqrt, sin: Math.sin, cos: Math.cos, tan: Math.tan,
@@ -41,14 +45,14 @@ const BUILTINS = {
         const text = String(s);
         const k = Number(i);
         if (!Number.isInteger(k) || k < 0 || k >= text.length) {
-            throw new Error(`Char: index ${i} is outside the string "${text}"`);
+            throw new AlgorithmError('charindex', {index: String(i), text});
         }
         return text[k];
     },
     tochar: (n) => String.fromCharCode(n),
     tocode: (s) => {
         if (String(s) === '') {
-            throw new Error('ToCode: empty string');
+            throw new AlgorithmError('tocodeempty');
         }
         return String(s).charCodeAt(0);
     },
@@ -65,17 +69,17 @@ const coerce = (type, value, name) => {
     switch (type) {
         case 'Integer':
             if (badNumber(value)) {
-                throw new Error(`Cannot assign '${value}' to Integer ${name}`);
+                throw new AlgorithmError('assigninteger', {value: String(value), name});
             }
             return Math.trunc(Number(value));
         case 'Real':
             if (badNumber(value)) {
-                throw new Error(`Cannot assign '${value}' to Real ${name}`);
+                throw new AlgorithmError('assignreal', {value: String(value), name});
             }
             return Number(value);
         case 'Boolean':
             if (typeof value !== 'boolean') {
-                throw new Error(`Cannot assign '${value}' to Boolean ${name}`);
+                throw new AlgorithmError('assignboolean', {value: String(value), name});
             }
             return value;
         default:
@@ -128,7 +132,7 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
     const lookup = (env, name) => {
         const v = env[name.toLowerCase()];
         if (!v) {
-            throw new Error(`Variable '${name}' is not declared`);
+            throw new AlgorithmError('notdeclared', {name});
         }
         return v;
     };
@@ -136,18 +140,18 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
     const arrayIndex = function* (n, env) {
         const v = lookup(env, n.name);
         if (!Array.isArray(v.value)) {
-            throw new Error(`'${n.name}' is not an array`);
+            throw new AlgorithmError('notarray', {name: n.name});
         }
         const i = yield* evalNode(n.index, env);
         if (i < 0 || i >= v.value.length) {
-            throw new Error(`Index ${i} out of range for '${n.name}'`);
+            throw new AlgorithmError('indexrange', {index: String(i), name: n.name});
         }
         return [v, i];
     };
 
     const divide = (op, l, r) => {
         if (r === 0) {
-            throw new Error('Division by zero');
+            throw new AlgorithmError('divzero');
         }
         return op === '/' ? l / r : l % r;
     };
@@ -167,7 +171,7 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
             case '<=': return l <= r;
             case '>': return l > r;
             case '>=': return l >= r;
-            default: throw new Error(`Bad operator ${op}`);
+            default: throw new AlgorithmError('badoperator', {op});
         }
     };
 
@@ -218,10 +222,10 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
                 if (BUILTINS[lname]) {
                     return BUILTINS[lname](...args);
                 }
-                throw new Error(`Unknown function '${n.name}'`);
+                throw new AlgorithmError('unknownfunction', {name: n.name});
             }
             default:
-                throw new Error('Bad expression');
+                throw new AlgorithmError('badexpression');
         }
     }
     const evalStr = (s, env) => evalNode(ast(s), env);
@@ -242,13 +246,13 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
             const [v, i] = yield* arrayIndex(t, env);
             v.value[i] = coerce(v.type, value, t.name);
         } else {
-            throw new Error('Invalid assignment target');
+            throw new AlgorithmError('badtarget');
         }
     }
 
     const tick = (id, env) => {
         if (++steps > maxSteps) {
-            throw new Error('Step limit exceeded (possible infinite loop)');
+            throw new AlgorithmError('steplimit');
         }
         return {event: 'step', id, vars: snapshot(env)};
     };
@@ -285,7 +289,7 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         } else if (decl.type !== 'String') {
             val = Number(text);
             if (String(text).trim() === '' || isNaN(val)) {
-                throw new Error(`'${text}' is not a valid ${decl.type}`);
+                throw new AlgorithmError('invalidinput', {text, type: decl.type});
             }
         }
         yield* assign(b.target, val, env);
@@ -302,7 +306,7 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         const end = yield* evalStr(b.end, env);
         const step = hasText(b.step) ? yield* evalStr(b.step, env) : 1;
         if (step === 0) {
-            throw new Error('For loop step cannot be 0');
+            throw new AlgorithmError('forstepzero');
         }
         if (!env[b.variable.toLowerCase()]) {
             env[b.variable.toLowerCase()] = {type: 'Integer', value: 0, name: b.variable};
@@ -330,6 +334,9 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         switch (b.type) {
             case 'declare': {
                 const size = hasText(b.size) ? yield* evalStr(b.size, env) : null;
+                if (size !== null && Number(size) > MAX_ARRAY_SIZE) {
+                    throw new AlgorithmError('arraysize', {size: String(size), max: String(MAX_ARRAY_SIZE)});
+                }
                 for (const nm of declaredNames(b)) {
                     env[nm.toLowerCase()] = {
                         name: nm,
@@ -394,7 +401,7 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
      */
     function* callFunction(fn, args) {
         if (args.length !== fn.params.length) {
-            throw new Error(`Function '${fn.name}' expects ${fn.params.length} argument(s)`);
+            throw new AlgorithmError('argcount', {name: fn.name, count: String(fn.params.length)});
         }
         const env = {};
         fn.params.forEach((p, i) => {

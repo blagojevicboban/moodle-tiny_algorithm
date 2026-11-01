@@ -22,7 +22,7 @@
  */
 import {execute} from './interpreter';
 import {renderProgram} from './render';
-import {t as tr} from './strings';
+import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
 import {Watch} from './watch';
 import {generate, languages, languageLabels} from './codegen';
@@ -177,7 +177,7 @@ export class AlgorithmRunner {
         try {
             this.codeEl.textContent = generate(this.codeLang, this.program);
         } catch (err) {
-            this.codeEl.textContent = `// ${err.message}`;
+            this.codeEl.textContent = `// ${errorText(err)}`;
         }
     }
 
@@ -267,6 +267,7 @@ export class AlgorithmRunner {
             const input = el('input', {type: 'text', 'class': 'form-control form-control-sm alg-input',
                 'aria-label': `${ev.name} (${ev.type})`, onkeydown: (e) => {
                     if (e.key === 'Enter') {
+                        e.preventDefault();
                         const v = input.value;
                         input.remove();
                         row.append(` ${v}`);
@@ -312,7 +313,7 @@ export class AlgorithmRunner {
                 this.log(run.stopped ? this.t('stopped') : this.t('finished'), 'alg-info');
             }
         } catch (err) {
-            this.log(`${this.t('error')}: ${err.message}`, 'alg-error');
+            this.log(`${this.t('error')}: ${errorText(err)}`, 'alg-error');
         } finally {
             this.running = null;
             this.highlight(null);

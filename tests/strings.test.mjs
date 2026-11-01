@@ -20,7 +20,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {STR, fill, langKey, setStrings, t} from '../amd/src/strings.js';
+import {AlgorithmError, STR, errorText, fill, langKey, setStrings, t} from '../amd/src/strings.js';
+import {runSync} from '../amd/src/interpreter.js';
+import {createProgram, createBlock} from '../amd/src/model.js';
 
 const langStrings = (lang) => {
     const src = readFileSync(new URL(`../lang/${lang}/tiny_algorithm.php`, import.meta.url), 'utf8');
@@ -60,4 +62,19 @@ test('t() uses loaded strings, falls back to English and fills placeholders', ()
     assert.equal(t('testcase', {n: 3}), 'Тест 3');
     assert.equal(fill('{$a->passed} / {total}', {passed: 1, total: 2}), '1 / 2');
     setStrings({run: 'Run', testcase: 'Test {n}'});
+});
+
+test('interpreter errors keep the English message and are shown in the loaded language', () => {
+    const err = new AlgorithmError('notdeclared', {name: 'x'});
+    assert.equal(err.message, "Variable 'x' is not declared");
+    assert.equal(errorText(err), "Variable 'x' is not declared");
+    assert.equal(errorText(new Error('Plain')), 'Plain');
+    assert.equal(fill('{a} {b}', {a: '{b}', b: 'B'}), '{b} B');
+    setStrings({'e.notdeclared': 'Promenljiva „{$a->name}“ nije deklarisana'});
+    assert.equal(errorText(err), 'Promenljiva „x“ nije deklarisana');
+    setStrings({'e.notdeclared': STR.en['e.notdeclared']});
+    const program = createProgram();
+    program.functions[0].body = [createBlock('output', {expr: 'y + 1'})];
+    assert.throws(() => runSync(program, []), (e) => e instanceof AlgorithmError && e.code === 'notdeclared' &&
+        e.message === "Variable 'y' is not declared");
 });

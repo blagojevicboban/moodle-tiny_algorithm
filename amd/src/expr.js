@@ -22,6 +22,7 @@
  * @copyright  2026 Boban Blagojević
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+import {AlgorithmError, errorText} from './strings';
 
 const WORD_OPS = {and: '&&', or: '||', not: '!', mod: '%'};
 
@@ -55,7 +56,7 @@ const tokenize = (src) => {
                 j++;
             }
             if (j >= src.length) {
-                throw new Error('Unterminated string');
+                throw new AlgorithmError('unterminated');
             }
             tokens.push({t: 'str', v: s});
             i = j + 1;
@@ -83,7 +84,7 @@ const tokenize = (src) => {
                 tokens.push({t: 'op', v: c});
                 i++;
             } else {
-                throw new Error(`Unexpected character '${c}'`);
+                throw new AlgorithmError('badchar', {c});
             }
         }
     }
@@ -97,7 +98,7 @@ export const parseExpr = (src) => {
     const isOp = (...ops) => peek() && peek().t === 'op' && ops.includes(peek().v);
     const expectOp = (op) => {
         if (!isOp(op)) {
-            throw new Error(`Expected '${op}'`);
+            throw new AlgorithmError('expected', {op});
         }
         p++;
     };
@@ -114,7 +115,7 @@ export const parseExpr = (src) => {
     const primary = () => {
         const t = toks[p++];
         if (!t) {
-            throw new Error('Unexpected end of expression');
+            throw new AlgorithmError('unexpectedend');
         }
         if (t.t === 'num') {
             return {k: 'num', v: t.v, 'int': t.int};
@@ -150,7 +151,7 @@ export const parseExpr = (src) => {
             expectOp(')');
             return e;
         }
-        throw new Error(`Unexpected '${t.v}'`);
+        throw new AlgorithmError('unexpected', {token: String(t.v)});
     };
     const power = () => {
         const base = primary();
@@ -183,7 +184,7 @@ export const parseExpr = (src) => {
 
     const ast = parseOr();
     if (p < toks.length) {
-        throw new Error(`Unexpected '${toks[p].v}'`);
+        throw new AlgorithmError('unexpected', {token: String(toks[p].v)});
     }
     return ast;
 };
@@ -199,6 +200,6 @@ export const checkExpr = (src) => {
         parseExpr(src);
         return null;
     } catch (e) {
-        return e.message;
+        return errorText(e);
     }
 };

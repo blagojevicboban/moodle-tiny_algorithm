@@ -27,7 +27,7 @@ import {execute} from './interpreter';
 import {checkExpr} from './expr';
 import {generate, languages, languageLabels, extensionOf} from './codegen';
 import {importFprg, exportFprg} from './flowgorithm';
-import {t as tr} from './strings';
+import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
 import {Watch} from './watch';
 
@@ -199,6 +199,7 @@ export class AlgorithmEditor {
         this.canvas.querySelectorAll('.alg-node').forEach((n) => {
             n.classList.toggle('alg-selected', n.dataset.id === this.selected);
         });
+        this.setupFocus();
         this.btnUndo.disabled = !this.undoStack.length;
         this.btnRedo.disabled = !this.redoStack.length;
         this.btnRun.disabled = Boolean(this.running);
@@ -214,13 +215,14 @@ export class AlgorithmEditor {
         try {
             this.codeEl.textContent = generate(this.codeLang, this.program);
         } catch (e) {
-            this.codeEl.textContent = `// ${e.message}`;
+            this.codeEl.textContent = `// ${errorText(e)}`;
         }
     }
 
     field(label, type, value, onInput) {
         const id = `alg-f-${Math.random().toString(36).slice(2)}`;
         let input;
+        let applied = null;
         if (type === 'bool') {
             input = el('input', {type: 'checkbox', id, checked: value !== false, onchange: () => onInput(input.checked)});
         } else if (type === 'type') {
@@ -228,6 +230,15 @@ export class AlgorithmEditor {
                 ['Integer', 'Real', 'String', 'Boolean'].map((v) => el('option', {value: v, selected: v === value}, v)));
         } else {
             input = el('input', {id, type: 'text', 'class': 'form-control form-control-sm', value: value ?? '', spellcheck: 'false',
+                onkeydown: (e) => {
+                    // Enter applies the value (and must not submit the form around the editor, e.g. a quiz).
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        applied = input.value;
+                        this.refocus = true;
+                        onInput(input.value);
+                    }
+                },
                 oninput: () => {
                     if (type === 'expr') {
                         const err = checkExpr(input.value || '0');
@@ -235,7 +246,8 @@ export class AlgorithmEditor {
                         input.title = err || '';
                     }
                 },
-                onchange: () => onInput(input.value)});
+                // After Enter the value is applied already; the change event of the blur must not apply it again.
+                onchange: () => input.value !== applied && onInput(input.value)});
         }
         return el('div', {'class': 'form-group alg-field'}, el('label', {'for': id}, label), input);
     }
@@ -257,7 +269,8 @@ export class AlgorithmEditor {
                 this.field(this.t('returns'), 'text', this.fn.returnType || '', (v) => this.commit(() => {
                     this.fn.returnType = v.trim() || null;
                 })),
-                el('p', {'class': 'text-muted small'}, this.t('hint')));
+                el('p', {'class': 'text-muted small'}, this.t('hint')),
+                el('p', {'class': 'text-muted small'}, this.t('keyhint')));
             return;
         }
         const b = found.block;
@@ -285,44 +298,165 @@ export class AlgorithmEditor {
             this.openPalette(this.slots[Number(slot.dataset.slot)], e);
         } else {
             this.selected = node && !['start', 'end'].includes(node.dataset.id) ? node.dataset.id : null;
+            this.focusTarget = this.selected ? `n${this.selected}` : this.focusTarget;
             this.refresh();
         }
     }
 
-    onKey(e) {
-        if ((e.key === 'Delete' || e.key === 'Backspace') && this.selected && e.target === this.canvas) {
-            this.deleteSelected();
-        } else if (e.key === 'Enter' && e.target.closest && e.target.closest('.alg-slot')) {
-            const slot = e.target.closest('.alg-slot');
-            this.openPalette(this.slots[Number(slot.dataset.slot)], e);
-        } else if (e.ctrlKey && e.key === 'z') {
-            this.undo();
-        } else if (e.ctrlKey && e.key === 'y') {
-            this.redo();
+    /** @returns {Element[]} the blocks and "+" slots that take the keyboard focus, in drawing order */
+    focusables() {
+        return [...this.canvas.querySelectorAll('.alg-node[role="button"], .alg-slot')];
+    }
+
+    /**
+     * @param {Element} item block or slot element
+     * @returns {string} key of a focusable element that survives a redraw
+     */
+    static focusKey(item) {
+        return item.classList.contains('alg-slot') ? `s${item.dataset.slot}` : `n${item.dataset.id}`;
+    }
+
+    /**
+     * One block or slot is in the tab order (roving tabindex); the arrow keys move between them.
+     * After a keyboard action the focus goes back to the same block or slot (or the one at the same place).
+     */
+    setupFocus() {
+        const items = this.focusables();
+        if (!items.length) {
+            return;
+        }
+        let current = items.find((it) => AlgorithmEditor.focusKey(it) === this.focusTarget);
+        if (!current && this.selected) {
+            current = items.find((it) => it.dataset.id === this.selected);
+        }
+        if (!current) {
+            current = items[Math.min(this.focusIndex || 0, items.length - 1)];
+        }
+        current.setAttribute('tabindex', '0');
+        if (this.refocus) {
+            this.refocus = false;
+            current.focus();
         }
     }
 
-    openPalette(slot, e) {
+    moveFocus(item, to) {
+        const items = this.focusables();
+        const next = items[Math.max(0, Math.min(items.length - 1, to(items.indexOf(item), items.length)))];
+        if (next && next !== item) {
+            item.setAttribute('tabindex', '-1');
+            next.setAttribute('tabindex', '0');
+            next.focus();
+            this.focusTarget = AlgorithmEditor.focusKey(next);
+        }
+    }
+
+    // eslint-disable-next-line complexity
+    onKey(e) {
+        const item = e.target.closest && e.target.closest('.alg-node[role="button"], .alg-slot');
+        const key = e.key;
+        const mod = e.ctrlKey || e.metaKey;
+        if (item && !this.running && ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'Home', 'End'].includes(key)) {
+            e.preventDefault();
+            const step = {ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1}[key];
+            this.moveFocus(item, (i, n) => {
+                if (key === 'Home') {
+                    return 0;
+                }
+                return key === 'End' ? n - 1 : i + step;
+            });
+        } else if (item && !this.running && (key === 'Enter' || key === ' ')) {
+            e.preventDefault();
+            this.focusTarget = AlgorithmEditor.focusKey(item);
+            if (item.classList.contains('alg-slot')) {
+                this.openPalette(this.slots[Number(item.dataset.slot)], e, item);
+            } else {
+                this.selected = item.dataset.id;
+                this.refresh();
+                const field = this.props.querySelector('input, select');
+                if (field) {
+                    field.focus();
+                }
+            }
+        } else if ((key === 'Delete' || key === 'Backspace') && this.selected && !this.running &&
+                (e.target === this.canvas || (item && item.dataset.id === this.selected))) {
+            e.preventDefault();
+            this.focusIndex = item ? this.focusables().indexOf(item) : 0;
+            this.focusTarget = null;
+            this.refocus = true;
+            this.deleteSelected();
+        } else if (key === 'Escape' && item && this.selected) {
+            e.stopPropagation();
+            this.selected = null;
+            this.focusTarget = AlgorithmEditor.focusKey(item);
+            this.refocus = true;
+            this.refresh();
+        } else if (mod && (key === 'y' || (key === 'z' && e.shiftKey) || key === 'Z')) {
+            e.preventDefault();
+            this.redo();
+        } else if (mod && key === 'z') {
+            e.preventDefault();
+            this.undo();
+        }
+    }
+
+    /**
+     * Show the block menu at a "+" slot.
+     *
+     * @param {object} slot insertion point from the layout
+     * @param {Event} e click or key event
+     * @param {Element} [item] the slot element (keyboard): the menu opens next to it and Escape returns to it
+     */
+    openPalette(slot, e, item) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = (e.clientX || rect.left + 20) - rect.left + this.canvas.scrollLeft;
-        const y = (e.clientY || rect.top + 20) - rect.top + this.canvas.scrollTop;
-        this.palette = el('div', {'class': 'alg-palette', role: 'menu', style: `left:${x + 6}px;top:${y + 6}px`},
+        const at = item ? item.getBoundingClientRect() : null;
+        const x = (at ? at.right : e.clientX || rect.left + 20) - rect.left + this.canvas.scrollLeft;
+        const y = (at ? at.top : e.clientY || rect.top + 20) - rect.top + this.canvas.scrollTop;
+        this.palette = el('div', {'class': 'alg-palette', role: 'menu', style: `left:${x + 6}px;top:${y + 6}px`,
+            onkeydown: (ev) => this.onPaletteKey(ev, item)},
             PALETTE.map((type) => el('button', {
                 type: 'button', role: 'menuitem', 'class': 'btn btn-sm btn-light',
                 onclick: (ev) => {
                     ev.stopPropagation();
                     this.closePalette();
                     const block = createBlock(type);
+                    this.focusTarget = `n${block.id}`;
                     this.commit(() => {
                         slot.list.splice(slot.index, 0, block);
                         this.selected = block.id;
                     });
+                    // From the keyboard (no mouse position), continue in the fields of the new block.
+                    const field = ev.detail === 0 && this.props.querySelector('input, select');
+                    if (field) {
+                        field.focus();
+                    }
                 },
             }, this.t(`b.${type}`))));
         this.canvas.append(this.palette);
         const first = this.palette.querySelector('button');
         if (first) {
             first.focus();
+        }
+    }
+
+    onPaletteKey(e, item) {
+        const buttons = [...this.palette.querySelectorAll('button')];
+        const i = buttons.indexOf(document.activeElement);
+        const step = {ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1}[e.key];
+        e.stopPropagation();
+        if (step) {
+            e.preventDefault();
+            buttons[(i + step + buttons.length) % buttons.length].focus();
+        } else if (e.key === 'Home' || e.key === 'End') {
+            e.preventDefault();
+            buttons[e.key === 'Home' ? 0 : buttons.length - 1].focus();
+        } else if (e.key === 'Escape' || e.key === 'Tab') {
+            e.preventDefault();
+            this.closePalette();
+            if (item && item.isConnected) {
+                item.focus();
+            } else {
+                this.canvas.focus();
+            }
         }
     }
 
@@ -457,6 +591,7 @@ export class AlgorithmEditor {
             const input = el('input', {type: 'text', 'class': 'form-control form-control-sm alg-input',
                 'aria-label': `${ev.name} (${ev.type})`, onkeydown: (e) => {
                     if (e.key === 'Enter') {
+                        e.preventDefault();
                         const v = input.value;
                         input.disabled = true;
                         row.append(` ${v}`);
@@ -507,7 +642,7 @@ export class AlgorithmEditor {
             }
             this.log(run.stopped ? this.t('stopped') : this.t('finished'), 'alg-info');
         } catch (err) {
-            this.log(`${this.t('error')}: ${err.message}`, 'alg-error');
+            this.log(`${this.t('error')}: ${errorText(err)}`, 'alg-error');
         } finally {
             this.running = null;
             this.highlight(null);

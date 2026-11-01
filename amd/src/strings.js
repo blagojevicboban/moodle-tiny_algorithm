@@ -31,6 +31,8 @@ export const STR = {
         'import': 'Import .fprg', 'export': 'Export .fprg', copy: 'Copy', download: 'Download', speed: 'Speed',
         console: 'Console', code: 'Code', 'function': 'Function', name: 'Name', params: 'Parameters (a: Integer, b: Real)',
         returns: 'Return type', hint: 'Click a + to insert a block, click a block to edit it.',
+        keyhint: 'Keyboard: the arrow keys move between the blocks and the + signs, Enter edits or inserts, ' +
+            'Delete removes the selected block, Escape cancels.',
         up: 'Up', down: 'Down', 'delete': 'Delete', imported: 'Flowgorithm file imported.', stopped: 'Stopped.',
         finished: 'Program finished.', error: 'Error',
         'f.name': 'Name', 'f.varType': 'Type', 'f.size': 'Array size (empty = single value)', 'f.target': 'Variable',
@@ -53,6 +55,19 @@ export const STR = {
         noinput: 'The algorithm asks for more input than the test provides.', difffirst: 'First difference in line {n}.',
         insertblock: 'Insert block', passmark: 'Passed', failmark: 'Failed',
         solutionfails: 'The solution fails on test {n}: {error}',
+        'e.unterminated': 'Unterminated string', 'e.badchar': "Unexpected character '{c}'", 'e.expected': "Expected '{op}'",
+        'e.unexpectedend': 'Unexpected end of expression', 'e.unexpected': "Unexpected '{token}'",
+        'e.charindex': 'Char: index {index} is outside the string "{text}"', 'e.tocodeempty': 'ToCode: empty string',
+        'e.assigninteger': "Cannot assign '{value}' to Integer {name}",
+        'e.assignreal': "Cannot assign '{value}' to Real {name}",
+        'e.assignboolean': "Cannot assign '{value}' to Boolean {name}",
+        'e.notdeclared': "Variable '{name}' is not declared", 'e.notarray': "'{name}' is not an array",
+        'e.indexrange': "Index {index} out of range for '{name}'", 'e.divzero': 'Division by zero',
+        'e.badoperator': 'Bad operator {op}', 'e.unknownfunction': "Unknown function '{name}'",
+        'e.badexpression': 'Bad expression', 'e.badtarget': 'Invalid assignment target',
+        'e.steplimit': 'Step limit exceeded (possible infinite loop)', 'e.invalidinput': "'{text}' is not a valid {type}",
+        'e.forstepzero': 'For loop step cannot be 0', 'e.argcount': "Function '{name}' expects {count} argument(s)",
+        'e.arraysize': 'Array size {size} is larger than {max}',
     },
 };
 
@@ -83,8 +98,8 @@ export const setStrings = (strings) => {
  * @param {Object} values name => value
  * @returns {string}
  */
-export const fill = (text, values = {}) => Object.entries(values).reduce(
-    (s, [k, v]) => s.split(`{$a->${k}}`).join(v).split(`{${k}}`).join(v), text);
+export const fill = (text, values = {}) => text.replace(/\{(?:\$a->)?(\w+)\}/g,
+    (m, k) => (Object.prototype.hasOwnProperty.call(values, k) ? String(values[k]) : m));
 
 /**
  * Text of a widget string. The language is the one Moodle loaded for the user (the second argument is kept for older
@@ -98,3 +113,27 @@ export const t = (key, values) => {
     const text = loaded[key] ?? STR.en[key] ?? key;
     return values && typeof values === 'object' ? fill(text, values) : text;
 };
+
+/**
+ * An error that stops the algorithm. The message is always English (the PHP interpreter in qtype_algorithm throws the
+ * same messages); errorText() shows it in the user's language.
+ */
+export class AlgorithmError extends Error {
+    /**
+     * @param {string} code key of the e.* string
+     * @param {Object} [values] placeholder values
+     */
+    constructor(code, values = {}) {
+        super(fill(STR.en[`e.${code}`], values));
+        this.code = code;
+        this.values = values;
+    }
+}
+
+/**
+ * The message of an error in the user's language.
+ *
+ * @param {Error} err error thrown while parsing or running an algorithm
+ * @returns {string}
+ */
+export const errorText = (err) => (err instanceof AlgorithmError ? t(`e.${err.code}`, err.values) : err.message);

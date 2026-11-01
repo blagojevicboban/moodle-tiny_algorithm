@@ -32,7 +32,7 @@ const COLORS = {
     },
 };
 
-const shapeSvg = (it) => {
+const shapeSvg = (it, editable = false) => {
     const {x, y, w, h} = it;
     const fill = COLORS.fill[it.shape] || '#fff';
     const attrs = `fill="${fill}" stroke="${COLORS.stroke}" stroke-width="1.5"`;
@@ -64,7 +64,9 @@ const shapeSvg = (it) => {
         ? `<text x="${x + w / 2}" ${attrsText}>` + lines.map((ln, i) =>
             `<tspan x="${x + w / 2}" y="${y + h / 2 + (i - (lines.length - 1) / 2) * 16}">${esc(ln)}</tspan>`).join('') + '</text>'
         : `<text x="${x + w / 2}" y="${y + h / 2}" ${attrsText}>${esc(it.text)}</text>`;
-    return `<g class="alg-node" data-id="${esc(it.id)}">${body}${text}</g>`;
+    const focus = editable && !['start', 'end'].includes(it.type) ?
+        ` tabindex="-1" role="button" aria-label="${esc(`${tr(`b.${it.type}`)}: ${it.text}`)}"` : '';
+    return `<g class="alg-node" data-id="${esc(it.id)}"${focus}>${body}${text}</g>`;
 };
 
 const lineSvg = (it) => {
@@ -96,10 +98,10 @@ export const renderFunction = (fn, {editable = false} = {}) => {
     }
     for (const it of items) {
         if (it.t === 'shape') {
-            body += shapeSvg(it);
+            body += shapeSvg(it, editable);
         } else if (it.t === 'slot' && editable) {
             slots.push(it);
-            body += `<g class="alg-slot" data-slot="${slots.length - 1}" tabindex="0" role="button" ` +
+            body += `<g class="alg-slot" data-slot="${slots.length - 1}" tabindex="-1" role="button" ` +
                 `aria-label="${esc(tr('insertblock'))}">` +
                 `<circle cx="${it.x}" cy="${it.y}" r="8" fill="#fff" stroke="#6b7280" stroke-width="1"/>` +
                 `<path d="M${it.x - 4},${it.y} h8 M${it.x},${it.y - 4} v8" stroke="#6b7280" stroke-width="1.5"/></g>`;

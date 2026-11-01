@@ -18,7 +18,8 @@ without leaving the editor.
 |---------|-------------|
 | 🧱 **Visual Editor** | Declare, Assign, Input, Output, If, For, While, Do…While, Call, Return, Comment; several functions, undo / redo |
 | ▶️ **Interpreter** | Run / Step / Stop with a speed slider, the running block is highlighted, console with input prompts |
-| 🛡️ **Safe Execution** | Infinite-loop guard and clear errors (undeclared variable, division by zero, index out of range) |
+| 🛡️ **Safe Execution** | Infinite-loop guard, arrays up to 100000 elements, and clear errors in the user's language (undeclared variable, division by zero, index out of range) |
+| ⌨️ **Keyboard** | Arrow keys move between the blocks and the **+** signs, **Enter** or **Space** edits a block or opens the block menu, **Delete** removes, **Escape** cancels; Enter in a field never submits the form around the editor |
 | 🔍 **Variable Watch** | Current value of every variable while stepping, changed values highlighted, long arrays shortened |
 | 🔎 **Zoom** | **−**, **+**, **100%**, **Fit** buttons or **Ctrl + mouse wheel** |
 | 📂 **Flowgorithm Files** | Import and export real `.fprg` files; unsupported elements are reported, not silently dropped |
@@ -29,7 +30,7 @@ without leaving the editor.
 | 🧩 **Starting Template** | Students can start from an empty or partial template instead of the solution; the solution can be shown on request |
 | ⚙️ **Per-diagram Options** | *Interactive*, *Show generated code*, *Show variable watch* (turn code off in quiz questions) |
 | 🌐 **Languages** | English, Serbian Latin and Serbian Cyrillic |
-| 🔒 **Privacy** | GDPR compliant (Privacy API, no personal data stored) |
+| 🔒 **Privacy** | GDPR compliant (Privacy API, no personal data on the server; display settings and students' edited copies stay in the browser) |
 
 ## 🖼️ Screenshots
 
@@ -82,6 +83,9 @@ in `amd/build`.
 2.  **Build the flowchart**:
     -   Click a **+** between blocks to insert a block.
     -   Click a block to edit its properties; use **Up / Down / Delete** to arrange.
+    -   Without a mouse: Tab into the diagram, move with the arrow keys, **Enter** on a **+** opens the block menu
+        (arrow keys, Enter to insert, Escape to close), **Enter** on a block edits it, **Enter** in a field applies the value
+        and returns to the block, **Delete** removes the selected block.
 3.  **Test it**: **Run** or **Step**; the console asks for *Input* values and the variable watch shows the state.
 4.  **Import / Export**: **Import .fprg** loads a Flowgorithm file, **Export** saves one.
 5.  **Insert**: Optionally tick **Interactive**, then click **Insert**. Double-click the image later to edit it.

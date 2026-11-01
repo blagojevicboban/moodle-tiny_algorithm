@@ -94,19 +94,37 @@
     stroke-width: 3;
 }
 
+.alg-node:focus {
+    outline: none;
+}
+
+.alg-node:focus > :first-child {
+    stroke: #1d4ed8;
+    stroke-width: 3;
+    stroke-dasharray: 6 3;
+}
+
+/* The running block is marked by its border too, not only by its colour. */
 .alg-node.alg-running > :first-child {
     fill: #fdba74;
+    stroke: #9a3412;
+    stroke-width: 3.5;
 }
 
 .alg-slot {
     cursor: pointer;
-    opacity: .35;
+    opacity: .55;
 }
 
 .alg-slot:hover,
 .alg-slot:focus {
     opacity: 1;
     outline: none;
+}
+
+.alg-slot:focus circle {
+    stroke: #1d4ed8;
+    stroke-width: 2.5;
 }
 
 .alg-palette {
@@ -245,6 +263,8 @@ generated code on the right; stacked when the content area is narrow. */
 
 .alg-viewer .alg-node.alg-running > :first-child {
     fill: #fdba74;
+    stroke: #9a3412;
+    stroke-width: 3.5;
 }
 
 .alg-viewer .alg-code-bar {

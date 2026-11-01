@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.0 – 2026-11-01 (stable)
+
+- **Keyboard:** the blocks of the editor take the focus (one tab stop, roving tabindex). The arrow keys, Home and End move
+  between the blocks and the **+** signs; Enter or Space on a **+** opens the block menu, on a block selects it and moves to
+  its first field; Enter in a field applies the value and returns to the block; Delete removes the selected block; Escape
+  deselects it. The block menu works with the arrow keys, Home, End, Escape and Tab. Undo / redo also with Cmd on a Mac
+  and Ctrl+Shift+Z. A hint under the function fields lists the keys (`ui_keyhint`).
+- Enter in a field of the editor and in the console input no longer submits the form around the editor (quiz page).
+- **Translated error messages:** the interpreter and the expression parser throw `AlgorithmError` with a code and values
+  (new `e.*` strings, `ui_e_*` in the language files); `errorText()` shows them in the user's language in the console,
+  the code panel and the tests. The `message` stays English, so the PHP interpreter of qtype_algorithm is still compared
+  with the browser.
+- Arrays are limited to 100000 elements (`MAX_ARRAY_SIZE`, new error `e.arraysize`), the same limit as on the server.
+- `fill()` replaces the placeholders in one pass (a value that contains `{name}` is not replaced again).
+- The running block has a dark border too, the focused block a dashed one, and the **+** signs more contrast.
+- `privacy:metadata` mentions what the browser keeps in its local storage.
+- Serbian translations are ekavian (rešenje, vrednost, posle, ocena).
+
 ## 1.0.0 – 2026-10-31 (stable)
 
 - **Stable release.**

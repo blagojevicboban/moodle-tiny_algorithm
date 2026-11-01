@@ -23,7 +23,7 @@
  */
 import {execute} from './interpreter';
 import {decodeData, serialize} from './model';
-import {fill, t as tr} from './strings';
+import {errorText, fill, t as tr} from './strings';
 
 /** Step limit for one test run, so that an endless loop fails the test instead of freezing the page. */
 export const MAX_STEPS = 200000;
@@ -114,7 +114,7 @@ export const runProgram = (program, inputs, lang = null) => {
         }
         return result(null);
     } catch (err) {
-        return result(err.message);
+        return result(errorText(err));
     }
 };
 
