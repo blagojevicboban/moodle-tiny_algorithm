@@ -21,7 +21,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import Modal from 'core/modal';
-import {getStrings} from 'core/str';
+import {getString, getStrings} from 'core/str';
 import {getFilePicker} from 'editor_tiny/options';
 import uploadFile from 'editor_tiny/uploader';
 import {
@@ -31,7 +31,7 @@ import {
 import {AlgorithmEditor} from './editor';
 import {embedAttributes, imageClasses, restoreAttributes} from './embed';
 import {load as loadStrings} from './langstrings';
-import {createProgram, deserialize, serialize} from './model';
+import {createProgram, deserialize, serialize, walk} from './model';
 import {extractModel} from './render';
 import {TestsPanel, deserializeTests, serializeTests} from './tests';
 
@@ -149,7 +149,8 @@ const imageSource = async(editor, svg, name) => {
 };
 
 /**
- * HTML of the algorithm image.
+ * HTML of the algorithm image. Everything the viewer needs is in the SVG; the image only has its source, classes and alt
+ * text (since 2.0; images written by 1.x also carry the data-algorithm attributes, which are still read).
  *
  * @param {TinyMCE} editor
  * @param {object} o see imageAttributes, and o.svg, the diagram of o.program
@@ -159,9 +160,14 @@ const imageHtml = async(editor, o) => {
     const m = /width="(\d+)" height="(\d+)"/.exec(o.svg);
     const attrs = imageAttributes(o);
     const src = await imageSource(editor, embedAttributes(o.svg, attrs), o.program.name);
-    const html = Object.entries(attrs).map(([name, value]) => `${name}="${escapeAttr(value)}"`).join(' ');
-    return `<img src="${escapeAttr(src)}" class="${imageClasses(attrs)}" ${html} ` +
-        `alt="${escapeAttr(`Algorithm: ${o.program.name || ''}`)}" width="${m[1]}" height="${m[2]}">`;
+    let blocks = 0;
+    o.program.functions.forEach((f) => walk(f.body, () => {
+        blocks++;
+    }));
+    const alt = await getString('imagealt', component, {name: o.program.name || '', functions: o.program.functions.length,
+        blocks});
+    return `<img src="${escapeAttr(src)}" class="${imageClasses(attrs)}" alt="${escapeAttr(alt)}" ` +
+        `width="${m[1]}" height="${m[2]}">`;
 };
 
 export const openEditor = async(editor) => {

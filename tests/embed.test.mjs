@@ -83,3 +83,20 @@ test('restoreAttributes reads a cleaned image back from its SVG file', async() =
         globalThis.fetch = saved;
     }
 });
+
+test('restoreAttributes decodes a data URI without fetching it', async() => {
+    const svg = embedAttributes(renderProgram(program), attrs);
+    const uri = `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`;
+    const saved = globalThis.fetch;
+    globalThis.fetch = async() => {
+        throw new Error('fetch must not be called for a data URI');
+    };
+    try {
+        const img = new FakeImage({src: uri}, ['tiny_algorithm-image', 'tiny_algorithm-run']);
+        assert.equal(await restoreAttributes(img), true);
+        assert.deepEqual(deserialize(img.getAttribute('data-algorithm')), program);
+        assert.equal(img.getAttribute('data-algorithm-run'), '1');
+    } finally {
+        globalThis.fetch = saved;
+    }
+});

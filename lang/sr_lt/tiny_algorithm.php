@@ -32,6 +32,7 @@ $string['copyfromsolution'] = 'Kopiraj iz rešenja';
 $string['dialogtitle'] = 'Editor algoritama';
 $string['editable'] = 'Učenici mogu da menjaju i testiraju algoritam';
 $string['emptytemplate'] = 'Prazan';
+$string['imagealt'] = 'Algoritam {$a->name}: funkcija {$a->functions}, blokova {$a->blocks}';
 $string['insert'] = 'Umetni';
 $string['interactive'] = 'Interaktivno (čitaoci mogu pokrenuti i izvršavati korak po korak)';
 $string['menuitem'] = 'Algoritam...';

@@ -32,6 +32,7 @@ $string['copyfromsolution'] = 'Copy from the solution';
 $string['dialogtitle'] = 'Algorithm editor';
 $string['editable'] = 'Students can edit and test the algorithm';
 $string['emptytemplate'] = 'Empty';
+$string['imagealt'] = 'Algorithm {$a->name}: {$a->functions} function(s), {$a->blocks} block(s)';
 $string['insert'] = 'Insert';
 $string['interactive'] = 'Interactive (readers can Run and Step)';
 $string['menuitem'] = 'Algorithm...';

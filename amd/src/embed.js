@@ -74,6 +74,21 @@ export const extractAttributes = (svgText) => {
 export const imageClasses = (attrs) => (attrs[runAttribute] ? `${imageClass} ${runClass}` : imageClass);
 
 /**
+ * Text of the SVG of an image: a data URI is decoded here, a file is fetched.
+ *
+ * @param {string} src image source
+ * @returns {Promise<string|null>}
+ */
+const svgText = async(src) => {
+    const m = /^data:image\/svg\+xml;base64,([A-Za-z0-9+/=]+)$/.exec(src);
+    if (m) {
+        return new TextDecoder().decode(Uint8Array.from(atob(m[1]), (c) => c.charCodeAt(0)));
+    }
+    const response = await fetch(src, {credentials: 'same-origin'});
+    return response.ok ? response.text() : null;
+};
+
+/**
  * Give an algorithm image its data-algorithm attributes back from its SVG file, when the cleaning removed them.
  *
  * @param {HTMLImageElement} img
@@ -87,11 +102,10 @@ export const restoreAttributes = async(img) => {
         return false;
     }
     try {
-        const response = await fetch(img.src, {credentials: 'same-origin'});
-        if (!response.ok) {
+        const text = await svgText(img.src || img.getAttribute('src'));
+        if (text === null) {
             return false;
         }
-        const text = await response.text();
         const model = extractModel(text);
         if (!model || !Array.isArray(model.functions)) {
             return false;
