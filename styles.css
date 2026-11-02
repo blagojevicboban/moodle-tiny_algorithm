@@ -1,39 +1,39 @@
-.alg-editor {
+.tiny_algorithm-editor {
     display: flex;
     flex-direction: column;
     gap: .5rem;
     min-width: 0;
 }
 
-.alg-toolbar {
+.tiny_algorithm-toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: .35rem;
 }
 
-.alg-toolbar .alg-fnselect {
+.tiny_algorithm-toolbar .tiny_algorithm-fnselect {
     width: auto;
 }
 
-.alg-toolbar .alg-sep {
+.tiny_algorithm-toolbar .tiny_algorithm-sep {
     width: 1px;
     align-self: stretch;
     background: #ced4da;
     margin: 0 .25rem;
 }
 
-.alg-toolbar .alg-speed {
+.tiny_algorithm-toolbar .tiny_algorithm-speed {
     width: 90px;
 }
 
-.alg-main {
+.tiny_algorithm-main {
     display: flex;
     gap: .75rem;
     min-height: 0;
 }
 
-.alg-canvas {
+.tiny_algorithm-canvas {
     position: relative;
     flex: 1 1 auto;
     height: 540px;
@@ -44,12 +44,12 @@
     outline: none;
 }
 
-.alg-canvas svg {
+.tiny_algorithm-canvas svg {
     display: block;
     margin: 0 auto;
 }
 
-.alg-side {
+.tiny_algorithm-side {
     flex: 0 0 320px;
     display: flex;
     flex-direction: column;
@@ -58,76 +58,76 @@
     overflow: auto;
 }
 
-.alg-props,
-.alg-pane {
+.tiny_algorithm-props,
+.tiny_algorithm-pane {
     border: 1px solid #dee2e6;
     border-radius: .25rem;
     padding: .5rem;
     background: #f8f9fa;
 }
 
-.alg-field {
+.tiny_algorithm-field {
     margin-bottom: .4rem;
 }
 
-.alg-field label {
+.tiny_algorithm-field label {
     font-size: .8rem;
     margin-bottom: .1rem;
 }
 
-.alg-actions {
+.tiny_algorithm-actions {
     display: flex;
     gap: .3rem;
     flex-wrap: wrap;
 }
 
-.alg-node {
+.tiny_algorithm-node {
     cursor: pointer;
 }
 
-.alg-node:hover > :first-child {
+.tiny_algorithm-node:hover > :first-child {
     filter: brightness(.95);
 }
 
-.alg-node.alg-selected > :first-child {
+.tiny_algorithm-node.tiny_algorithm-selected > :first-child {
     stroke: #2563eb;
     stroke-width: 3;
 }
 
-.alg-node:focus {
+.tiny_algorithm-node:focus {
     outline: none;
 }
 
-.alg-node:focus > :first-child {
+.tiny_algorithm-node:focus > :first-child {
     stroke: #1d4ed8;
     stroke-width: 3;
     stroke-dasharray: 6 3;
 }
 
 /* The running block is marked by its border too, not only by its colour. */
-.alg-node.alg-running > :first-child {
+.tiny_algorithm-node.tiny_algorithm-running > :first-child {
     fill: #fdba74;
     stroke: #9a3412;
     stroke-width: 3.5;
 }
 
-.alg-slot {
+.tiny_algorithm-slot {
     cursor: pointer;
     opacity: .55;
 }
 
-.alg-slot:hover,
-.alg-slot:focus {
+.tiny_algorithm-slot:hover,
+.tiny_algorithm-slot:focus {
     opacity: 1;
     outline: none;
 }
 
-.alg-slot:focus circle {
+.tiny_algorithm-slot:focus circle {
     stroke: #1d4ed8;
     stroke-width: 2.5;
 }
 
-.alg-palette {
+.tiny_algorithm-palette {
     position: absolute;
     z-index: 10;
     display: grid;
@@ -140,7 +140,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
 }
 
-.alg-console {
+.tiny_algorithm-console {
     font-family: Consolas, monospace;
     font-size: .85rem;
     min-height: 90px;
@@ -153,15 +153,15 @@
     white-space: pre-wrap;
 }
 
-.alg-console .alg-error {
+.tiny_algorithm-console .tiny_algorithm-error {
     color: #fca5a5;
 }
 
-.alg-console .alg-info {
+.tiny_algorithm-console .tiny_algorithm-info {
     color: #93c5fd;
 }
 
-.alg-console .alg-input {
+.tiny_algorithm-console .tiny_algorithm-input {
     display: inline-block;
     width: 10rem;
     background: #1f2937;
@@ -169,7 +169,7 @@
     border-color: #4b5563;
 }
 
-.alg-code {
+.tiny_algorithm-code {
     max-height: 220px;
     overflow: auto;
     margin: 0;
@@ -180,35 +180,35 @@
 }
 
 @media (max-width: 900px) {
-    .alg-main {
+    .tiny_algorithm-main {
         flex-direction: column;
     }
-    .alg-side {
+    .tiny_algorithm-side {
         flex-basis: auto;
         height: auto;
     }
 
 }
 
-.alg-zoom {
+.tiny_algorithm-zoom {
     display: inline-flex;
     gap: .15rem;
     align-items: center;
 }
 
-.alg-zoom .alg-zoom-btn {
+.tiny_algorithm-zoom .tiny_algorithm-zoom-btn {
     min-width: 2.2rem;
 }
 
 /* Reader view (runner): diagram on the left,
 generated code on the right; stacked when the content area is narrow. */
-.alg-viewer-host,
+.tiny_algorithm-viewer-host,
 .qtype_algorithm_container {
     /* stylelint-disable-next-line csstree/validator */
     container-type: inline-size;
 }
 
-.alg-viewer {
+.tiny_algorithm-viewer {
     display: grid;
     grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     gap: 1rem;
@@ -217,21 +217,21 @@ generated code on the right; stacked when the content area is narrow. */
     margin: .5rem 0;
 }
 
-.alg-viewer.alg-no-code,
-.alg-viewer.alg-hide-code {
+.tiny_algorithm-viewer.tiny_algorithm-no-code,
+.tiny_algorithm-viewer.tiny_algorithm-hide-code {
     grid-template-columns: minmax(0, 1fr);
 }
 
-.alg-viewer.alg-hide-code .alg-view-code {
+.tiny_algorithm-viewer.tiny_algorithm-hide-code .tiny_algorithm-view-code {
     display: none;
 }
 
-.alg-viewer .alg-view-main,
-.alg-viewer .alg-view-code {
+.tiny_algorithm-viewer .tiny_algorithm-view-main,
+.tiny_algorithm-viewer .tiny_algorithm-view-code {
     min-width: 0;
 }
 
-.alg-viewer .alg-view-svg {
+.tiny_algorithm-viewer .tiny_algorithm-view-svg {
     overflow: auto;
     max-height: 640px;
     background: #fff;
@@ -239,12 +239,12 @@ generated code on the right; stacked when the content area is narrow. */
     border-radius: .25rem;
 }
 
-.alg-viewer .alg-view-svg svg {
+.tiny_algorithm-viewer .tiny_algorithm-view-svg svg {
     display: block;
     margin: 0 auto;
 }
 
-.alg-viewer .alg-view-bar {
+.tiny_algorithm-viewer .tiny_algorithm-view-bar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -252,40 +252,40 @@ generated code on the right; stacked when the content area is narrow. */
     margin: .4rem 0;
 }
 
-.alg-viewer .alg-speed {
+.tiny_algorithm-viewer .tiny_algorithm-speed {
     width: 100px;
 }
 
-.alg-viewer .alg-console {
+.tiny_algorithm-viewer .tiny_algorithm-console {
     min-height: 70px;
     max-height: 220px;
 }
 
-.alg-viewer .alg-node.alg-running > :first-child {
+.tiny_algorithm-viewer .tiny_algorithm-node.tiny_algorithm-running > :first-child {
     fill: #fdba74;
     stroke: #9a3412;
     stroke-width: 3.5;
 }
 
-.alg-viewer .alg-code-bar {
+.tiny_algorithm-viewer .tiny_algorithm-code-bar {
     display: flex;
     align-items: center;
     gap: .4rem;
     margin-bottom: .4rem;
 }
 
-.alg-viewer .alg-code-bar .alg-codelang {
+.tiny_algorithm-viewer .tiny_algorithm-code-bar .tiny_algorithm-codelang {
     width: auto;
 }
 
-.alg-viewer .alg-code-bar .alg-code-close {
+.tiny_algorithm-viewer .tiny_algorithm-code-bar .tiny_algorithm-code-close {
     margin-left: auto;
     font-size: 1.4rem;
     line-height: 1;
     padding: 0 .4rem;
 }
 
-.alg-viewer .alg-code {
+.tiny_algorithm-viewer .tiny_algorithm-code {
     max-height: 640px;
     overflow: auto;
     margin: 0;
@@ -299,30 +299,30 @@ generated code on the right; stacked when the content area is narrow. */
 
 /* stylelint-disable-next-line csstree/validator */
 @container (max-width: 819px) {
-    .alg-viewer {
+    .tiny_algorithm-viewer {
         grid-template-columns: minmax(0, 1fr);
     }
 }
 
 /* Variable watch */
-.alg-watch {
+.tiny_algorithm-watch {
     font-size: .85rem;
 }
 
-.alg-watch .alg-watch-empty {
+.tiny_algorithm-watch .tiny_algorithm-watch-empty {
     color: #6b7280;
     margin: 0;
 }
 
-.alg-watch table {
+.tiny_algorithm-watch table {
     width: 100%;
     margin: 0;
     border-collapse: collapse;
     font-family: Consolas, monospace;
 }
 
-.alg-watch th,
-.alg-watch td {
+.tiny_algorithm-watch th,
+.tiny_algorithm-watch td {
     padding: .15rem .4rem;
     border-bottom: 1px solid #e5e7eb;
     text-align: left;
@@ -330,32 +330,32 @@ generated code on the right; stacked when the content area is narrow. */
     word-break: break-word;
 }
 
-.alg-watch th {
+.tiny_algorithm-watch th {
     width: 30%;
     font-weight: 600;
 }
 
-.alg-watch td.alg-changed {
+.tiny_algorithm-watch td.tiny_algorithm-changed {
     background: #fef3c7;
 }
 
-.alg-viewer .alg-view-watch {
+.tiny_algorithm-viewer .tiny_algorithm-view-watch {
     margin-top: .5rem;
 }
 
-.alg-viewer.alg-hide-watch .alg-view-watch {
+.tiny_algorithm-viewer.tiny_algorithm-hide-watch .tiny_algorithm-view-watch {
     display: none;
 }
 
 /* Student workspace (editable diagrams in content) */
-.alg-workspace {
+.tiny_algorithm-workspace {
     margin: .5rem 0;
     outline: none;
 }
 
-.alg-workspace .alg-ws-bar,
-.alg-tests .alg-tests-bar,
-.alg-template-bar {
+.tiny_algorithm-workspace .tiny_algorithm-ws-bar,
+.tiny_algorithm-tests .tiny_algorithm-tests-bar,
+.tiny_algorithm-template-bar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -363,7 +363,7 @@ generated code on the right; stacked when the content area is narrow. */
     margin-bottom: .4rem;
 }
 
-.alg-workspace .alg-ws-modified {
+.tiny_algorithm-workspace .tiny_algorithm-ws-modified {
     padding: .1rem .5rem;
     border-radius: 1rem;
     background: #dbeafe;
@@ -371,17 +371,17 @@ generated code on the right; stacked when the content area is narrow. */
     font-size: .8rem;
 }
 
-.alg-workspace .alg-ws-body .alg-viewer {
+.tiny_algorithm-workspace .tiny_algorithm-ws-body .tiny_algorithm-viewer {
     margin-top: 0;
 }
 
-.alg-workspace .alg-ws-solution {
+.tiny_algorithm-workspace .tiny_algorithm-ws-solution {
     margin-top: .75rem;
     padding-top: .5rem;
     border-top: 1px dashed #ced4da;
 }
 
-.alg-workspace.alg-fullscreen {
+.tiny_algorithm-workspace.tiny_algorithm-fullscreen {
     position: fixed;
     inset: 0;
     z-index: 1100;
@@ -391,38 +391,38 @@ generated code on the right; stacked when the content area is narrow. */
     background: #fff;
 }
 
-.alg-workspace.alg-fullscreen .alg-canvas,
-.alg-workspace.alg-fullscreen .alg-side {
+.tiny_algorithm-workspace.tiny_algorithm-fullscreen .tiny_algorithm-canvas,
+.tiny_algorithm-workspace.tiny_algorithm-fullscreen .tiny_algorithm-side {
     height: calc(100vh - 160px);
 }
 
-.alg-workspace.alg-fullscreen .alg-view-svg {
+.tiny_algorithm-workspace.tiny_algorithm-fullscreen .tiny_algorithm-view-svg {
     max-height: calc(100vh - 260px);
 }
 
 /* Tests */
-.alg-tests {
+.tiny_algorithm-tests {
     margin-top: .75rem;
 }
 
-.alg-tests .alg-tests-list {
+.tiny_algorithm-tests .tiny_algorithm-tests-list {
     margin: 0;
     padding-left: 0;
     list-style: none;
 }
 
-.alg-tests .alg-test {
+.tiny_algorithm-tests .tiny_algorithm-test {
     padding: .4rem 0;
     border-top: 1px solid #e5e7eb;
 }
 
-.alg-tests .alg-test-head {
+.tiny_algorithm-tests .tiny_algorithm-test-head {
     display: flex;
     align-items: center;
     gap: .5rem;
 }
 
-.alg-tests .alg-test-hidden {
+.tiny_algorithm-tests .tiny_algorithm-test-hidden {
     display: inline-flex;
     align-items: center;
     gap: .3rem;
@@ -430,20 +430,20 @@ generated code on the right; stacked when the content area is narrow. */
     font-size: .85rem;
 }
 
-.alg-tests .alg-test-hidden .form-check-input {
+.tiny_algorithm-tests .tiny_algorithm-test-hidden .form-check-input {
     position: static;
     margin: 0;
 }
 
-.alg-tests-teacher .alg-test-head .btn-link {
+.tiny_algorithm-tests-teacher .tiny_algorithm-test-head .btn-link {
     margin-left: auto;
 }
 
-.alg-tests .alg-test-inputs {
+.tiny_algorithm-tests .tiny_algorithm-test-inputs {
     color: #4b5563;
 }
 
-.alg-tests .alg-test-cols {
+.tiny_algorithm-tests .tiny_algorithm-test-cols {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: .5rem;
@@ -451,7 +451,7 @@ generated code on the right; stacked when the content area is narrow. */
     font-size: .85rem;
 }
 
-.alg-tests .alg-test-out {
+.tiny_algorithm-tests .tiny_algorithm-test-out {
     min-height: 2rem;
     max-height: 160px;
     overflow: auto;
@@ -463,53 +463,53 @@ generated code on the right; stacked when the content area is narrow. */
     white-space: pre;
 }
 
-.alg-tests .alg-diff-line {
+.tiny_algorithm-tests .tiny_algorithm-diff-line {
     background: #fee2e2;
 }
 
-.alg-tests .alg-pass {
+.tiny_algorithm-tests .tiny_algorithm-pass {
     color: #15803d;
     font-weight: 600;
 }
 
-.alg-tests .alg-fail {
+.tiny_algorithm-tests .tiny_algorithm-fail {
     color: #b91c1c;
     font-weight: 600;
 }
 
-.alg-tests .alg-stale {
+.tiny_algorithm-tests .tiny_algorithm-stale {
     color: #6b7280;
     font-weight: 600;
 }
 
-.alg-tests-stale .alg-test-mark,
-.alg-tests-stale .alg-test-cols {
+.tiny_algorithm-tests-stale .tiny_algorithm-test-mark,
+.tiny_algorithm-tests-stale .tiny_algorithm-test-cols {
     opacity: .55;
 }
 
-.alg-tests .alg-test-mark {
+.tiny_algorithm-tests .tiny_algorithm-test-mark {
     width: 1.2rem;
     text-align: center;
 }
 
-.alg-tests .alg-test-note,
-.alg-tests .alg-tests-empty,
-.alg-pane-note {
+.tiny_algorithm-tests .tiny_algorithm-test-note,
+.tiny_algorithm-tests .tiny_algorithm-tests-empty,
+.tiny_algorithm-pane-note {
     color: #6b7280;
     font-size: .85rem;
 }
 
-.alg-tests .alg-error {
+.tiny_algorithm-tests .tiny_algorithm-error {
     color: #b91c1c;
     font-size: .85rem;
 }
 
 /* Dialog tabs and options */
-.alg-tabs {
+.tiny_algorithm-tabs {
     margin-bottom: .5rem;
 }
 
-.alg-footer-options {
+.tiny_algorithm-footer-options {
     display: flex;
     flex-wrap: wrap;
     gap: .25rem 0;

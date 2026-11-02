@@ -124,7 +124,7 @@ export class Zoom {
         const mk = (text, title, fn) => {
             const b = document.createElement('button');
             b.type = 'button';
-            b.className = 'btn btn-secondary btn-sm alg-zoom-btn';
+            b.className = 'btn btn-secondary btn-sm tiny_algorithm-zoom-btn';
             b.textContent = text;
             b.title = title;
             b.setAttribute('aria-label', title);
@@ -133,7 +133,7 @@ export class Zoom {
         };
         this.label = mk(`${Math.round(this.scale * 100)}%`, t('zoomreset'), () => this.reset());
         const box = document.createElement('span');
-        box.className = 'alg-zoom';
+        box.className = 'tiny_algorithm-zoom';
         box.append(
             mk('−', t('zoomout'), () => this.zoomBy(1 / FACTOR)),
             this.label,

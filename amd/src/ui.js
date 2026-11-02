@@ -22,11 +22,14 @@
  */
 import Modal from 'core/modal';
 import {getStrings} from 'core/str';
+import {getFilePicker} from 'editor_tiny/options';
+import uploadFile from 'editor_tiny/uploader';
 import {
     component, dataAttribute, runAttribute, codeAttribute, watchAttribute, editAttribute, solutionAttribute, testsAttribute,
-    showSolutionAttribute,
+    showSolutionAttribute, imageClass,
 } from './common';
 import {AlgorithmEditor} from './editor';
+import {embedAttributes, imageClasses, restoreAttributes} from './embed';
 import {load as loadStrings} from './langstrings';
 import {createProgram, deserialize, serialize} from './model';
 import {extractModel} from './render';
@@ -74,48 +77,102 @@ const loadSolution = (img) => {
 };
 
 /**
- * HTML of the algorithm image.
+ * The data-algorithm attributes of the image.
  *
  * @param {object} o
  * @param {Object} o.program algorithm shown (and, when editable, the students' starting point)
- * @param {string} o.svg diagram of o.program
  * @param {Object} [o.solution] teacher's solution, when students start from a separate template
  * @param {Array} [o.tests] tests with expected outputs
  * @param {object} o.flags interactive, showCode, showWatch, editable, showSolution
+ * @returns {Object<string, string>}
  */
-const imageHtml = ({program, svg, solution = null, tests = [], flags}) => {
-    const m = /width="(\d+)" height="(\d+)"/.exec(svg);
-    const attrs = [`${dataAttribute}="${serialize(program)}"`];
+const imageAttributes = ({program, solution = null, tests = [], flags}) => {
+    const attrs = {[dataAttribute]: serialize(program)};
     if (flags.interactive || flags.editable) {
-        attrs.push(`${runAttribute}="1"`);
+        attrs[runAttribute] = '1';
     }
     if (!flags.showCode) {
-        attrs.push(`${codeAttribute}="0"`);
+        attrs[codeAttribute] = '0';
     }
     if (!flags.showWatch) {
-        attrs.push(`${watchAttribute}="0"`);
+        attrs[watchAttribute] = '0';
     }
     if (flags.editable) {
-        attrs.push(`${editAttribute}="1"`);
+        attrs[editAttribute] = '1';
         if (solution) {
-            attrs.push(`${solutionAttribute}="${serialize(solution)}"`);
+            attrs[solutionAttribute] = serialize(solution);
             if (flags.showSolution) {
-                attrs.push(`${showSolutionAttribute}="1"`);
+                attrs[showSolutionAttribute] = '1';
             }
         }
         if (tests.length) {
-            attrs.push(`${testsAttribute}="${serializeTests(tests)}"`);
+            attrs[testsAttribute] = serializeTests(tests);
         }
     }
-    return `<img src="${svgToDataUri(svg)}" ${attrs.join(' ')} ` +
-        `alt="${escapeAttr(`Algorithm: ${program.name || ''}`)}" width="${m[1]}" height="${m[2]}">`;
+    return attrs;
+};
+
+/**
+ * Can the SVG be stored as a file of the text (the editor has a file area with the upload repository)?
+ *
+ * @param {TinyMCE} editor
+ * @returns {boolean}
+ */
+const canUpload = (editor) => {
+    try {
+        const picker = getFilePicker(editor, 'image');
+        return Boolean(picker && picker.itemid && Object.values(picker.repositories || {}).some((r) => r.type === 'upload'));
+    } catch (e) {
+        return false;
+    }
+};
+
+/**
+ * Source of the image: a file in the editor's file area where possible (it survives Moodle's HTML cleaning), else a data URI.
+ *
+ * @param {TinyMCE} editor
+ * @param {string} svg
+ * @param {string} name algorithm name
+ * @returns {Promise<string>}
+ */
+const imageSource = async(editor, svg, name) => {
+    if (canUpload(editor)) {
+        const base = (name || '').normalize('NFKD').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+        try {
+            return await uploadFile(editor, 'image', new Blob([svg], {type: 'image/svg+xml'}), `${base || 'algorithm'}.svg`,
+                () => null);
+        } catch (e) {
+            // A failed upload (quota, file type not allowed) falls back to the data URI.
+        }
+    }
+    return svgToDataUri(svg);
+};
+
+/**
+ * HTML of the algorithm image.
+ *
+ * @param {TinyMCE} editor
+ * @param {object} o see imageAttributes, and o.svg, the diagram of o.program
+ * @returns {Promise<string>}
+ */
+const imageHtml = async(editor, o) => {
+    const m = /width="(\d+)" height="(\d+)"/.exec(o.svg);
+    const attrs = imageAttributes(o);
+    const src = await imageSource(editor, embedAttributes(o.svg, attrs), o.program.name);
+    const html = Object.entries(attrs).map(([name, value]) => `${name}="${escapeAttr(value)}"`).join(' ');
+    return `<img src="${escapeAttr(src)}" class="${imageClasses(attrs)}" ${html} ` +
+        `alt="${escapeAttr(`Algorithm: ${o.program.name || ''}`)}" width="${m[1]}" height="${m[2]}">`;
 };
 
 export const openEditor = async(editor) => {
     await loadStrings();
     const selected = editor.selection.getNode();
-    const existing = selected && selected.nodeName === 'IMG' && (selected.hasAttribute(dataAttribute) ||
-        /^data:image\/svg\+xml/.test(selected.getAttribute('src') || '')) ? selected : null;
+    let existing = selected && selected.nodeName === 'IMG' && (selected.hasAttribute(dataAttribute) ||
+        selected.classList.contains(imageClass) || /^data:image\/svg\+xml/.test(selected.getAttribute('src') || ''))
+        ? selected.cloneNode() : null;
+    if (existing && !(await restoreAttributes(existing)) && !/^data:image\/svg\+xml/.test(existing.getAttribute('src') || '')) {
+        existing = null;
+    }
     const shown = existing ? loadModel(existing) : null;
     const savedSolution = existing ? loadSolution(existing) : null;
     const lang = document.documentElement.lang;
@@ -131,17 +188,18 @@ export const openEditor = async(editor) => {
 
     const modal = await Modal.create({
         title: s.dialogtitle,
-        body: `<ul class="nav nav-tabs alg-tabs" role="tablist">${tab('solution', s.tabsolution, true)}` +
+        body: `<ul class="nav nav-tabs tiny_algorithm-tabs" role="tablist">${tab('solution', s.tabsolution, true)}` +
             `${tab('template', s.tabtemplate)}${tab('tests', s.tabtests)}</ul>` +
             '<div data-pane="solution" class="tiny_algorithm-root"></div>' +
-            `<div data-pane="template" hidden><p class="alg-pane-note">${s.onlyeditable}</p>` +
-            `<div class="alg-template-bar">${check('separatetemplate', s.separatetemplate)}` +
+            `<div data-pane="template" hidden><p class="tiny_algorithm-pane-note">${s.onlyeditable}</p>` +
+            `<div class="tiny_algorithm-template-bar">${check('separatetemplate', s.separatetemplate)}` +
             '<button type="button" class="btn btn-secondary btn-sm" data-action="copyfromsolution">' +
             `${s.copyfromsolution}</button> ` +
             `<button type="button" class="btn btn-secondary btn-sm" data-action="emptytemplate">${s.emptytemplate}</button></div>` +
             '<div class="tiny_algorithm-template"></div></div>' +
-            `<div data-pane="tests" hidden><p class="alg-pane-note">${s.onlyeditable}</p></div>`,
-        footer: '<div class="alg-footer-options mr-auto">' + check('interactive', s.interactive) + check('showcode', s.showcode) +
+            `<div data-pane="tests" hidden><p class="tiny_algorithm-pane-note">${s.onlyeditable}</p></div>`,
+        footer: '<div class="tiny_algorithm-footer-options mr-auto">' + check('interactive', s.interactive) +
+            check('showcode', s.showcode) +
             check('showwatch', s.showwatch) + check('editable', s.editable) + check('allowsolution', s.allowsolution) + '</div>' +
             `<button type="button" class="btn btn-primary" data-action="insert">${s.insert}</button>` +
             `<button type="button" class="btn btn-secondary" data-action="cancel">${s.cancel}</button>`,
@@ -198,7 +256,7 @@ export const openEditor = async(editor) => {
             interactive.checked = true;
         }
         allowSolution.disabled = !editable.checked || !separate.checked;
-        root.querySelectorAll('.alg-pane-note').forEach((n) => {
+        root.querySelectorAll('.tiny_algorithm-pane-note').forEach((n) => {
             n.hidden = editable.checked;
         });
         templateHost.hidden = !separate.checked;
@@ -215,12 +273,13 @@ export const openEditor = async(editor) => {
     update();
 
     root.querySelector('[data-action="cancel"]').addEventListener('click', () => modal.destroy());
-    root.querySelector('[data-action="insert"]').addEventListener('click', () => {
+    const insert = root.querySelector('[data-action="insert"]');
+    insert.addEventListener('click', async() => {
         widget.stop();
         const solution = widget.getProgram();
         const flags = {interactive: interactive.checked, showCode: showCode.checked, showWatch: showWatch.checked,
             editable: editable.checked, showSolution: allowSolution.checked};
-        let html;
+        let image;
         if (editable.checked) {
             if (tests.refreshExpected().length) {
                 showTab('tests');
@@ -230,11 +289,13 @@ export const openEditor = async(editor) => {
             if (starter) {
                 starter.stop();
             }
-            html = imageHtml({program: starter ? starter.getProgram() : solution, svg: (starter || widget).getSvg(),
-                solution: starter ? solution : null, tests: tests.tests, flags});
+            image = {program: starter ? starter.getProgram() : solution, svg: (starter || widget).getSvg(),
+                solution: starter ? solution : null, tests: tests.tests, flags};
         } else {
-            html = imageHtml({program: solution, svg: widget.getSvg(), flags});
+            image = {program: solution, svg: widget.getSvg(), flags};
         }
+        insert.disabled = true;
+        const html = await imageHtml(editor, image);
         editor.undoManager.transact(() => editor.insertContent(html));
         modal.destroy();
     });

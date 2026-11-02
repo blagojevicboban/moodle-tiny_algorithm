@@ -22,6 +22,7 @@
  * @copyright  2026 Boban Blagojević
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+import {renameCalls} from './expr';
 
 let counter = 0;
 export const newId = () => `n${Date.now().toString(36)}${(counter++).toString(36)}`;
@@ -101,6 +102,44 @@ export const findBlock = (program, id) => {
 };
 
 export const cloneProgram = (program) => JSON.parse(JSON.stringify(program));
+
+// Fields of each block type that hold an expression (and so may call a function).
+const EXPR_FIELDS = {
+    assign: ['target', 'expr'],
+    input: ['target'],
+    output: ['expr'],
+    'if': ['cond'],
+    'while': ['cond'],
+    dowhile: ['cond'],
+    'for': ['start', 'end', 'step'],
+    call: ['expr'],
+    'return': ['expr'],
+};
+
+/**
+ * Rename a function and every call of it in the program. The calls stay as they are when a name is not a valid name or
+ * another function has the old or the new name.
+ *
+ * @param {Object} program program model
+ * @param {Object} fn function of the program
+ * @param {string} name new name
+ */
+export const renameFunction = (program, fn, name) => {
+    const from = String(fn.name);
+    fn.name = name;
+    const valid = (n) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(n);
+    const taken = (n) => program.functions.some((f) => f !== fn && String(f.name).toLowerCase() === n.toLowerCase());
+    if (!valid(name) || !valid(from) || taken(from) || taken(name)) {
+        return;
+    }
+    for (const f of program.functions) {
+        walk(f.body, (b) => (EXPR_FIELDS[b.type] || []).forEach((key) => {
+            if (typeof b[key] === 'string') {
+                b[key] = renameCalls(b[key], from, name);
+            }
+        }));
+    }
+};
 
 /**
  * Serialize for storage in an HTML attribute (UTF-8 safe base64).

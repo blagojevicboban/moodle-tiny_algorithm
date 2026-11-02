@@ -21,10 +21,11 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import {getString} from 'core/str';
-import {component, buttonName, menuItemName, icon, iconSvg, dataAttribute} from './common';
+import {component, buttonName, menuItemName, icon, iconSvg, dataAttribute, imageClass} from './common';
 import {openEditor} from './ui';
 
-const isAlgorithmImage = (node) => node && node.nodeName === 'IMG' && node.hasAttribute(dataAttribute);
+const isAlgorithmImage = (node) => node && node.nodeName === 'IMG' &&
+    (node.hasAttribute(dataAttribute) || node.classList.contains(imageClass));
 
 export const getSetup = async() => {
     const [buttonTitle, menuTitle] = await Promise.all([

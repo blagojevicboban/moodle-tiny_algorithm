@@ -21,7 +21,7 @@
  * @copyright  2026 Boban Blagojević
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-import {createBlock, createProgram, findBlock, cloneProgram} from './model';
+import {createBlock, createProgram, findBlock, cloneProgram, renameFunction} from './model';
 import {renderFunction, renderProgram} from './render';
 import {execute} from './interpreter';
 import {checkExpr} from './expr';
@@ -89,14 +89,16 @@ export class AlgorithmEditor {
     // ---- DOM construction -------------------------------------------------------------------------------------------------
 
     build(container) {
-        const btn = (key, fn, extra = {}) => el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm alg-btn', onclick: fn,
+        const btn = (key, fn, extra = {}) => el('button', {
+            type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-btn', onclick: fn,
             title: this.t(key), ...extra}, this.t(key));
-        this.fnSelect = el('select', {'class': 'custom-select custom-select-sm alg-fnselect', onchange: () => {
+        this.fnSelect = el('select', {'class': 'custom-select custom-select-sm tiny_algorithm-fnselect', onchange: () => {
             this.fnIndex = Number(this.fnSelect.value);
             this.selected = null;
             this.refresh();
         }});
-        this.speed = el('input', {type: 'range', min: 0, max: 1000, value: 600, 'class': 'alg-speed', title: this.t('speed')});
+        this.speed = el('input',
+            {type: 'range', min: 0, max: 1000, value: 600, 'class': 'tiny_algorithm-speed', title: this.t('speed')});
         this.fileInput = el('input', {type: 'file', accept: '.fprg,.xml', hidden: true, onchange: (e) => this.importFile(e)});
         this.btnUndo = btn('undo', () => this.undo());
         this.btnRedo = btn('redo', () => this.redo());
@@ -104,33 +106,35 @@ export class AlgorithmEditor {
         this.btnStep = btn('step', () => this.start(true));
         this.btnStop = btn('stop', () => this.stop());
 
-        this.toolbar = el('div', {'class': 'alg-toolbar'},
+        this.toolbar = el('div', {'class': 'tiny_algorithm-toolbar'},
             this.fnSelect, btn('addfn', () => this.addFunction()), btn('delfn', () => this.removeFunction()),
-            el('span', {'class': 'alg-sep'}), this.btnUndo, this.btnRedo,
-            el('span', {'class': 'alg-sep'}), this.btnRun, this.btnStep, this.btnStop, this.speed,
-            el('span', {'class': 'alg-sep'}), el('span', {'class': 'alg-zoom-slot'}),
-            el('span', {'class': 'alg-sep'}), btn('import', () => this.fileInput.click()), btn('export', () => this.exportFile()),
+            el('span', {'class': 'tiny_algorithm-sep'}), this.btnUndo, this.btnRedo,
+            el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnStep, this.btnStop, this.speed,
+            el('span', {'class': 'tiny_algorithm-sep'}), el('span', {'class': 'tiny_algorithm-zoom-slot'}),
+            el('span', {'class': 'tiny_algorithm-sep'}), btn('import', () => this.fileInput.click()),
+            btn('export', () => this.exportFile()),
             this.fileInput);
-        this.canvas = el('div', {'class': 'alg-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
+        this.canvas = el('div', {'class': 'tiny_algorithm-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
             onkeydown: (e) => this.onKey(e)});
         this.zoom = new Zoom(this.canvas);
-        this.toolbar.querySelector('.alg-zoom-slot').replaceWith(this.zoom.controls((key) => this.t(key)));
-        this.props = el('div', {'class': 'alg-props'});
-        this.consoleEl = el('div', {'class': 'alg-console', role: 'log'});
-        this.codeEl = el('pre', {'class': 'alg-code'});
+        this.toolbar.querySelector('.tiny_algorithm-zoom-slot').replaceWith(this.zoom.controls((key) => this.t(key)));
+        this.props = el('div', {'class': 'tiny_algorithm-props'});
+        this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log'});
+        this.codeEl = el('pre', {'class': 'tiny_algorithm-code'});
         this.codeSelect = el('select', {'class': 'custom-select custom-select-sm', onchange: () => {
             this.codeLang = this.codeSelect.value;
             this.renderCode();
         }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
         this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent));
         this.dlBtn = btn('download', () => this.exportCode());
-        this.tabConsole = el('div', {'class': 'alg-pane'}, el('h6', {}, this.t('console')), this.consoleEl);
-        this.tabCode = el('div', {'class': 'alg-pane'},
+        this.tabConsole = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('console')), this.consoleEl);
+        this.tabCode = el('div', {'class': 'tiny_algorithm-pane'},
             el('h6', {}, this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn), this.codeEl);
         this.watch = new Watch(this.lang);
-        this.tabWatch = el('div', {'class': 'alg-pane'}, el('h6', {}, this.t('variables')), this.watch.root);
-        this.side = el('div', {'class': 'alg-side'}, this.props, this.tabConsole, this.tabWatch, this.tabCode);
-        this.root = el('div', {'class': 'alg-editor'}, this.toolbar, el('div', {'class': 'alg-main'}, this.canvas, this.side));
+        this.tabWatch = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('variables')), this.watch.root);
+        this.side = el('div', {'class': 'tiny_algorithm-side'}, this.props, this.tabConsole, this.tabWatch, this.tabCode);
+        this.root = el('div', {'class': 'tiny_algorithm-editor'}, this.toolbar,
+            el('div', {'class': 'tiny_algorithm-main'}, this.canvas, this.side));
         container.append(this.root);
         this.palette = null;
     }
@@ -196,8 +200,8 @@ export class AlgorithmEditor {
         this.slots = slots;
         this.canvas.innerHTML = svg;
         this.zoom.apply();
-        this.canvas.querySelectorAll('.alg-node').forEach((n) => {
-            n.classList.toggle('alg-selected', n.dataset.id === this.selected);
+        this.canvas.querySelectorAll('.tiny_algorithm-node').forEach((n) => {
+            n.classList.toggle('tiny_algorithm-selected', n.dataset.id === this.selected);
         });
         this.setupFocus();
         this.btnUndo.disabled = !this.undoStack.length;
@@ -220,7 +224,7 @@ export class AlgorithmEditor {
     }
 
     field(label, type, value, onInput) {
-        const id = `alg-f-${Math.random().toString(36).slice(2)}`;
+        const id = `tiny_algorithm-f-${Math.random().toString(36).slice(2)}`;
         let input;
         let applied = null;
         if (type === 'bool') {
@@ -249,7 +253,7 @@ export class AlgorithmEditor {
                 // After Enter the value is applied already; the change event of the blur must not apply it again.
                 onchange: () => input.value !== applied && onInput(input.value)});
         }
-        return el('div', {'class': 'form-group alg-field'}, el('label', {'for': id}, label), input);
+        return el('div', {'class': 'form-group tiny_algorithm-field'}, el('label', {'for': id}, label), input);
     }
 
     renderProps() {
@@ -257,7 +261,9 @@ export class AlgorithmEditor {
         if (!found) {
             this.props.replaceChildren(el('h6', {}, this.t('function')),
                 this.field(this.t('name'), 'text', this.fn.name, (v) => this.commit(() => {
-                    this.fn.name = v.trim() || this.fn.name;
+                    if (v.trim()) {
+                        renameFunction(this.program, this.fn, v.trim());
+                    }
                 })),
                 this.field(this.t('params'), 'text',
                     this.fn.params.map((p) => `${p.name}: ${p.type}`).join(', '), (v) => this.commit(() => {
@@ -280,7 +286,7 @@ export class AlgorithmEditor {
         })));
         const act = (label, fn, cls = 'btn-secondary') =>
             el('button', {type: 'button', 'class': `btn btn-sm ${cls}`, onclick: fn}, label);
-        this.props.replaceChildren(el('h6', {}, this.t(`b.${b.type}`)), ...rows, el('div', {'class': 'alg-actions'},
+        this.props.replaceChildren(el('h6', {}, this.t(`b.${b.type}`)), ...rows, el('div', {'class': 'tiny_algorithm-actions'},
             act(this.t('up'), () => this.move(-1)), act(this.t('down'), () => this.move(1)),
             act(this.t('delete'), () => this.deleteSelected(), 'btn-outline-danger')));
     }
@@ -291,8 +297,8 @@ export class AlgorithmEditor {
         if (this.running) {
             return;
         }
-        const slot = e.target.closest('.alg-slot');
-        const node = e.target.closest('.alg-node');
+        const slot = e.target.closest('.tiny_algorithm-slot');
+        const node = e.target.closest('.tiny_algorithm-node');
         this.closePalette();
         if (slot) {
             this.openPalette(this.slots[Number(slot.dataset.slot)], e);
@@ -305,7 +311,7 @@ export class AlgorithmEditor {
 
     /** @returns {Element[]} the blocks and "+" slots that take the keyboard focus, in drawing order */
     focusables() {
-        return [...this.canvas.querySelectorAll('.alg-node[role="button"], .alg-slot')];
+        return [...this.canvas.querySelectorAll('.tiny_algorithm-node[role="button"], .tiny_algorithm-slot')];
     }
 
     /**
@@ -313,7 +319,7 @@ export class AlgorithmEditor {
      * @returns {string} key of a focusable element that survives a redraw
      */
     static focusKey(item) {
-        return item.classList.contains('alg-slot') ? `s${item.dataset.slot}` : `n${item.dataset.id}`;
+        return item.classList.contains('tiny_algorithm-slot') ? `s${item.dataset.slot}` : `n${item.dataset.id}`;
     }
 
     /**
@@ -352,7 +358,7 @@ export class AlgorithmEditor {
 
     // eslint-disable-next-line complexity
     onKey(e) {
-        const item = e.target.closest && e.target.closest('.alg-node[role="button"], .alg-slot');
+        const item = e.target.closest && e.target.closest('.tiny_algorithm-node[role="button"], .tiny_algorithm-slot');
         const key = e.key;
         const mod = e.ctrlKey || e.metaKey;
         if (item && !this.running && ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'Home', 'End'].includes(key)) {
@@ -367,7 +373,7 @@ export class AlgorithmEditor {
         } else if (item && !this.running && (key === 'Enter' || key === ' ')) {
             e.preventDefault();
             this.focusTarget = AlgorithmEditor.focusKey(item);
-            if (item.classList.contains('alg-slot')) {
+            if (item.classList.contains('tiny_algorithm-slot')) {
                 this.openPalette(this.slots[Number(item.dataset.slot)], e, item);
             } else {
                 this.selected = item.dataset.id;
@@ -411,7 +417,7 @@ export class AlgorithmEditor {
         const at = item ? item.getBoundingClientRect() : null;
         const x = (at ? at.right : e.clientX || rect.left + 20) - rect.left + this.canvas.scrollLeft;
         const y = (at ? at.top : e.clientY || rect.top + 20) - rect.top + this.canvas.scrollTop;
-        this.palette = el('div', {'class': 'alg-palette', role: 'menu', style: `left:${x + 6}px;top:${y + 6}px`,
+        this.palette = el('div', {'class': 'tiny_algorithm-palette', role: 'menu', style: `left:${x + 6}px;top:${y + 6}px`,
             onkeydown: (ev) => this.onPaletteKey(ev, item)},
             PALETTE.map((type) => el('button', {
                 type: 'button', role: 'menuitem', 'class': 'btn btn-sm btn-light',
@@ -525,9 +531,9 @@ export class AlgorithmEditor {
                 this.fnIndex = 0;
                 this.selected = null;
             });
-            this.log(warnings.length ? `${this.t('imported')}\n${warnings.join('\n')}` : this.t('imported'), 'alg-info');
+            this.log(warnings.length ? `${this.t('imported')}\n${warnings.join('\n')}` : this.t('imported'), 'tiny_algorithm-info');
             return null;
-        }).catch((err) => this.log(err.message, 'alg-error'));
+        }).catch((err) => this.log(err.message, 'tiny_algorithm-error'));
     }
 
     download(name, text, type) {
@@ -550,17 +556,17 @@ export class AlgorithmEditor {
     // ---- Execution --------------------------------------------------------------------------------------------------------
 
     log(text, cls = '') {
-        const line = el('div', {'class': `alg-line ${cls}`}, text);
+        const line = el('div', {'class': `tiny_algorithm-line ${cls}`}, text);
         this.consoleEl.append(line);
         this.consoleEl.scrollTop = this.consoleEl.scrollHeight;
         return line;
     }
 
     highlight(id) {
-        this.canvas.querySelectorAll('.alg-running').forEach((n) => n.classList.remove('alg-running'));
-        const n = id && this.canvas.querySelector(`.alg-node[data-id="${id}"]`);
+        this.canvas.querySelectorAll('.tiny_algorithm-running').forEach((n) => n.classList.remove('tiny_algorithm-running'));
+        const n = id && this.canvas.querySelector(`.tiny_algorithm-node[data-id="${id}"]`);
         if (n) {
-            n.classList.add('alg-running');
+            n.classList.add('tiny_algorithm-running');
         }
     }
 
@@ -588,7 +594,7 @@ export class AlgorithmEditor {
 
     askInput(run, ev) {
         return new Promise((resolve) => {
-            const input = el('input', {type: 'text', 'class': 'form-control form-control-sm alg-input',
+            const input = el('input', {type: 'text', 'class': 'form-control form-control-sm tiny_algorithm-input',
                 'aria-label': `${ev.name} (${ev.type})`, onkeydown: (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -640,9 +646,9 @@ export class AlgorithmEditor {
                 }
                 res = gen.next();
             }
-            this.log(run.stopped ? this.t('stopped') : this.t('finished'), 'alg-info');
+            this.log(run.stopped ? this.t('stopped') : this.t('finished'), 'tiny_algorithm-info');
         } catch (err) {
-            this.log(`${this.t('error')}: ${errorText(err)}`, 'alg-error');
+            this.log(`${this.t('error')}: ${errorText(err)}`, 'tiny_algorithm-error');
         } finally {
             this.running = null;
             this.highlight(null);
@@ -652,13 +658,13 @@ export class AlgorithmEditor {
 
     flushOutput(text) {
         const last = this.consoleEl.lastElementChild;
-        if (last && last.classList.contains('alg-out') && !last.dataset.closed) {
+        if (last && last.classList.contains('tiny_algorithm-out') && !last.dataset.closed) {
             last.textContent += text.replace(/\n$/, '');
             if (text.endsWith('\n')) {
                 last.dataset.closed = '1';
             }
         } else {
-            const line = this.log(text.replace(/\n$/, ''), 'alg-out');
+            const line = this.log(text.replace(/\n$/, ''), 'tiny_algorithm-out');
             if (text.endsWith('\n')) {
                 line.dataset.closed = '1';
             }

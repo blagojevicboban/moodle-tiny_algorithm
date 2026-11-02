@@ -67,7 +67,7 @@ test('render produces svg with slots and node ids', () => {
     const r = renderFunction(program.functions[0], {editable: true});
     assert.match(r.svg, /^<svg /);
     assert.ok(r.slots.length >= 7);
-    assert.ok((r.svg.match(/class="alg-node"/g) || []).length >= 9);
+    assert.ok((r.svg.match(/class="tiny_algorithm-node"/g) || []).length >= 9);
 });
 
 test('renderProgram embeds model that can be extracted', async() => {

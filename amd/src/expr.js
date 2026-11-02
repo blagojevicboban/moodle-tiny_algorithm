@@ -203,3 +203,42 @@ export const checkExpr = (src) => {
         return errorText(e);
     }
 };
+
+/**
+ * Rename the calls of a function in an expression. Names compare without case, like in the interpreter; text in quotes,
+ * variables and other functions are left as they are.
+ *
+ * @param {string} src expression
+ * @param {string} from old function name
+ * @param {string} to new function name
+ * @returns {string}
+ */
+export const renameCalls = (src, from, to) => {
+    const text = String(src ?? '');
+    const old = from.toLowerCase();
+    let out = '';
+    let i = 0;
+    while (i < text.length) {
+        const c = text[i];
+        if (c === '"') {
+            let j = i + 1;
+            while (j < text.length && text[j] !== '"') {
+                j += text[j] === '\\' ? 2 : 1;
+            }
+            out += text.slice(i, j + 1);
+            i = j + 1;
+        } else if (/[A-Za-z_]/.test(c) && !/[A-Za-z0-9_.]/.test(text[i - 1] || '')) {
+            let j = i;
+            while (j < text.length && /[A-Za-z0-9_]/.test(text[j])) {
+                j++;
+            }
+            const word = text.slice(i, j);
+            out += word.toLowerCase() === old && /^\s*\(/.test(text.slice(j)) ? to : word;
+            i = j;
+        } else {
+            out += c;
+            i++;
+        }
+    }
+    return out;
+};

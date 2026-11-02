@@ -67,54 +67,56 @@ export class AlgorithmRunner {
 
     build(host) {
         const btn = (key, fn) => el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm', onclick: fn}, this.t(key));
-        this.svgHost = el('div', {'class': 'alg-view-svg'});
+        this.svgHost = el('div', {'class': 'tiny_algorithm-view-svg'});
         this.svgHost.innerHTML = renderProgram(this.program);
         this.zoom = new Zoom(this.svgHost);
         this.speed = el('input', {
-            type: 'range', min: 0, max: 1000, value: 600, 'class': 'alg-speed', 'aria-label': this.t('speed'),
+            type: 'range', min: 0, max: 1000, value: 600, 'class': 'tiny_algorithm-speed', 'aria-label': this.t('speed'),
         });
-        this.consoleEl = el('div', {'class': 'alg-console', role: 'log', 'aria-live': 'polite'});
-        this.bar = el('div', {'class': 'alg-view-bar'},
+        this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log', 'aria-live': 'polite'});
+        this.bar = el('div', {'class': 'tiny_algorithm-view-bar'},
             btn('run', () => this.onRun()), btn('step', () => this.onStep()), btn('reset', () => this.reset()), this.speed,
             this.zoom.controls((key) => this.t(key)));
         this.watch = new Watch(this.lang);
         const mainParts = [this.svgHost, this.bar, this.consoleEl];
         if (this.showWatch) {
-            this.watchToggle = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm alg-watch-toggle',
+            this.watchToggle = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-watch-toggle',
                 onclick: () => this.toggleWatch()});
             this.bar.append(this.watchToggle);
-            mainParts.push(el('div', {'class': 'alg-view-watch'}, el('strong', {}, this.t('variables')), this.watch.root));
+            mainParts.push(el('div', {'class': 'tiny_algorithm-view-watch'}, el('strong', {}, this.t('variables')),
+                this.watch.root));
         }
-        const main = el('div', {'class': 'alg-view-main'}, ...mainParts);
-        this.root = el('div', {'class': 'alg-viewer'}, main);
+        const main = el('div', {'class': 'tiny_algorithm-view-main'}, ...mainParts);
+        this.root = el('div', {'class': 'tiny_algorithm-viewer'}, main);
         if (this.showWatch) {
-            this.root.classList.toggle('alg-hide-watch', AlgorithmRunner.watchHidden());
+            this.root.classList.toggle('tiny_algorithm-hide-watch', AlgorithmRunner.watchHidden());
             this.updateWatchToggle();
         }
         if (this.showCode) {
-            this.codeEl = el('pre', {'class': 'alg-code', tabindex: '0'});
-            this.codeSelect = el('select', {'class': 'custom-select custom-select-sm alg-codelang', 'aria-label': this.t('code'),
+            this.codeEl = el('pre', {'class': 'tiny_algorithm-code', tabindex: '0'});
+            this.codeSelect = el('select', {
+                'class': 'custom-select custom-select-sm tiny_algorithm-codelang', 'aria-label': this.t('code'),
                 onchange: () => {
                     this.codeLang = this.codeSelect.value;
                     this.renderCode();
                 }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
-            this.codeToggle = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm alg-code-toggle',
+            this.codeToggle = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-code-toggle',
                 onclick: () => this.toggleCode()});
             this.bar.append(this.codeToggle);
-            const close = el('button', {type: 'button', 'class': 'btn btn-link btn-sm alg-code-close',
+            const close = el('button', {type: 'button', 'class': 'btn btn-link btn-sm tiny_algorithm-code-close',
                 onclick: () => this.toggleCode(), title: this.t('hidecode'), 'aria-label': this.t('hidecode')}, '×');
-            this.codePane = el('div', {'class': 'alg-view-code'},
-                el('div', {'class': 'alg-code-bar'}, el('strong', {}, this.t('code')), this.codeSelect,
+            this.codePane = el('div', {'class': 'tiny_algorithm-view-code'},
+                el('div', {'class': 'tiny_algorithm-code-bar'}, el('strong', {}, this.t('code')), this.codeSelect,
                     btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent)), close),
                 this.codeEl);
             this.root.append(this.codePane);
             this.renderCode();
-            this.root.classList.toggle('alg-hide-code', AlgorithmRunner.codeHidden());
+            this.root.classList.toggle('tiny_algorithm-hide-code', AlgorithmRunner.codeHidden());
             this.updateCodeToggle();
         } else {
-            this.root.classList.add('alg-no-code');
+            this.root.classList.add('tiny_algorithm-no-code');
         }
-        host.classList.add('alg-viewer-host');
+        host.classList.add('tiny_algorithm-viewer-host');
         host.replaceChildren(this.root);
         // Large diagrams start fitted to the available width.
         requestAnimationFrame(() => this.zoom.autoFit());
@@ -131,7 +133,7 @@ export class AlgorithmRunner {
 
     /** Show or hide the code panel and remember the choice. */
     toggleCode() {
-        const hidden = this.root.classList.toggle('alg-hide-code');
+        const hidden = this.root.classList.toggle('tiny_algorithm-hide-code');
         try {
             window.localStorage.setItem('tiny_algorithm_hidecode', hidden ? '1' : '0');
         } catch (e) {
@@ -142,7 +144,7 @@ export class AlgorithmRunner {
     }
 
     updateCodeToggle() {
-        const hidden = this.root.classList.contains('alg-hide-code');
+        const hidden = this.root.classList.contains('tiny_algorithm-hide-code');
         this.codeToggle.textContent = this.t(hidden ? 'showcode' : 'hidecode');
         this.codeToggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
     }
@@ -158,7 +160,7 @@ export class AlgorithmRunner {
 
     /** Show or hide the variable watch and remember the choice. */
     toggleWatch() {
-        const hidden = this.root.classList.toggle('alg-hide-watch');
+        const hidden = this.root.classList.toggle('tiny_algorithm-hide-watch');
         try {
             window.localStorage.setItem('tiny_algorithm_hidewatch', hidden ? '1' : '0');
         } catch (e) {
@@ -168,7 +170,7 @@ export class AlgorithmRunner {
     }
 
     updateWatchToggle() {
-        const hidden = this.root.classList.contains('alg-hide-watch');
+        const hidden = this.root.classList.contains('tiny_algorithm-hide-watch');
         this.watchToggle.textContent = this.t(hidden ? 'showwatch' : 'hidewatch');
         this.watchToggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
     }
@@ -218,7 +220,7 @@ export class AlgorithmRunner {
     }
 
     log(text, cls = '') {
-        const line = el('div', {'class': `alg-line ${cls}`}, text);
+        const line = el('div', {'class': `tiny_algorithm-line ${cls}`}, text);
         this.consoleEl.append(line);
         this.consoleEl.scrollTop = this.consoleEl.scrollHeight;
         return line;
@@ -227,13 +229,13 @@ export class AlgorithmRunner {
     write(text) {
         const last = this.consoleEl.lastElementChild;
         const body = text.replace(/\n$/, '');
-        if (last && last.classList.contains('alg-out') && !last.dataset.closed) {
+        if (last && last.classList.contains('tiny_algorithm-out') && !last.dataset.closed) {
             last.textContent += body;
             if (text.endsWith('\n')) {
                 last.dataset.closed = '1';
             }
         } else {
-            const line = this.log(body, 'alg-out');
+            const line = this.log(body, 'tiny_algorithm-out');
             if (text.endsWith('\n')) {
                 line.dataset.closed = '1';
             }
@@ -241,10 +243,10 @@ export class AlgorithmRunner {
     }
 
     highlight(id) {
-        this.svgHost.querySelectorAll('.alg-running').forEach((n) => n.classList.remove('alg-running'));
-        const n = id && this.svgHost.querySelector(`.alg-node[data-id="${id}"]`);
+        this.svgHost.querySelectorAll('.tiny_algorithm-running').forEach((n) => n.classList.remove('tiny_algorithm-running'));
+        const n = id && this.svgHost.querySelector(`.tiny_algorithm-node[data-id="${id}"]`);
         if (n) {
-            n.classList.add('alg-running');
+            n.classList.add('tiny_algorithm-running');
         }
     }
 
@@ -264,7 +266,7 @@ export class AlgorithmRunner {
     askInput(run, ev) {
         return new Promise((resolve) => {
             const row = this.log(`${ev.name} (${ev.type}) ? `);
-            const input = el('input', {type: 'text', 'class': 'form-control form-control-sm alg-input',
+            const input = el('input', {type: 'text', 'class': 'form-control form-control-sm tiny_algorithm-input',
                 'aria-label': `${ev.name} (${ev.type})`, onkeydown: (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -310,10 +312,10 @@ export class AlgorithmRunner {
                 res = gen.next();
             }
             if (!run.clear) {
-                this.log(run.stopped ? this.t('stopped') : this.t('finished'), 'alg-info');
+                this.log(run.stopped ? this.t('stopped') : this.t('finished'), 'tiny_algorithm-info');
             }
         } catch (err) {
-            this.log(`${this.t('error')}: ${errorText(err)}`, 'alg-error');
+            this.log(`${this.t('error')}: ${errorText(err)}`, 'tiny_algorithm-error');
         } finally {
             this.running = null;
             this.highlight(null);

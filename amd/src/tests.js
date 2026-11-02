@@ -240,7 +240,7 @@ export class TestsPanel {
         this.onChange = onChange;
         this.results = null;
         this.stale = false;
-        this.root = el('div', {'class': `alg-tests alg-tests-${mode}`});
+        this.root = el('div', {'class': `tiny_algorithm-tests tiny_algorithm-tests-${mode}`});
         host.append(this.root);
         this.render();
     }
@@ -294,7 +294,7 @@ export class TestsPanel {
     render() {
         const btn = (key, fn, cls = 'btn-secondary') => el('button', {type: 'button', 'class': `btn ${cls} btn-sm`, onclick: fn},
             this.t(key));
-        const head = el('div', {'class': 'alg-tests-bar'}, el('strong', {}, this.t('tests')));
+        const head = el('div', {'class': 'tiny_algorithm-tests-bar'}, el('strong', {}, this.t('tests')));
         if (this.mode === 'teacher') {
             head.append(btn('addtest', () => {
                 this.tests.push({inputs: '', expected: ''});
@@ -307,23 +307,23 @@ export class TestsPanel {
             head.append(btn('runtests', () => this.run(), 'btn-primary'));
             if (this.results) {
                 const passed = this.results.filter((r) => r.pass).length;
-                let state = passed === this.results.length ? 'alg-pass' : 'alg-fail';
+                let state = passed === this.results.length ? 'tiny_algorithm-pass' : 'tiny_algorithm-fail';
                 if (this.stale) {
-                    state = 'alg-stale';
+                    state = 'tiny_algorithm-stale';
                 }
-                head.append(el('span', {'class': `alg-tests-summary ${state}`, role: 'status'},
+                head.append(el('span', {'class': `tiny_algorithm-tests-summary ${state}`, role: 'status'},
                     this.t('passed', {passed, total: this.results.length})));
                 if (this.stale) {
-                    head.append(el('span', {'class': 'alg-test-note'}, this.t('stale')));
+                    head.append(el('span', {'class': 'tiny_algorithm-test-note'}, this.t('stale')));
                 }
             }
         }
-        const list = el('ol', {'class': 'alg-tests-list'});
+        const list = el('ol', {'class': 'tiny_algorithm-tests-list'});
         this.tests.forEach((tc, i) => list.append(this.mode === 'teacher' ? this.teacherRow(tc, i) : this.studentRow(tc, i)));
         this.root.replaceChildren(head);
-        this.root.classList.toggle('alg-tests-stale', this.stale);
+        this.root.classList.toggle('tiny_algorithm-tests-stale', this.stale);
         if (!this.tests.length && this.mode === 'teacher') {
-            this.root.append(el('p', {'class': 'alg-tests-empty'}, this.t('notests')));
+            this.root.append(el('p', {'class': 'tiny_algorithm-tests-empty'}, this.t('notests')));
         }
         this.root.append(list);
     }
@@ -344,40 +344,41 @@ export class TestsPanel {
                 this.changed();
             }});
             box.checked = Boolean(tc.hidden);
-            hidden = el('label', {'class': 'alg-test-hidden'}, box, ' ', this.t('hiddentest'));
+            hidden = el('label', {'class': 'tiny_algorithm-test-hidden'}, box, ' ', this.t('hiddentest'));
         }
-        return el('li', {'class': 'alg-test'},
-            el('div', {'class': 'alg-test-head'}, el('span', {}, this.t('testcase', {n: i + 1})), hidden,
+        return el('li', {'class': 'tiny_algorithm-test'},
+            el('div', {'class': 'tiny_algorithm-test-head'}, el('span', {}, this.t('testcase', {n: i + 1})), hidden,
                 el('button', {type: 'button', 'class': 'btn btn-link btn-sm', onclick: () => {
                     this.tests.splice(i, 1);
                     this.errors = null;
                     this.render();
                     this.changed();
                 }}, tr('delete', this.lang))),
-            el('div', {'class': 'alg-test-cols'},
+            el('div', {'class': 'tiny_algorithm-test-cols'},
                 el('label', {}, el('span', {}, this.t('inputs')), inputs),
-                el('div', {}, el('span', {}, this.t('expected')), el('pre', {'class': 'alg-test-out'}, tc.expected))),
-            error ? el('div', {'class': 'alg-error'}, this.t('solutionfails', {n: i + 1, error: error.error})) : '');
+                el('div', {}, el('span', {}, this.t('expected')), el('pre', {'class': 'tiny_algorithm-test-out'}, tc.expected))),
+            error ? el('div', {'class': 'tiny_algorithm-error'}, this.t('solutionfails', {n: i + 1, error: error.error})) : '');
     }
 
     studentRow(tc, i) {
         const r = this.results && this.results[i];
-        const mark = r ? el('span', {'class': `alg-test-mark ${r.pass ? 'alg-pass' : 'alg-fail'}`,
+        const mark = r ? el('span', {'class': `tiny_algorithm-test-mark ${r.pass ? 'tiny_algorithm-pass' : 'tiny_algorithm-fail'}`,
             title: this.t(r.pass ? 'passmark' : 'failmark'), 'aria-label': this.t(r.pass ? 'passmark' : 'failmark')},
         r.pass ? '✓' : '✗') : '';
-        const row = el('li', {'class': 'alg-test'},
-            el('div', {'class': 'alg-test-head'}, mark, el('span', {}, this.t('testcase', {n: i + 1})),
-                el('code', {'class': 'alg-test-inputs'}, inputLines(tc.inputs).join(', ') || this.t('noinputs'))));
+        const row = el('li', {'class': 'tiny_algorithm-test'},
+            el('div', {'class': 'tiny_algorithm-test-head'}, mark, el('span', {}, this.t('testcase', {n: i + 1})),
+                el('code', {'class': 'tiny_algorithm-test-inputs'}, inputLines(tc.inputs).join(', ') || this.t('noinputs'))));
         if (r && !r.pass) {
             const lines = (text) => normalize(text).split('\n').map((line, n) =>
-                el('span', {'class': n === r.diffLine ? 'alg-diff-line' : ''}, `${line}\n`));
-            row.append(el('div', {'class': 'alg-test-cols'},
-                el('div', {}, el('span', {}, this.t('expected')), el('pre', {'class': 'alg-test-out'}, lines(tc.expected))),
-                el('div', {}, el('span', {}, this.t('actual')), el('pre', {'class': 'alg-test-out'}, lines(r.actual)))));
+                el('span', {'class': n === r.diffLine ? 'tiny_algorithm-diff-line' : ''}, `${line}\n`));
+            row.append(el('div', {'class': 'tiny_algorithm-test-cols'},
+                el('div', {}, el('span', {}, this.t('expected')),
+                    el('pre', {'class': 'tiny_algorithm-test-out'}, lines(tc.expected))),
+                el('div', {}, el('span', {}, this.t('actual')), el('pre', {'class': 'tiny_algorithm-test-out'}, lines(r.actual)))));
             if (r.error) {
-                row.append(el('div', {'class': 'alg-error'}, `${tr('error', this.lang)}: ${r.error}`));
+                row.append(el('div', {'class': 'tiny_algorithm-error'}, `${tr('error', this.lang)}: ${r.error}`));
             } else if (r.diffLine >= 0) {
-                row.append(el('div', {'class': 'alg-test-note'}, this.t('difffirst', {n: r.diffLine + 1})));
+                row.append(el('div', {'class': 'tiny_algorithm-test-note'}, this.t('difffirst', {n: r.diffLine + 1})));
             }
         }
         return row;

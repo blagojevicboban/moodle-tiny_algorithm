@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0 – 2026-11-02 (stable)
+
+- **Fixed: diagrams disappeared in forum posts, assignment text and other content that Moodle cleans.** The HTML cleaning
+  removes `data:` images and `data-*` attributes. Where the editor has a file area the SVG is now uploaded as a file of the
+  text; the options, the solution and the tests are written into the SVG as well (new module `embed.js`), and the image
+  gets the classes `tiny_algorithm-image` and `tiny_algorithm-run`, which the cleaning keeps. Without a file area the image
+  is a data URI as before. Content saved with an older version keeps its HTML in the database: open the diagram in the
+  editor and click **Insert** to store it as a file.
+- Renaming a function renames its calls in every expression of the program (names compare without case, text in quotes
+  is left alone; nothing changes when the name is invalid or used by another function).
+- **CSS classes renamed** from `alg-*` to `tiny_algorithm-*` (frankenstyle). A theme that styled the old classes must use the
+  new names.
+- Double-click also opens an algorithm image that lost its attributes.
+
 ## 1.1.0 – 2026-11-01 (stable)
 
 - **Keyboard:** the blocks of the editor take the focus (one tab stop, roving tabindex). The arrow keys, Home and End move

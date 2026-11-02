@@ -33,6 +33,8 @@ export const editAttribute = 'data-algorithm-edit';
 export const solutionAttribute = 'data-algorithm-solution';
 export const testsAttribute = 'data-algorithm-tests';
 export const showSolutionAttribute = 'data-algorithm-showsolution';
+export const imageClass = `${component}-image`;
+export const runClass = `${component}-run`;
 export const iconSvg =
     '<svg width="24" height="24" viewBox="0 0 24 24">' +
     '<rect x="8" y="2" width="8" height="4" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>' +

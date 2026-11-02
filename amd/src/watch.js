@@ -51,7 +51,7 @@ export class Watch {
         this.lang = lang;
         this.previous = new Map();
         this.root = document.createElement('div');
-        this.root.className = 'alg-watch';
+        this.root.className = 'tiny_algorithm-watch';
         this.root.setAttribute('aria-live', 'polite');
         this.clear();
     }
@@ -60,7 +60,7 @@ export class Watch {
     clear() {
         this.previous = new Map();
         const hint = document.createElement('p');
-        hint.className = 'alg-watch-empty';
+        hint.className = 'tiny_algorithm-watch-empty';
         hint.textContent = tr('watchempty', this.lang);
         this.root.replaceChildren(hint);
     }
@@ -91,7 +91,7 @@ export class Watch {
             const value = document.createElement('td');
             value.textContent = text;
             if (this.previous.has(v.name) && this.previous.get(v.name) !== text) {
-                value.className = 'alg-changed';
+                value.className = 'tiny_algorithm-changed';
             }
             row.append(name, value);
             body.append(row);

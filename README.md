@@ -16,7 +16,7 @@ without leaving the editor.
 
 | Feature | Description |
 |---------|-------------|
-| 🧱 **Visual Editor** | Declare, Assign, Input, Output, If, For, While, Do…While, Call, Return, Comment; several functions, undo / redo |
+| 🧱 **Visual Editor** | Declare, Assign, Input, Output, If, For, While, Do…While, Call, Return, Comment; several functions, undo / redo; renaming a function also renames its calls |
 | ▶️ **Interpreter** | Run / Step / Stop with a speed slider, the running block is highlighted, console with input prompts |
 | 🛡️ **Safe Execution** | Infinite-loop guard, arrays up to 100000 elements, and clear errors in the user's language (undeclared variable, division by zero, index out of range) |
 | ⌨️ **Keyboard** | Arrow keys move between the blocks and the **+** signs, **Enter** or **Space** edits a block or opens the block menu, **Delete** removes, **Escape** cancels; Enter in a field never submits the form around the editor |
@@ -25,6 +25,7 @@ without leaving the editor.
 | 📂 **Flowgorithm Files** | Import and export real `.fprg` files; unsupported elements are reported, not silently dropped |
 | 💻 **Code Generation** | Python, C, C++, Java, C#, JavaScript and Pascal; the tests compile and run the generated programs and compare them with the interpreter |
 | 🖼️ **Editable Images** | The diagram is a normal SVG image that stores its model - double-click it to edit again |
+| 💬 **Forums and Assignments** | Where Moodle cleans the HTML (forum posts, assignment text, glossary…) the diagram is saved as an image file of the text, so it stays visible, editable and interactive |
 | ✍️ **Students Edit and Test** | Let students change their own copy of a diagram in any content, run the teacher's tests and see the differences (with `filter_algorithm`) |
 | 🧪 **Tests from the Solution** | The teacher enters only the inputs; the expected outputs are computed from the teacher's solution |
 | 🧩 **Starting Template** | Students can start from an empty or partial template instead of the solution; the solution can be shown on request |

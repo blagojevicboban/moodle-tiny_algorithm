@@ -66,7 +66,7 @@ const shapeSvg = (it, editable = false) => {
         : `<text x="${x + w / 2}" y="${y + h / 2}" ${attrsText}>${esc(it.text)}</text>`;
     const focus = editable && !['start', 'end'].includes(it.type) ?
         ` tabindex="-1" role="button" aria-label="${esc(`${tr(`b.${it.type}`)}: ${it.text}`)}"` : '';
-    return `<g class="alg-node" data-id="${esc(it.id)}"${focus}>${body}${text}</g>`;
+    return `<g class="tiny_algorithm-node" data-id="${esc(it.id)}"${focus}>${body}${text}</g>`;
 };
 
 const lineSvg = (it) => {
@@ -101,7 +101,7 @@ export const renderFunction = (fn, {editable = false} = {}) => {
             body += shapeSvg(it, editable);
         } else if (it.t === 'slot' && editable) {
             slots.push(it);
-            body += `<g class="alg-slot" data-slot="${slots.length - 1}" tabindex="-1" role="button" ` +
+            body += `<g class="tiny_algorithm-slot" data-slot="${slots.length - 1}" tabindex="-1" role="button" ` +
                 `aria-label="${esc(tr('insertblock'))}">` +
                 `<circle cx="${it.x}" cy="${it.y}" r="8" fill="#fff" stroke="#6b7280" stroke-width="1"/>` +
                 `<path d="M${it.x - 4},${it.y} h8 M${it.x},${it.y - 4} v8" stroke="#6b7280" stroke-width="1.5"/></g>`;

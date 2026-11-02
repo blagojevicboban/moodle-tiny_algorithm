@@ -95,11 +95,11 @@ export class AlgorithmWorkspace {
         this.btnEdit = btn('edit', () => this.toggleEdit());
         this.btnReset = btn('resetwork', () => this.resetWork());
         this.btnFull = btn('fullscreen', () => this.toggleFullscreen());
-        this.badge = el('span', {'class': 'alg-ws-modified'}, this.t('modified'));
-        this.bar = el('div', {'class': 'alg-ws-bar'}, this.btnEdit, this.btnReset, this.btnFull, this.badge);
-        this.body = el('div', {'class': 'alg-ws-body'});
-        this.root = el('div', {'class': 'alg-workspace', tabindex: '-1', onkeydown: (e) => {
-            if (e.key === 'Escape' && this.root.classList.contains('alg-fullscreen') && !document.fullscreenElement) {
+        this.badge = el('span', {'class': 'tiny_algorithm-ws-modified'}, this.t('modified'));
+        this.bar = el('div', {'class': 'tiny_algorithm-ws-bar'}, this.btnEdit, this.btnReset, this.btnFull, this.badge);
+        this.body = el('div', {'class': 'tiny_algorithm-ws-body'});
+        this.root = el('div', {'class': 'tiny_algorithm-workspace', tabindex: '-1', onkeydown: (e) => {
+            if (e.key === 'Escape' && this.root.classList.contains('tiny_algorithm-fullscreen') && !document.fullscreenElement) {
                 this.setFullscreen(false);
             }
         }}, this.bar, this.body);
@@ -110,11 +110,11 @@ export class AlgorithmWorkspace {
         if (canShowSolution) {
             this.btnSolution = btn('showsolution', () => this.toggleSolution());
             this.bar.append(this.btnSolution);
-            this.solutionHost = el('div', {'class': 'alg-ws-solution', hidden: true});
+            this.solutionHost = el('div', {'class': 'tiny_algorithm-ws-solution', hidden: true});
             this.root.append(this.solutionHost);
         }
         document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement && this.root.classList.contains('alg-fullscreen')) {
+            if (!document.fullscreenElement && this.root.classList.contains('tiny_algorithm-fullscreen')) {
                 this.setFullscreen(false);
             }
         });
@@ -224,7 +224,7 @@ export class AlgorithmWorkspace {
 
     /** Full screen through the browser when possible, otherwise by covering the window. */
     toggleFullscreen() {
-        const on = !this.root.classList.contains('alg-fullscreen');
+        const on = !this.root.classList.contains('tiny_algorithm-fullscreen');
         if (on && this.root.requestFullscreen) {
             this.root.requestFullscreen().catch(() => null);
         } else if (!on && document.fullscreenElement === this.root) {
@@ -234,7 +234,7 @@ export class AlgorithmWorkspace {
     }
 
     setFullscreen(on) {
-        this.root.classList.toggle('alg-fullscreen', on);
+        this.root.classList.toggle('tiny_algorithm-fullscreen', on);
         this.btnFull.textContent = this.t(on ? 'exitfullscreen' : 'fullscreen');
         this.btnFull.setAttribute('aria-pressed', on ? 'true' : 'false');
         if (on) {
