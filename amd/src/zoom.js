@@ -41,6 +41,31 @@ export class Zoom {
             e.preventDefault();
             this.zoomBy(e.deltaY < 0 ? FACTOR : 1 / FACTOR, e.clientX, e.clientY);
         }, {passive: false});
+        // Two fingers zoom (pinch) around their middle; one finger still scrolls.
+        this.pinching = false;
+        let pinch = null;
+        const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+        scrollEl.style.touchAction = 'pan-x pan-y';
+        scrollEl.addEventListener('touchstart', (e) => {
+            pinch = e.touches.length === 2 ? {d: dist(e.touches), scale: this.scale} : null;
+            this.pinching = Boolean(pinch);
+        }, {passive: true});
+        scrollEl.addEventListener('touchmove', (e) => {
+            if (!pinch || e.touches.length !== 2) {
+                return;
+            }
+            e.preventDefault();
+            if (pinch.d > 0) {
+                this.set(pinch.scale * dist(e.touches) / pinch.d, (e.touches[0].clientX + e.touches[1].clientX) / 2,
+                    (e.touches[0].clientY + e.touches[1].clientY) / 2);
+            }
+        }, {passive: false});
+        scrollEl.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                pinch = null;
+                this.pinching = false;
+            }
+        });
     }
 
     svg() {

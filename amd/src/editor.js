@@ -21,7 +21,10 @@
  * @copyright  2026 Boban Blagojević
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-import {createBlock, createProgram, findBlock, cloneProgram, renameFunction} from './model';
+import {
+    blocksFromText, blocksToText, canMoveBlock, cloneProgram, copyBlock, createBlock, createProgram, findBlock, moveBlock,
+    renameFunction,
+} from './model';
 import {renderFunction, renderProgram} from './render';
 import {execute} from './interpreter';
 import {checkExpr} from './expr';
@@ -61,6 +64,12 @@ const el = (tag, attrs = {}, ...kids) => {
     kids.flat().forEach((c) => e.append(c));
     return e;
 };
+
+// Blocks copied in any editor of the page, used when the system clipboard cannot be read.
+let clipboard = null;
+
+// Distance (px) the pointer must move before pressing a block becomes dragging it.
+const DRAG_START = 6;
 
 export class AlgorithmEditor {
     constructor(container, {program = null, lang = null, onChange = null} = {}) {
@@ -115,8 +124,17 @@ export class AlgorithmEditor {
             btn('export', () => this.exportFile()),
             this.fileInput);
         this.canvas = el('div', {'class': 'tiny_algorithm-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
-            onkeydown: (e) => this.onKey(e)});
+            onkeydown: (e) => this.onKey(e), oncopy: (e) => this.onCopy(e, false), oncut: (e) => this.onCopy(e, true),
+            onpaste: (e) => this.onPaste(e), onpointerdown: (e) => this.onPointerDown(e),
+            onpointermove: (e) => this.onPointerMove(e), onpointerup: (e) => this.onPointerUp(e),
+            onpointercancel: () => this.endDrag()});
         this.zoom = new Zoom(this.canvas);
+        // A finger pressed on a block drags it instead of scrolling (touch-action is not reliable on SVG elements).
+        this.canvas.addEventListener('touchmove', (e) => {
+            if (this.press && e.touches.length === 1 && e.cancelable) {
+                e.preventDefault();
+            }
+        }, {passive: false});
         this.toolbar.querySelector('.tiny_algorithm-zoom-slot').replaceWith(this.zoom.controls((key) => this.t(key)));
         this.props = el('div', {'class': 'tiny_algorithm-props'});
         this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log'});
@@ -209,6 +227,7 @@ export class AlgorithmEditor {
         this.btnRun.disabled = Boolean(this.running);
         this.btnStop.disabled = !this.running;
         this.renderProps();
+        this.lockProps();
         this.renderCode();
         if (this.onChange) {
             this.onChange(this.program);
@@ -266,10 +285,12 @@ export class AlgorithmEditor {
                     }
                 })),
                 this.field(this.t('params'), 'text',
-                    this.fn.params.map((p) => `${p.name}: ${p.type}`).join(', '), (v) => this.commit(() => {
+                    this.fn.params.map((p) => `${p.name}: ${p.type}${p.array ? '[]' : ''}`).join(', '), (v) => this.commit(() => {
+                    // "a: Integer[]" is an array parameter.
                     this.fn.params = v.split(',').map((s) => s.trim()).filter(Boolean).map((s) => {
-                        const [name, type] = s.split(':').map((x) => x.trim());
-                        return {name, type: type || 'Integer', array: false};
+                        const [name, type = ''] = s.split(':').map((x) => x.trim());
+                        const array = /\[\s*\]$/.test(type);
+                        return {name, type: type.replace(/\[\s*\]$/, '').trim() || 'Integer', array};
                     });
                 })),
                 this.field(this.t('returns'), 'text', this.fn.returnType || '', (v) => this.commit(() => {
@@ -288,13 +309,22 @@ export class AlgorithmEditor {
             el('button', {type: 'button', 'class': `btn btn-sm ${cls}`, onclick: fn}, label);
         this.props.replaceChildren(el('h6', {}, this.t(`b.${b.type}`)), ...rows, el('div', {'class': 'tiny_algorithm-actions'},
             act(this.t('up'), () => this.move(-1)), act(this.t('down'), () => this.move(1)),
+            act(this.t('duplicate'), () => this.duplicate()),
             act(this.t('delete'), () => this.deleteSelected(), 'btn-outline-danger')));
+    }
+
+    /** While the algorithm runs, its blocks cannot be changed. */
+    lockProps() {
+        this.props.querySelectorAll('input, select, button').forEach((e) => {
+            e.disabled = Boolean(this.running);
+        });
     }
 
     // ---- Interaction ------------------------------------------------------------------------------------------------------
 
     onCanvasClick(e) {
-        if (this.running) {
+        if (this.running || this.dragged) {
+            this.dragged = false; // The click that ends a drag does not select.
             return;
         }
         const slot = e.target.closest('.tiny_algorithm-slot');
@@ -361,7 +391,16 @@ export class AlgorithmEditor {
         const item = e.target.closest && e.target.closest('.tiny_algorithm-node[role="button"], .tiny_algorithm-slot');
         const key = e.key;
         const mod = e.ctrlKey || e.metaKey;
-        if (item && !this.running && ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'Home', 'End'].includes(key)) {
+        if (e.altKey && (key === 'ArrowUp' || key === 'ArrowDown') && this.selected && !this.running) {
+            // Alt + arrow moves the selected block up or down.
+            e.preventDefault();
+            this.focusTarget = `n${this.selected}`;
+            this.refocus = true;
+            this.move(key === 'ArrowUp' ? -1 : 1);
+        } else if (mod && (key === 'd' || key === 'D') && this.selected && !this.running) {
+            e.preventDefault();
+            this.duplicate();
+        } else if (item && !this.running && ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'Home', 'End'].includes(key)) {
             e.preventDefault();
             const step = {ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1}[key];
             this.moveFocus(item, (i, n) => {
@@ -417,8 +456,16 @@ export class AlgorithmEditor {
         const at = item ? item.getBoundingClientRect() : null;
         const x = (at ? at.right : e.clientX || rect.left + 20) - rect.left + this.canvas.scrollLeft;
         const y = (at ? at.top : e.clientY || rect.top + 20) - rect.top + this.canvas.scrollTop;
+        const paste = clipboard && blocksFromText(clipboard) ? [el('button', {
+            type: 'button', role: 'menuitem', 'class': 'btn btn-sm btn-light tiny_algorithm-paste',
+            onclick: (ev) => {
+                ev.stopPropagation();
+                this.closePalette();
+                this.insertBlocks(blocksFromText(clipboard), slot.list, slot.index);
+            },
+        }, this.t('paste'))] : [];
         this.palette = el('div', {'class': 'tiny_algorithm-palette', role: 'menu', style: `left:${x + 6}px;top:${y + 6}px`,
-            onkeydown: (ev) => this.onPaletteKey(ev, item)},
+            onkeydown: (ev) => this.onPaletteKey(ev, item)}, ...paste,
             PALETTE.map((type) => el('button', {
                 type: 'button', role: 'menuitem', 'class': 'btn btn-sm btn-light',
                 onclick: (ev) => {
@@ -481,6 +528,170 @@ export class AlgorithmEditor {
                 this.selected = null;
             });
         }
+    }
+
+    /** Insert a copy of the selected block after it. */
+    duplicate() {
+        const f = this.running ? null : findBlock(this.program, this.selected);
+        if (f) {
+            this.insertBlocks([copyBlock(f.block)], f.list, f.index + 1);
+        }
+    }
+
+    /**
+     * Insert blocks (undoable); the first one is selected and focused.
+     *
+     * @param {Object[]} blocks
+     * @param {Object[]} list
+     * @param {number} index
+     */
+    insertBlocks(blocks, list, index) {
+        this.focusTarget = `n${blocks[0].id}`;
+        this.refocus = true;
+        this.commit(() => {
+            list.splice(index, 0, ...blocks);
+            this.selected = blocks[0].id;
+        });
+    }
+
+    /**
+     * Where pasted blocks go: the focused "+" slot, after the selected block, or at the end of the function.
+     *
+     * @param {EventTarget} target element that has the focus
+     * @returns {{list: Object[], index: number}}
+     */
+    pastePlace(target) {
+        const slot = target && target.closest && target.closest('.tiny_algorithm-slot');
+        if (slot) {
+            const s = this.slots[Number(slot.dataset.slot)];
+            return {list: s.list, index: s.index};
+        }
+        const f = this.selected ? findBlock(this.program, this.selected) : null;
+        return f ? {list: f.list, index: f.index + 1} : {list: this.fn.body, index: this.fn.body.length};
+    }
+
+    /**
+     * Ctrl + C / Ctrl + X: the selected block goes to the clipboard (as text, so it can be pasted into another diagram).
+     *
+     * @param {ClipboardEvent} e
+     * @param {boolean} cut remove the block too
+     */
+    onCopy(e, cut) {
+        const f = this.selected && !this.running ? findBlock(this.program, this.selected) : null;
+        if (!f) {
+            return;
+        }
+        e.preventDefault();
+        clipboard = blocksToText([f.block]);
+        if (e.clipboardData) {
+            e.clipboardData.setData('text/plain', clipboard);
+        }
+        if (cut) {
+            this.focusTarget = null;
+            this.refocus = true;
+            this.deleteSelected();
+        }
+    }
+
+    /**
+     * Ctrl + V: insert the copied blocks (see pastePlace).
+     *
+     * @param {ClipboardEvent} e
+     */
+    onPaste(e) {
+        if (this.running) {
+            return;
+        }
+        const text = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
+        const blocks = blocksFromText(text) || (clipboard && blocksFromText(clipboard));
+        if (blocks) {
+            e.preventDefault();
+            const {list, index} = this.pastePlace(e.target);
+            this.insertBlocks(blocks, list, index);
+        }
+    }
+
+    // ---- Dragging blocks (mouse, pen and touch) --------------------------------------------------------------------------
+
+    onPointerDown(e) {
+        const node = !this.running && e.button === 0 && e.target.closest('.tiny_algorithm-node[role="button"]');
+        this.press = node ? {id: node.dataset.id, x: e.clientX, y: e.clientY, pointer: e.pointerId, node} : null;
+    }
+
+    onPointerMove(e) {
+        const p = this.press;
+        if (!p || e.pointerId !== p.pointer) {
+            return;
+        }
+        if (this.zoom.pinching) {
+            this.endDrag(); // A second finger zooms instead.
+            return;
+        }
+        if (!this.drag) {
+            if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < DRAG_START) {
+                return;
+            }
+            this.drag = p;
+            this.closePalette();
+            this.canvas.setPointerCapture(e.pointerId);
+            this.root.classList.add('tiny_algorithm-dragging');
+            p.node.classList.add('tiny_algorithm-drag-source');
+        }
+        e.preventDefault();
+        const under = document.elementFromPoint(e.clientX, e.clientY);
+        const slot = under && under.closest ? under.closest('.tiny_algorithm-slot') : null;
+        const s = slot ? this.slots[Number(slot.dataset.slot)] : null;
+        const target = s && canMoveBlock(this.program, p.id, s.list, s.index) ? slot : null;
+        if (this.dropSlot !== target) {
+            if (this.dropSlot) {
+                this.dropSlot.classList.remove('tiny_algorithm-drop');
+            }
+            if (target) {
+                target.classList.add('tiny_algorithm-drop');
+            }
+            this.dropSlot = target;
+        }
+        // Scroll the canvas when the pointer is near its top or bottom edge.
+        const r = this.canvas.getBoundingClientRect();
+        if (e.clientY < r.top + 30) {
+            this.canvas.scrollTop -= 15;
+        } else if (e.clientY > r.bottom - 30) {
+            this.canvas.scrollTop += 15;
+        }
+    }
+
+    onPointerUp() {
+        const drag = this.drag;
+        const slot = this.dropSlot;
+        this.endDrag();
+        if (!drag) {
+            return;
+        }
+        this.dragged = true;
+        setTimeout(() => {
+            this.dragged = false;
+        });
+        if (slot) {
+            const s = this.slots[Number(slot.dataset.slot)];
+            this.focusTarget = `n${drag.id}`;
+            this.commit(() => {
+                moveBlock(this.program, drag.id, s.list, s.index);
+                this.selected = drag.id;
+            });
+        }
+    }
+
+    endDrag() {
+        if (this.dropSlot) {
+            this.dropSlot.classList.remove('tiny_algorithm-drop');
+        }
+        if (this.drag) {
+            this.root.classList.remove('tiny_algorithm-dragging');
+            this.drag.node.classList.remove('tiny_algorithm-drag-source');
+        }
+        this.press = null;
+        this.drag = null;
+        this.dropSlot = null;
     }
 
     move(dir) {

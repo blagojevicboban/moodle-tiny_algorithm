@@ -103,6 +103,98 @@ export const findBlock = (program, id) => {
 
 export const cloneProgram = (program) => JSON.parse(JSON.stringify(program));
 
+/**
+ * Copy of a block and the blocks inside it, with new ids. Only the fields a block of its type has are kept, so the
+ * copy can also be made from data pasted from outside.
+ *
+ * @param {*} raw block (or anything)
+ * @returns {Object|null} the copy, null when raw is not a block
+ */
+export const copyBlock = (raw) => {
+    if (!raw || typeof raw !== 'object' || !Object.hasOwn(defaults, raw.type)) {
+        return null;
+    }
+    const block = createBlock(raw.type);
+    for (const key of Object.keys(block)) {
+        if (key === 'id' || key === 'type') {
+            continue;
+        }
+        if (Array.isArray(block[key])) {
+            block[key] = Array.isArray(raw[key]) ? raw[key].map(copyBlock).filter(Boolean) : [];
+        } else if (typeof raw[key] === typeof block[key]) {
+            block[key] = raw[key];
+        }
+    }
+    return block;
+};
+
+// Marker of the blocks the editor puts in the clipboard.
+const CLIPBOARD_KEY = 'tinyAlgorithmBlocks';
+
+/**
+ * Clipboard text of blocks.
+ *
+ * @param {Object[]} blocks
+ * @returns {string}
+ */
+export const blocksToText = (blocks) => JSON.stringify({[CLIPBOARD_KEY]: blocks});
+
+/**
+ * Blocks from clipboard text (copies with new ids), or null when the text holds no blocks of the editor.
+ *
+ * @param {string} text
+ * @returns {Object[]|null}
+ */
+export const blocksFromText = (text) => {
+    try {
+        const data = JSON.parse(text);
+        const blocks = data && Array.isArray(data[CLIPBOARD_KEY]) ? data[CLIPBOARD_KEY].map(copyBlock).filter(Boolean) : [];
+        return blocks.length ? blocks : null;
+    } catch (e) {
+        return null;
+    }
+};
+
+/**
+ * Can the block be moved to the place (a list and an index in it, as a "+" slot has)? Not into itself, and not to where it is.
+ *
+ * @param {Object} program program model
+ * @param {string} id block id
+ * @param {Object[]} list target list
+ * @param {number} index target index
+ * @returns {boolean}
+ */
+export const canMoveBlock = (program, id, list, index) => {
+    const f = findBlock(program, id);
+    if (!f || (f.list === list && (index === f.index || index === f.index + 1))) {
+        return false;
+    }
+    let inside = false;
+    walk([f.block], (b) => childLists(b).forEach(([, l]) => {
+        inside = inside || l === list;
+    }));
+    return !inside;
+};
+
+/**
+ * Move a block to a place (see canMoveBlock).
+ *
+ * @param {Object} program program model
+ * @param {string} id block id
+ * @param {Object[]} list target list
+ * @param {number} index target index, counted before the block is taken out
+ * @returns {boolean} false when it cannot be moved there
+ */
+export const moveBlock = (program, id, list, index) => {
+    if (!canMoveBlock(program, id, list, index)) {
+        return false;
+    }
+    const f = findBlock(program, id);
+    f.list.splice(f.index, 1);
+    list.splice(f.list === list && f.index < index ? index - 1 : index, 0, f.block);
+    return true;
+};
+
 // Fields of each block type that hold an expression (and so may call a function).
 const EXPR_FIELDS = {
     assign: ['target', 'expr'],

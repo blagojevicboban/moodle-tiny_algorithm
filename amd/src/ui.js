@@ -21,6 +21,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import Modal from 'core/modal';
+import ModalEvents from 'core/modal_events';
+import {saveCancelPromise} from 'core/notification';
 import {getString, getStrings} from 'core/str';
 import {getFilePicker} from 'editor_tiny/options';
 import uploadFile from 'editor_tiny/uploader';
@@ -184,7 +186,8 @@ export const openEditor = async(editor) => {
     const lang = document.documentElement.lang;
 
     const keys = ['dialogtitle', 'insert', 'cancel', 'interactive', 'showcode', 'showwatch', 'editable', 'allowsolution',
-        'tabsolution', 'tabtemplate', 'tabtests', 'separatetemplate', 'copyfromsolution', 'emptytemplate', 'onlyeditable'];
+        'tabsolution', 'tabtemplate', 'tabtests', 'separatetemplate', 'copyfromsolution', 'emptytemplate', 'onlyeditable',
+        'discard', 'discardquestion', 'discardtitle'];
     const s = Object.fromEntries((await getStrings(keys.map((key) => ({key, component})))).map((v, i) => [keys[i], v]));
     const check = (action, label, cls = 'mb-0 mr-3') =>
         `<label class="${cls}"><input type="checkbox" data-action="${action}"> ${label}</label>`;
@@ -232,10 +235,12 @@ export const openEditor = async(editor) => {
 
     const widget = new AlgorithmEditor(pane('solution'), {program: savedSolution || shown, lang});
     let template = null;
+    let templateStart = null;
     const templateHost = root.querySelector('.tiny_algorithm-template');
     const ensureTemplate = () => {
         if (!template) {
             template = new AlgorithmEditor(templateHost, {program: savedSolution ? shown : widget.getProgram(), lang});
+            templateStart = JSON.stringify(template.getProgram());
         }
         return template;
     };
@@ -278,7 +283,42 @@ export const openEditor = async(editor) => {
     box('emptytemplate').addEventListener('click', () => ensureTemplate().setProgram(createProgram(widget.getProgram().name)));
     update();
 
-    root.querySelector('[data-action="cancel"]').addEventListener('click', () => modal.destroy());
+    // Closing the dialog with changes that are not inserted asks first (Cancel, the X, Escape, a click outside).
+    const state = () => JSON.stringify([widget.getProgram(), tests.tests,
+        [interactive, showCode, showWatch, editable, allowSolution, separate].map((b) => b.checked)]);
+    const start = state();
+    const changed = () => state() !== start || Boolean(template && JSON.stringify(template.getProgram()) !== templateStart);
+    const close = async() => {
+        if (changed()) {
+            try {
+                await saveCancelPromise(s.discardtitle, s.discardquestion, s.discard);
+            } catch (e) {
+                return; // Keep editing.
+            }
+        }
+        modal.destroy();
+    };
+    const guard = (e) => {
+        if (changed()) {
+            e.preventDefault();
+            e.stopPropagation();
+            close();
+        }
+    };
+    root.querySelector('[data-action="cancel"]').addEventListener('click', close);
+    root.querySelectorAll('[data-action="hide"]').forEach((b) => b.addEventListener('click', guard, true));
+    // Escape that the editor did not use (to close its block menu or deselect a block) reaches the dialog.
+    modal.getModal()[0].addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            guard(e);
+        }
+    });
+    modal.getRoot().on(ModalEvents.outsideClick, (e) => {
+        if (changed()) {
+            e.preventDefault();
+            close();
+        }
+    });
     const insert = root.querySelector('[data-action="insert"]');
     insert.addEventListener('click', async() => {
         widget.stop();

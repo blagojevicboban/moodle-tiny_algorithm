@@ -140,6 +140,56 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
 }
 
+.tiny_algorithm-palette .tiny_algorithm-paste {
+    grid-column: 1 / -1;
+    font-weight: 600;
+}
+
+/* Dragging a block: blocks take the touch gestures, the + signs become the places to drop it. */
+.tiny_algorithm-canvas .tiny_algorithm-node[role="button"] {
+    cursor: grab;
+    touch-action: none;
+}
+
+/* Pressing and moving over the diagram drags a block; it must not select (and scroll to) the text of the blocks. */
+.tiny_algorithm-editor .tiny_algorithm-canvas svg {
+    user-select: none;
+}
+
+.tiny_algorithm-dragging .tiny_algorithm-canvas {
+    cursor: grabbing;
+}
+
+.tiny_algorithm-dragging .tiny_algorithm-slot {
+    opacity: .9;
+}
+
+.tiny_algorithm-slot.tiny_algorithm-drop {
+    opacity: 1;
+}
+
+.tiny_algorithm-slot.tiny_algorithm-drop circle {
+    fill: #dbeafe;
+    stroke: #1d4ed8;
+    stroke-width: 3;
+}
+
+.tiny_algorithm-drag-source {
+    opacity: .45;
+}
+
+/* Fingers: larger + signs and menu items. */
+@media (pointer: coarse) {
+    .tiny_algorithm-slot {
+        transform: scale(1.5);
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+    .tiny_algorithm-palette .btn {
+        padding: .5rem .75rem;
+    }
+}
+
 .tiny_algorithm-console {
     font-family: Consolas, monospace;
     font-size: .85rem;

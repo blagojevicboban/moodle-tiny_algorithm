@@ -29,11 +29,13 @@ export const STR = {
         zoomout: 'Zoom out', zoomreset: 'Reset zoom (100%)', fit: 'Fit', undo: 'Undo', redo: 'Redo', run: 'Run', step: 'Step',
         stop: 'Stop', addfn: '+ Function', delfn: '− Function',
         'import': 'Import .fprg', 'export': 'Export .fprg', copy: 'Copy', download: 'Download', speed: 'Speed',
-        console: 'Console', code: 'Code', 'function': 'Function', name: 'Name', params: 'Parameters (a: Integer, b: Real)',
+        console: 'Console', code: 'Code', 'function': 'Function', name: 'Name', params: 'Parameters (a: Integer, b: Real[])',
         returns: 'Return type', hint: 'Click a + to insert a block, click a block to edit it.',
         keyhint: 'Keyboard: the arrow keys move between the blocks and the + signs, Enter edits or inserts, ' +
-            'Delete removes the selected block, Escape cancels.',
-        up: 'Up', down: 'Down', 'delete': 'Delete', imported: 'Flowgorithm file imported.', stopped: 'Stopped.',
+            'Delete removes the selected block, Alt + arrow moves it, Ctrl + C, X, V and D copy, cut, paste and duplicate it, ' +
+            'Escape cancels. With the mouse or a finger, drag a block onto a + sign to move it.',
+        up: 'Up', down: 'Down', 'delete': 'Delete', duplicate: 'Duplicate', paste: 'Paste',
+        imported: 'Flowgorithm file imported.', stopped: 'Stopped.',
         finished: 'Program finished.', error: 'Error',
         'f.name': 'Name', 'f.varType': 'Type', 'f.size': 'Array size (empty = single value)', 'f.target': 'Variable',
         'f.expr': 'Expression', 'f.newline': 'New line', 'f.cond': 'Condition', 'f.variable': 'Variable', 'f.start': 'From',

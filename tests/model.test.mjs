@@ -20,7 +20,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {renameCalls} from '../amd/src/expr.js';
-import {createBlock, createProgram, renameFunction} from '../amd/src/model.js';
+import {
+    blocksFromText, blocksToText, canMoveBlock, copyBlock, createBlock, createProgram, moveBlock, renameFunction,
+} from '../amd/src/model.js';
 import {runSync} from '../amd/src/interpreter.js';
 
 test('renameCalls changes only calls of the function', () => {
@@ -60,4 +62,46 @@ test('renameFunction leaves the calls when the name is invalid or taken', () => 
     assert.equal(program.functions[0].body[0].expr, 'A()');
     renameFunction(program, program.functions[2], 'C');
     assert.equal(program.functions[0].body[0].expr, 'A()');
+});
+
+test('copyBlock gives new ids and keeps only the fields of the block type', () => {
+    const loop = createBlock('while', {cond: 'i < 3', body: [createBlock('output', {expr: 'i'})]});
+    const copy = copyBlock({...loop, onclick: 'x', cond: 5});
+    assert.notEqual(copy.id, loop.id);
+    assert.notEqual(copy.body[0].id, loop.body[0].id);
+    assert.equal(copy.cond, 'x < 10', 'a value of the wrong type is replaced by the default');
+    assert.equal(copy.body[0].expr, 'i');
+    assert.equal(copy.onclick, undefined);
+    assert.equal(copyBlock({type: 'script'}), null);
+    assert.equal(copyBlock(null), null);
+});
+
+test('blocks survive the clipboard text, other text gives null', () => {
+    const blocks = [createBlock('assign', {target: 's', expr: 's + 1'})];
+    const back = blocksFromText(blocksToText(blocks));
+    assert.equal(back.length, 1);
+    assert.equal(back[0].expr, 's + 1');
+    assert.notEqual(back[0].id, blocks[0].id);
+    assert.equal(blocksFromText('hello'), null);
+    assert.equal(blocksFromText('{"tinyAlgorithmBlocks": [{"type": "nope"}]}'), null);
+});
+
+test('moveBlock moves within a list, into a loop, and never into the block itself', () => {
+    const program = createProgram();
+    const body = program.functions[0].body;
+    const a = createBlock('output', {expr: '1'});
+    const b = createBlock('output', {expr: '2'});
+    const loop = createBlock('while', {cond: 'x < 3', body: []});
+    body.push(a, b, loop);
+    assert.equal(canMoveBlock(program, a.id, body, 0), false, 'same place');
+    assert.equal(canMoveBlock(program, a.id, body, 1), false, 'same place');
+    assert.equal(moveBlock(program, a.id, body, 2), true);
+    assert.deepEqual(body.map((x) => x.expr || x.cond), ['2', '1', 'x < 3']);
+    assert.equal(moveBlock(program, b.id, loop.body, 0), true);
+    assert.deepEqual(body.map((x) => x.expr || x.cond), ['1', 'x < 3']);
+    assert.equal(loop.body[0], b);
+    assert.equal(moveBlock(program, loop.id, loop.body, 0), false, 'not into itself');
+    assert.equal(moveBlock(program, b.id, body, 0), true);
+    assert.deepEqual(body.map((x) => x.expr || x.cond), ['2', '1', 'x < 3']);
+    assert.equal(loop.body.length, 0);
 });
