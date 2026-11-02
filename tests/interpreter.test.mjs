@@ -118,3 +118,32 @@ test('Flowgorithm string functions Char, ToChar, ToCode', () => {
     assert.throws(() => runSync(prog(B('output', {expr: 'Char("ab", 2)'}))), /Char: index 2/);
     assert.throws(() => runSync(prog(B('output', {expr: 'ToCode("")'}))), /ToCode/);
 });
+
+test('matrices: two sizes, both index forms, errors per dimension and the size limit', () => {
+    const p = createProgram();
+    p.functions[0].body = [
+        B('declare', {name: 'm', varType: 'Integer', size: '2', size2: '3'}),
+        B('assign', {target: 'm[1, 2]', expr: '5'}),
+        B('assign', {target: 'm[0][1]', expr: 'm[1][2] * 2'}),
+        B('output', {expr: 'm[0, 1] + m[1, 2] & " " & len(m)'}),
+    ];
+    assert.equal(runSync(p), '15 2\n');
+    const one = (expr, extra = []) => {
+        const q = createProgram();
+        q.functions[0].body = [B('declare', {name: 'm', varType: 'Integer', size: '2', size2: '3'}), ...extra,
+            B('output', {expr})];
+        return q;
+    };
+    assert.throws(() => runSync(one('m[1]')), /number of indexes for m must be 2/);
+    assert.throws(() => runSync(one('m[1, 3]')), /Index 3 out of range for 'm'/);
+    assert.throws(() => runSync(one('m[2, 0]')), /Index 2 out of range for 'm'/);
+    const arr = createProgram();
+    arr.functions[0].body = [B('declare', {name: 'a', varType: 'Integer', size: '3'}), B('output', {expr: 'a[1, 1]'})];
+    assert.throws(() => runSync(arr), /number of indexes for a must be 1/);
+    const big = createProgram();
+    big.functions[0].body = [B('declare', {name: 'b', varType: 'Integer', size: '1000', size2: '1000'})];
+    assert.throws(() => runSync(big), /Array size 1000 x 1000 is larger than 100000/);
+    const empty = createProgram();
+    empty.functions[0].body = [B('declare', {name: 'e', varType: 'Integer', size: '', size2: '4'}), B('output', {expr: 'e'})];
+    assert.equal(runSync(empty), '0\n', 'a second size without the first is ignored');
+});

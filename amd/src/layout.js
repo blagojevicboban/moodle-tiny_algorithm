@@ -32,7 +32,11 @@ const MARGIN = 24;
 
 export const labelOf = (b) => {
     switch (b.type) {
-        case 'declare': return `${b.varType} ${b.name}${String(b.size || '').trim() ? `[${b.size}]` : ''}`;
+        case 'declare': {
+            const size = String(b.size || '').trim();
+            const size2 = size ? String(b.size2 || '').trim() : '';
+            return `${b.varType} ${b.name}${size ? `[${size}${size2 ? `, ${size2}` : ''}]` : ''}`;
+        }
         case 'assign': return `${b.target} = ${b.expr}`;
         case 'input': return `Input ${b.target}`;
         case 'output': return `Output ${b.expr}`;

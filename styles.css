@@ -389,6 +389,16 @@ generated code on the right; stacked when the content area is narrow. */
     background: #fef3c7;
 }
 
+.tiny_algorithm-watch table.tiny_algorithm-matrix {
+    width: auto;
+}
+
+.tiny_algorithm-watch .tiny_algorithm-matrix td {
+    padding: .05rem .35rem;
+    border: 1px solid #e5e7eb;
+    text-align: right;
+}
+
 .tiny_algorithm-viewer .tiny_algorithm-view-watch {
     margin-top: .5rem;
 }

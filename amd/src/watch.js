@@ -24,6 +24,10 @@
 import {t as tr} from './strings';
 
 const MAX_ITEMS = 12;
+// A matrix is shown as a small table of at most this many rows and columns.
+const MAX_CELLS = 8;
+
+const isMatrix = (value) => Array.isArray(value) && value.length > 0 && Array.isArray(value[0]);
 
 /**
  * Format a variable value for display.
@@ -82,16 +86,22 @@ export class Watch {
         const body = document.createElement('tbody');
         const next = new Map();
         for (const v of vars) {
-            const text = formatValue(v.value, v.type);
-            next.set(v.name, text);
             const row = document.createElement('tr');
             const name = document.createElement('th');
             name.scope = 'row';
             name.textContent = v.name;
             const value = document.createElement('td');
-            value.textContent = text;
-            if (this.previous.has(v.name) && this.previous.get(v.name) !== text) {
-                value.className = 'tiny_algorithm-changed';
+            if (isMatrix(v.value)) {
+                const cells = v.value.map((r) => r.map((x) => formatValue(x, v.type)));
+                next.set(v.name, cells);
+                value.append(this.matrix(cells, this.previous.get(v.name)));
+            } else {
+                const text = formatValue(v.value, v.type);
+                next.set(v.name, text);
+                value.textContent = text;
+                if (this.previous.has(v.name) && this.previous.get(v.name) !== text) {
+                    value.className = 'tiny_algorithm-changed';
+                }
             }
             row.append(name, value);
             body.append(row);
@@ -99,5 +109,44 @@ export class Watch {
         table.append(body);
         this.previous = next;
         this.root.replaceChildren(table);
+    }
+
+    /**
+     * Table of a matrix; cells that changed since the previous step are highlighted.
+     *
+     * @param {string[][]} cells formatted values
+     * @param {*} before formatted values of the previous step
+     * @returns {HTMLTableElement}
+     */
+    matrix(cells, before) {
+        const table = document.createElement('table');
+        table.className = 'tiny_algorithm-matrix';
+        const old = Array.isArray(before) ? before : null;
+        cells.slice(0, MAX_CELLS).forEach((r, i) => {
+            const tr = document.createElement('tr');
+            r.slice(0, MAX_CELLS).forEach((text, j) => {
+                const td = document.createElement('td');
+                td.textContent = text;
+                if (old && old[i] && old[i][j] !== text) {
+                    td.className = 'tiny_algorithm-changed';
+                }
+                tr.append(td);
+            });
+            if (r.length > MAX_CELLS) {
+                const more = document.createElement('td');
+                more.textContent = `… (${r.length})`;
+                tr.append(more);
+            }
+            table.append(tr);
+        });
+        if (cells.length > MAX_CELLS) {
+            const tr = document.createElement('tr');
+            const more = document.createElement('td');
+            more.colSpan = Math.min(cells[0].length, MAX_CELLS);
+            more.textContent = `… (${cells.length})`;
+            tr.append(more);
+            table.append(tr);
+        }
+        return table;
     }
 }

@@ -28,7 +28,7 @@ import {AlgorithmError} from './strings';
 
 const RETURN = Symbol('return');
 
-/** Largest array a Declare block may create (the PHP interpreter of qtype_algorithm has the same limit). */
+/** Most elements an array or a matrix may have (the PHP interpreter of qtype_algorithm has the same limit). */
 export const MAX_ARRAY_SIZE = 100000;
 
 const BUILTINS = {
@@ -105,7 +105,8 @@ const declaredNames = (b) => String(b.name).split(',').map((s) => s.trim()).filt
  * @returns {Array<{name: string, type: string, value: *}>}
  */
 const snapshot = (env) => Object.values(env || {}).map((v) => ({
-    name: v.name, type: v.type, value: Array.isArray(v.value) ? v.value.slice() : v.value,
+    name: v.name, type: v.type,
+    value: Array.isArray(v.value) ? v.value.map((x) => (Array.isArray(x) ? x.slice() : x)) : v.value,
 }));
 
 const hasText = (s) => s !== undefined && s !== null && String(s).trim() !== '';
@@ -137,16 +138,37 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         return v;
     };
 
+    /**
+     * Element of an array a[i] or a matrix a[i, j]: the variable, the list that holds the element and its index.
+     *
+     * @param {Object} n idx node
+     * @param {Object} env environment
+     */
     const arrayIndex = function* (n, env) {
         const v = lookup(env, n.name);
         if (!Array.isArray(v.value)) {
             throw new AlgorithmError('notarray', {name: n.name});
         }
+        const dims = v.dims || 1;
+        if ((n.index2 ? 2 : 1) !== dims) {
+            throw new AlgorithmError('dimensions', {name: n.name, count: String(dims)});
+        }
         const i = yield* evalNode(n.index, env);
         if (i < 0 || i >= v.value.length) {
             throw new AlgorithmError('indexrange', {index: String(i), name: n.name});
         }
-        return [v, i];
+        if (!n.index2) {
+            return [v, v.value, i];
+        }
+        const j = yield* evalNode(n.index2, env);
+        const row = v.value[i];
+        if (!Array.isArray(row)) {
+            throw new AlgorithmError('indexrange', {index: String(i), name: n.name}); // An index that is not a whole number.
+        }
+        if (j < 0 || j >= row.length) {
+            throw new AlgorithmError('indexrange', {index: String(j), name: n.name});
+        }
+        return [v, row, j];
     };
 
     const divide = (op, l, r) => {
@@ -190,8 +212,8 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
             case 'var':
                 return lookup(env, n.name).value;
             case 'idx': {
-                const [v, i] = yield* arrayIndex(n, env);
-                return v.value[i];
+                const [, list, i] = yield* arrayIndex(n, env);
+                return list[i];
             }
             case 'un': {
                 const e = yield* evalNode(n.e, env);
@@ -243,8 +265,8 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
             const v = lookup(env, t.name);
             v.value = coerce(v.type, value, t.name);
         } else if (t.k === 'idx') {
-            const [v, i] = yield* arrayIndex(t, env);
-            v.value[i] = coerce(v.type, value, t.name);
+            const [v, list, i] = yield* arrayIndex(t, env);
+            list[i] = coerce(v.type, value, t.name);
         } else {
             throw new AlgorithmError('badtarget');
         }
@@ -333,16 +355,24 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         yield tick(b.id, env);
         switch (b.type) {
             case 'declare': {
+                // A second size makes a matrix (rows, columns).
                 const size = hasText(b.size) ? yield* evalStr(b.size, env) : null;
-                if (size !== null && Number(size) > MAX_ARRAY_SIZE) {
-                    throw new AlgorithmError('arraysize', {size: String(size), max: String(MAX_ARRAY_SIZE)});
+                const size2 = size !== null && hasText(b.size2) ? yield* evalStr(b.size2, env) : null;
+                if (size !== null && Number(size) * (size2 === null ? 1 : Number(size2)) > MAX_ARRAY_SIZE) {
+                    throw new AlgorithmError('arraysize', {size: size2 === null ? String(size) : `${size} x ${size2}`,
+                        max: String(MAX_ARRAY_SIZE)});
                 }
+                const row = () => Array.from({length: size2}, () => defaultValue(b.varType));
                 for (const nm of declaredNames(b)) {
-                    env[nm.toLowerCase()] = {
-                        name: nm,
-                        type: b.varType,
-                        value: size === null ? defaultValue(b.varType) : Array.from({length: size}, () => defaultValue(b.varType)),
-                    };
+                    let value = defaultValue(b.varType);
+                    if (size !== null) {
+                        value = Array.from({length: size}, () => (size2 === null ? defaultValue(b.varType) : row()));
+                    }
+                    let dims = size === null ? 0 : 1;
+                    if (size2 !== null) {
+                        dims = 2;
+                    }
+                    env[nm.toLowerCase()] = {name: nm, type: b.varType, value, dims};
                 }
                 break;
             }

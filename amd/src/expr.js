@@ -139,10 +139,21 @@ export const parseExpr = (src) => {
                 return {k: 'call', name: t.v, args};
             }
             if (isOp('[')) {
+                // An array element a[i], a matrix element a[i, j] or a[i][j].
                 p++;
                 const index = parseOr();
+                let index2 = null;
+                if (isOp(',')) {
+                    p++;
+                    index2 = parseOr();
+                }
                 expectOp(']');
-                return {k: 'idx', name: t.v, index};
+                if (!index2 && isOp('[')) {
+                    p++;
+                    index2 = parseOr();
+                    expectOp(']');
+                }
+                return index2 ? {k: 'idx', name: t.v, index, index2} : {k: 'idx', name: t.v, index};
             }
             return {k: 'var', name: t.v};
         }

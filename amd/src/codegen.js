@@ -361,7 +361,7 @@ export const generate = (lang, program) => {
                 case 'str': code = L.str ? L.str(n.v) : JSON.stringify(n.v); break;
                 case 'bool': code = L.bool(n.v); break;
                 case 'var': code = n.name; break;
-                case 'idx': code = `${n.name}[${walk(n.index)}]`; break;
+                case 'idx': code = indexCode(n); break;
                 case 'un': code = n.op === '!' ? `${L.not}${walk(n.e, 8)}` : `${n.op}${walk(n.e, 8)}`; break;
                 case 'call': code = L.call(n.name, n.args.map((a) => walk(a)), n.args.map((a) => typeOf(a, syms, fns))); break;
                 case 'bin': code = walkBin(n); break;
@@ -393,6 +393,14 @@ export const generate = (lang, program) => {
             }
             const op = (L.ops && L.ops[n.op]) || n.op;
             return `${walk(n.l, CMP.includes(n.op) ? p + 0.5 : p)} ${op} ${walk(n.r, p + 0.5)}`;
+        };
+        // Element of an array a[i]; of a matrix a[i, j] in C# and a[i][j] in the other languages.
+        const indexCode = (n) => {
+            if (!n.index2) {
+                return `${n.name}[${walk(n.index)}]`;
+            }
+            return lang === 'csharp' ? `${n.name}[${walk(n.index)}, ${walk(n.index2)}]` :
+                `${n.name}[${walk(n.index)}][${walk(n.index2)}]`;
         };
         const node = parseExpr(src);
         // The code is built on demand: building it may mark helpers as needed (C++ str()).
@@ -491,15 +499,21 @@ export const generate = (lang, program) => {
         String(block.name).split(',').map((s) => s.trim()).filter(Boolean)
             .forEach((name) => declareOne({...block, name}, ind));
     };
+    // eslint-disable-next-line complexity
     const declareOne = (b, ind) => {
         syms[b.name] = {type: b.varType, array: Boolean(String(b.size || '').trim())};
         const arr = syms[b.name].array;
         const dv = DEFAULTS[lang] && DEFAULTS[lang][b.varType];
-        if (lang === 'python') {
-            emit(ind, arr ? `${b.name} = [${dv}] * ${ex(b.size)}` : `${b.name} = ${dv}`);
+        if (arr && isMatrix(b)) {
+            declareMatrix(b, ind, dv);
+        } else if (lang === 'python') {
+            emit(ind, arr ? `${b.name} = [${dv}] * ${pyFactor(ex(b.size))}` : `${b.name} = ${dv}`);
         } else if (lang === 'java' || lang === 'csharp') {
             const tn = TYPE_NAMES[lang][b.varType];
             emit(ind, arr ? `${tn}[] ${b.name} = new ${tn}[${ex(b.size)}];` : `${tn} ${b.name} = ${dv};`);
+            if (arr && lang === 'java' && b.varType === 'String') {
+                emit(ind, `java.util.Arrays.fill(${b.name}, "");`); // Java strings start as null.
+            }
         } else if (lang === 'cpp') {
             const tn = TYPE_NAMES.cpp[b.varType];
             emit(ind, arr ? `vector<${tn}> ${b.name}(${ex(b.size)});` : `${tn} ${b.name} = ${dv};`);
@@ -513,6 +527,40 @@ export const generate = (lang, program) => {
         } else {
             const tn = TYPE_NAMES.c[b.varType];
             emit(ind, arr ? `${tn} ${b.name}[${ex(b.size)}];` : `${tn} ${b.name} = 0;`);
+        }
+        if (arr && lang === 'c') {
+            // A C array with a variable size cannot have an initializer: start from zeros and empty strings.
+            emit(ind, `memset(${b.name}, 0, sizeof ${b.name});`);
+        }
+    };
+
+    const pyFactor = (code) => (/^[\w.]+$/.test(code) ? code : `(${code})`);
+
+    // A matrix: rows b.size, columns b.size2.
+    const declareMatrix = (b, ind, dv) => {
+        const [n, m] = [ex(b.size), ex(b.size2)];
+        if (lang === 'python') {
+            emit(ind, `${b.name} = [[${dv}] * ${pyFactor(m)} for _ in range(${n})]`);
+        } else if (lang === 'java') {
+            emit(ind, `${TYPE_NAMES.java[b.varType]}[][] ${b.name} = new ${TYPE_NAMES.java[b.varType]}[${n}][${m}];`);
+            if (b.varType === 'String') {
+                emit(ind, `for (String[] row : ${b.name}) {`);
+                emit(ind + 1, 'java.util.Arrays.fill(row, "");');
+                emit(ind, '}');
+            }
+        } else if (lang === 'csharp') {
+            emit(ind, `${TYPE_NAMES.csharp[b.varType]}[,] ${b.name} = new ${TYPE_NAMES.csharp[b.varType]}[${n}, ${m}];`);
+        } else if (lang === 'cpp') {
+            const tn = TYPE_NAMES.cpp[b.varType];
+            emit(ind, `vector<vector<${tn}>> ${b.name}(${n}, vector<${tn}>(${m}));`);
+        } else if (lang === 'javascript') {
+            emit(ind, `let ${b.name} = Array.from({length: ${n}}, () => new Array(${m}).fill(${dv}));`);
+        } else if (pascal) {
+            emit(ind, `SetLength(${b.name}, ${n}, ${m});`);
+        } else if (b.varType === 'String') {
+            emit(ind, `char ${b.name}[${n}][${m}][256];`);
+        } else {
+            emit(ind, `${TYPE_NAMES.c[b.varType]} ${b.name}[${n}][${m}];`);
         }
     };
 
@@ -631,8 +679,12 @@ export const generate = (lang, program) => {
         allBlocks(f.body).forEach((b) => {
             if (b.type === 'declare') {
                 const arr = Boolean(String(b.size || '').trim());
+                let of = arr ? 'array of ' : '';
+                if (isMatrix(b)) {
+                    of = 'array of array of ';
+                }
                 String(b.name).split(',').map((s) => s.trim()).filter(Boolean).forEach((name) => {
-                    vars.set(name, `${arr ? 'array of ' : ''}${TYPE_NAMES.pascal[b.varType]}`);
+                    vars.set(name, `${of}${TYPE_NAMES.pascal[b.varType]}`);
                 });
             } else if (b.type === 'for' && !vars.has(b.variable)) {
                 vars.set(b.variable, 'Integer');
@@ -699,6 +751,10 @@ export const generate = (lang, program) => {
             return;
         }
         open(fnHead(f, isMain), base);
+        if (lang === 'csharp' && isMain) {
+            // Real numbers are written with a dot, whatever the language of the computer.
+            emit(base + 1, 'CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;');
+        }
         block(f.body, base + 1);
         if ((lang === 'c' || lang === 'cpp') && isMain) {
             emit(base + 1, 'return 0;');
@@ -825,6 +881,14 @@ export const languageLabels = Object.fromEntries(Object.entries(LANGS).map(([k, 
 export const extensionOf = (lang) => LANGS[lang].ext;
 
 /**
+ * Is a Declare block a matrix (it has two sizes)?
+ *
+ * @param {Object} b declare block
+ * @returns {boolean}
+ */
+export const isMatrix = (b) => Boolean(String(b.size || '').trim() && String(b.size2 || '').trim());
+
+/**
  * Convert an expression AST back into source text (used for per-part rendering).
  *
  * @param {Object} n expression AST node
@@ -835,7 +899,7 @@ export function unparse(n) {
         case 'str': return JSON.stringify(n.v);
         case 'bool': return n.v ? 'true' : 'false';
         case 'var': return n.name;
-        case 'idx': return `${n.name}[${unparse(n.index)}]`;
+        case 'idx': return n.index2 ? `${n.name}[${unparse(n.index)}, ${unparse(n.index2)}]` : `${n.name}[${unparse(n.index)}]`;
         case 'un': return `${n.op}(${unparse(n.e)})`;
         case 'call': return `${n.name}(${n.args.map(unparse).join(', ')})`;
         case 'bin': return `(${unparse(n.l)} ${n.op} ${unparse(n.r)})`;

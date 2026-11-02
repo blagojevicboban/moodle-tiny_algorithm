@@ -119,6 +119,54 @@ test('C# output compiles and matches interpreter', {timeout: 240000}, (t) => {
     writeFileSync(join(dir, 'Program.cs'), generate('csharp', sample()));
     const out = execFileSync('dotnet', ['run', '--project', dir], {timeout: 200000}).toString().replace(/\r\n/g, '\n');
     assert.equal(out, runSync(sample()));
+    writeFileSync(join(dir, 'Program.cs'), generate('csharp', matrix()));
+    const mout = execFileSync('dotnet', ['run', '--project', dir], {timeout: 200000, input: matrixInput}).toString()
+        .replace(/\r\n/g, '\n');
+    assert.equal(mout, runSync(matrix(), ['3', '7']));
+});
+
+test('python and C matrices match the interpreter', {timeout: 240000}, (t) => {
+    const dir = mkdtempSync(join(tmpdir(), 'alg-mx-'));
+    const expected = runSync(matrix(), ['3', '7']);
+    try {
+        writeFileSync(join(dir, 'a.py'), generate('python', matrix()));
+        assert.equal(execFileSync('python', ['-I', join(dir, 'a.py')], {timeout: 10000, input: matrixInput}).toString()
+            .replace(/\r\n/g, '\n'), expected);
+    } catch (e) {
+        if (e.code === 'ENOENT') {
+            t.skip('python not available');
+            return;
+        }
+        throw e;
+    }
+    const exe = join(dir, process.platform === 'win32' ? 'c.exe' : 'c');
+    writeFileSync(join(dir, 'c.c'), generate('c', matrix()));
+    try {
+        execFileSync('python', ['-m', 'ziglang', 'cc', join(dir, 'c.c'), '-o', exe, '-lm'], {timeout: 120000, stdio: 'ignore'});
+    } catch {
+        t.diagnostic('no C compiler (python -m ziglang cc)');
+        return;
+    }
+    assert.equal(execFileSync(exe, [], {timeout: 10000, input: matrixInput}).toString().replace(/\r\n/g, '\n'), expected);
+});
+
+// Java writes a whole Real as 7.0 where the interpreter writes 7, so rich() is not compared here.
+test('Java output matches the interpreter', {timeout: 240000}, (t) => {
+    const dir = mkdtempSync(join(tmpdir(), 'alg-java-'));
+    for (const [program, input] of [[sample(), ''], [strings(), ''], [matrix(), matrixInput]]) {
+        writeFileSync(join(dir, 'Main.java'), generate('java', program));
+        try {
+            execFileSync('javac', ['-d', dir, join(dir, 'Main.java')], {timeout: 120000, stdio: 'ignore'});
+        } catch (e) {
+            if (e.code === 'ENOENT') {
+                t.skip('javac not available');
+                return;
+            }
+            throw e;
+        }
+        const out = execFileSync('java', ['-cp', dir, 'Main'], {timeout: 30000, input}).toString().replace(/\r\n/g, '\n');
+        assert.equal(out, runSync(program, input.split('\n').filter(Boolean)));
+    }
 });
 
 // Functions, an array parameter, input, do-while, a negative step, Real, power and logic.
@@ -157,6 +205,34 @@ const rich = () => {
     return p;
 };
 const richInput = 'Ana\n3\n';
+
+// Matrices: both index forms, nested loops, Real and String matrices, input into an element.
+const matrix = () => {
+    const p = createProgram();
+    p.functions[0].body = [
+        B('declare', {name: 'i, j, n', varType: 'Integer'}),
+        B('input', {target: 'n'}),
+        B('declare', {name: 'a', varType: 'Integer', size: 'n', size2: 'n + 1'}),
+        B('declare', {name: 'r', varType: 'Real', size: '2', size2: '2'}),
+        B('declare', {name: 'w', varType: 'String', size: '2', size2: '3'}),
+        B('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+            B('for', {variable: 'j', start: '0', end: 'n', step: '1', body: [B('assign', {target: 'a[i, j]', expr: 'i * 10 + j'})]}),
+        ]}),
+        B('assign', {target: 'a[1][2]', expr: 'a[1, 2] + 100'}),
+        B('input', {target: 'a[0, 0]'}),
+        B('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+            B('for', {variable: 'j', start: '0', end: 'n', step: '1', body: [
+                B('output', {expr: 'a[i][j]', newline: false}), B('output', {expr: '" "', newline: false})]}),
+            B('output', {expr: '""'}),
+        ]}),
+        B('assign', {target: 'r[0, 1]', expr: '1.5'}),
+        B('output', {expr: 'r[0, 1] + r[1, 1] * 2'}),
+        B('assign', {target: 'w[1, 2]', expr: '"x"'}),
+        B('output', {expr: 'w[1, 2] & "!" & w[0, 0] & "?"'}),
+    ];
+    return p;
+};
+const matrixInput = '3\n7\n';
 
 test('generated code keeps the parentheses the expression needs', () => {
     const p = createProgram();
@@ -235,7 +311,7 @@ const runGenerated = (lang, program, input) => {
 
 for (const lang of ['javascript', 'cpp', 'pascal']) {
     test(`${lang} output matches the interpreter`, {timeout: 240000}, (t) => {
-        for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput]]) {
+        for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput]]) {
             const out = runGenerated(lang, program, input);
             if (out === null) {
                 t.skip(`no ${lang} compiler`);

@@ -23,12 +23,12 @@
  */
 import {
     blocksFromText, blocksToText, canMoveBlock, cloneProgram, copyBlock, createBlock, createProgram, findBlock, moveBlock,
-    renameFunction,
+    renameFunction, walk,
 } from './model';
 import {renderFunction, renderProgram} from './render';
 import {execute} from './interpreter';
 import {checkExpr} from './expr';
-import {generate, languages, languageLabels, extensionOf} from './codegen';
+import {generate, isMatrix, languages, languageLabels, extensionOf} from './codegen';
 import {importFprg, exportFprg} from './flowgorithm';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
@@ -37,7 +37,7 @@ import {Watch} from './watch';
 const PALETTE = ['declare', 'assign', 'input', 'output', 'if', 'for', 'while', 'dowhile', 'call', 'return', 'comment'];
 
 const FIELDS = {
-    declare: [['name', 'text'], ['varType', 'type'], ['size', 'text']],
+    declare: [['name', 'text'], ['varType', 'type'], ['size', 'text'], ['size2', 'text']],
     assign: [['target', 'expr'], ['expr', 'expr']],
     input: [['target', 'expr']],
     output: [['expr', 'expr'], ['newline', 'bool']],
@@ -757,6 +757,14 @@ export class AlgorithmEditor {
     }
 
     exportFile() {
+        let matrix = false;
+        this.program.functions.forEach((f) => walk(f.body, (b) => {
+            matrix = matrix || (b.type === 'declare' && isMatrix(b));
+        }));
+        if (matrix) {
+            this.log(this.t('fprgmatrix'), 'tiny_algorithm-error'); // Flowgorithm has no matrices.
+            return;
+        }
         this.download(`${this.program.name || 'algorithm'}.fprg`, exportFprg(this.program), 'application/xml');
     }
 

@@ -36,8 +36,10 @@ export const STR = {
             'Escape cancels. With the mouse or a finger, drag a block onto a + sign to move it.',
         up: 'Up', down: 'Down', 'delete': 'Delete', duplicate: 'Duplicate', paste: 'Paste',
         imported: 'Flowgorithm file imported.', stopped: 'Stopped.',
+        fprgmatrix: 'Flowgorithm files cannot hold matrices (arrays with two sizes), so the algorithm was not exported.',
         finished: 'Program finished.', error: 'Error',
-        'f.name': 'Name', 'f.varType': 'Type', 'f.size': 'Array size (empty = single value)', 'f.target': 'Variable',
+        'f.name': 'Name', 'f.varType': 'Type', 'f.size': 'Array size (empty = single value)',
+        'f.size2': 'Second size (matrix: columns; empty = array)', 'f.target': 'Variable',
         'f.expr': 'Expression', 'f.newline': 'New line', 'f.cond': 'Condition', 'f.variable': 'Variable', 'f.start': 'From',
         'f.end': 'To', 'f.step': 'Step', 'f.text': 'Text',
         'b.declare': 'Declare', 'b.assign': 'Assign', 'b.input': 'Input', 'b.output': 'Output', 'b.if': 'If',
@@ -70,6 +72,7 @@ export const STR = {
         'e.steplimit': 'Step limit exceeded (possible infinite loop)', 'e.invalidinput': "'{text}' is not a valid {type}",
         'e.forstepzero': 'For loop step cannot be 0', 'e.argcount': "Function '{name}' expects {count} argument(s)",
         'e.arraysize': 'Array size {size} is larger than {max}',
+        'e.dimensions': 'The number of indexes for {name} must be {count}',
     },
 };
 

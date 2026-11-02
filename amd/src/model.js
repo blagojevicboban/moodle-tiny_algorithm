@@ -32,7 +32,7 @@ export const VAR_TYPES = ['Integer', 'Real', 'String', 'Boolean'];
 export const BLOCK_TYPES = ['declare', 'assign', 'input', 'output', 'if', 'while', 'for', 'dowhile', 'call', 'return', 'comment'];
 
 const defaults = {
-    declare: () => ({name: 'x', varType: 'Integer', size: ''}),
+    declare: () => ({name: 'x', varType: 'Integer', size: '', size2: ''}),
     assign: () => ({target: 'x', expr: '0'}),
     input: () => ({target: 'x'}),
     output: () => ({expr: '"Hello"', newline: true}),
