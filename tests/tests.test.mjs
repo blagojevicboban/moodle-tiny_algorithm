@@ -22,6 +22,7 @@ import assert from 'node:assert/strict';
 import {createProgram, createBlock as B} from '../amd/src/model.js';
 import {
     normalize, parseInputs, runProgram, checkedOutput, runTests, computeExpected, firstDiffLine, serializeTests, deserializeTests,
+    callText, sameLine, cleanTest,
 } from '../amd/src/tests.js';
 
 const prog = (...body) => {
@@ -55,11 +56,12 @@ test('a line "" is an empty value', () => {
     assert.deepEqual(parseInputs('""'), ['']);
     assert.deepEqual(parseInputs('a\n""\nb'), ['a', '', 'b']);
     const len = prog(B('declare', {name: 's', varType: 'String'}), B('input', {target: 's'}), B('output', {expr: 'Len(s)'}));
-    assert.deepEqual(runProgram(len, '""'), {output: '0\n', after: '0\n', error: null});
+    assert.deepEqual(runProgram(len, '""'), {output: '0\n', after: '0\n', error: null, call: false, result: null});
 });
 
 test('runProgram returns the output, or the error with the output written so far', () => {
-    assert.deepEqual(runProgram(sum(), '10'), {output: 'Sum = 55\n', after: 'Sum = 55\n', error: null});
+    assert.deepEqual(runProgram(sum(), '10'), {output: 'Sum = 55\n', after: 'Sum = 55\n', error: null, call: false,
+        result: null});
     const p = prog(B('output', {expr: '"start"'}), B('declare', {name: 'x'}), B('input', {target: 'x'}));
     const r = runProgram(p, '', 'en');
     assert.equal(r.output, 'start\n');
@@ -112,4 +114,47 @@ test('checkedOutput keeps the output after the last input, or only its numbers',
     const {tests} = computeExpected(p, [{inputs: '1\n2', hidden: true}], null, {afterinput: true, numbers: true});
     assert.deepEqual(tests, [{inputs: '1\n2', hidden: true, expected: '3\n-1'}]);
     assert.equal(runTests(p, tests, null, {afterinput: true, numbers: true})[0].pass, true);
+});
+
+test('function tests call a function with the inputs as arguments and compare what it returns', () => {
+    const p = prog(B('output', {expr: '"main"'}));
+    p.functions.push({name: 'Area', params: [{name: 'a', type: 'Real'}, {name: 'b', type: 'Real'}], returnType: 'Real',
+        body: [B('output', {expr: '"ignored"'}), B('return', {expr: 'a * b / 2'})]},
+    {name: 'Hello', params: [{name: 's', type: 'String'}], returnType: 'String', body: [B('return', {expr: '"Hi " & s'})]},
+    {name: 'Nothing', params: [], returnType: null, body: []});
+    assert.equal(callText({inputs: '3\n5\n', call: 'Area'}), 'Area(3, 5)');
+    assert.equal(callText({inputs: '3', expected: ''}), null);
+    const {tests, errors} = computeExpected(p, [{inputs: '3, 5', call: 'Area'}, {inputs: '"Ana"', call: 'Hello'},
+        {inputs: '', call: 'Nothing'}, {inputs: '', call: 'Area'}, {inputs: ''}]);
+    assert.deepEqual(tests.map((tc) => tc.expected), ['7.5', 'Hi Ana', '', '', 'main\n']);
+    assert.deepEqual(errors.map((e) => e.index), [3], 'a wrong number of arguments is an error');
+    const student = prog(B('output', {expr: '"main"'}));
+    student.functions.push({name: 'Area', params: [{name: 'a', type: 'Real'}, {name: 'b', type: 'Real'}], returnType: 'Real',
+        body: [B('return', {expr: 'a * b'})]});
+    const results = runTests(student, tests.slice(0, 2));
+    assert.deepEqual(results.map((r) => [r.pass, r.actual]), [[false, '15'], [false, '']]);
+    assert.match(results[1].error, /Hello/);
+});
+
+test('comparison options: capital letters, spaces and a tolerance for numbers', () => {
+    assert.equal(sameLine('Sum = 5', 'sum = 5'), false);
+    assert.equal(sameLine('Sum = 5', 'sum = 5', {ignorecase: true}), true);
+    assert.equal(sameLine('Šum = 5', 'šUM = 5', {ignorecase: true}), true);
+    assert.equal(sameLine('a  b', ' a b ', {ignorespaces: true}), true);
+    assert.equal(sameLine('x = 0.333', 'x = 0.3333333', {tolerance: 0.001}), true);
+    assert.equal(sameLine('x = 0.333', 'x = 0.35', {tolerance: 0.001}), false);
+    assert.equal(sameLine('x = 1', 'y = 1', {tolerance: 5}), false, 'the text must still be the same');
+    assert.equal(sameLine('1 2', '1', {tolerance: 5}), false);
+    assert.equal(firstDiffLine('A\nB  C', 'a\nb c', {ignorecase: true, ignorespaces: true}), -1);
+    assert.equal(firstDiffLine('A\nB', 'A', {ignorecase: true}), 1);
+    const r = runTests(sum(), [{inputs: '10', expected: 'SUM = 55'}], null, {ignorecase: true});
+    assert.equal(r[0].pass, true);
+});
+
+test('cleanTest keeps only the fields of a test', () => {
+    assert.deepEqual(cleanTest({inputs: 1, expected: 2, hidden: 1, weight: '2.5', call: 'F', x: 'y'}),
+        {inputs: '1', expected: '2', hidden: true, weight: 2.5, call: 'F'});
+    assert.deepEqual(cleanTest({inputs: '', weight: -1, call: 'a b'}), {inputs: '', expected: ''});
+    assert.deepEqual(deserializeTests(serializeTests([{inputs: '2', expected: '4', call: 'Sq', hidden: true}])),
+        [{inputs: '2', expected: '4', call: 'Sq'}]);
 });

@@ -200,7 +200,12 @@ const LANGS = {
         div: (l, r, t) => (t === 'Integer' ? `(double) ${l} / ${r}` : `${l} / ${r}`),
         bool: (v) => (v ? 'true' : 'false'),
         concatWrap: true,
-        concat: (parts) => parts.map((p, i) => (p.type === 'String' || i > 0 ? p.code : `String.valueOf(${p.code})`)).join(' + '),
+        concat: (parts) => parts.map((p, i) => {
+            if (p.type === 'Real') {
+                return `fmt(${p.code})`; // A whole Real is written as 7, not 7.0, like the interpreter.
+            }
+            return p.type === 'String' || i > 0 ? p.code : `String.valueOf(${p.code})`;
+        }).join(' + '),
         eq: (l, r, op, t) => (t === 'String' ? `${op === '!=' ? '!' : ''}${atom(l)}.equals(${r})` : `${l} ${op} ${r}`),
         call: (name, args) => {
             const m = {sqrt: 'Math.sqrt', abs: 'Math.abs', sin: 'Math.sin', cos: 'Math.cos', tan: 'Math.tan', log: 'Math.log',
@@ -422,7 +427,8 @@ export const generate = (lang, program) => {
         if (lang === 'python') {
             emit(ind, `print(${ex(b.expr)}${nl ? '' : ', end=""'})`);
         } else if (lang === 'java') {
-            emit(ind, `System.out.print${nl ? 'ln' : ''}(${ex(b.expr)});`);
+            const code = typeOf(node, syms, fns) === 'Real' ? `fmt(${walk(node)})` : walk(node);
+            emit(ind, `System.out.print${nl ? 'ln' : ''}(${code});`);
         } else if (lang === 'csharp') {
             emit(ind, `Console.Write${nl ? 'Line' : ''}(${ex(b.expr)});`);
         } else if (lang === 'javascript') {
@@ -857,6 +863,14 @@ export const generate = (lang, program) => {
             emit(0, 'public class Main {');
             emit(1, 'static Scanner in = new Scanner(System.in);');
             emit(1, 'static Random rnd = new Random();');
+            emit(1, '');
+            // Reals as the algorithm writes them: 7 for a whole number, otherwise rounded to 10 decimals.
+            emit(1, 'static String fmt(double v) {');
+            emit(2, 'if (v == Math.rint(v) && Math.abs(v) < 1e15) {');
+            emit(3, 'return String.valueOf((long) v);');
+            emit(2, '}');
+            emit(2, 'return java.math.BigDecimal.valueOf(Math.round(v * 1e10) / 1e10).stripTrailingZeros().toPlainString();');
+            emit(1, '}');
             emit(1, '');
         }
     };

@@ -112,13 +112,14 @@ const snapshot = (env) => Object.values(env || {}).map((v) => ({
 const hasText = (s) => s !== undefined && s !== null && String(s).trim() !== '';
 
 /**
- * Run a program as a generator of events (step, output, input request, end).
+ * Run a program as a generator of events (step, output, input request, result of a call, end).
  *
  * @param {Object} program program model
  * @param {Object} options options
  * @param {number} [options.maxSteps] step limit
+ * @param {string|null} [options.call] a call such as Sum(2, 3) to evaluate instead of running the main function
  */
-export function* execute(program, {maxSteps = 1000000} = {}) {
+export function* execute(program, {maxSteps = 1000000, call = null} = {}) {
     const cache = new Map();
     const ast = (s) => {
         if (!cache.has(s)) {
@@ -442,8 +443,14 @@ export function* execute(program, {maxSteps = 1000000} = {}) {
         return r ? r[1] : undefined;
     }
 
-    const main = funcs.get('main') || program.functions[0];
-    yield* callFunction(main, []);
+    if (call !== null) {
+        // A function test: evaluate the call (its arguments are values) and report what the function returns.
+        const value = yield* evalNode(ast(call), {});
+        yield {event: 'result', text: value === undefined || value === null ? '' : fmt(value)};
+    } else {
+        const main = funcs.get('main') || program.functions[0];
+        yield* callFunction(main, []);
+    }
     yield {event: 'done', vars: snapshot(lastEnv)};
 }
 

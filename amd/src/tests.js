@@ -78,29 +78,44 @@ const inputLines = (text) => {
 export const parseInputs = (text) => inputLines(text).map((line) => (line === EMPTY_VALUE ? '' : line));
 
 /**
- * Run a program with the given inputs.
+ * The call a function test makes: Name(arguments), the arguments being the inputs of the test (one per line or
+ * separated by commas).
+ *
+ * @param {Object} tc test {inputs, call}
+ * @returns {string|null} null for a test of inputs and output
+ */
+export const callText = (tc) => (tc && /^[A-Za-z_][A-Za-z0-9_]*$/.test(tc.call || '') ?
+    `${tc.call}(${inputLines(tc.inputs).join(', ')})` : null);
+
+/**
+ * Run a program with the given inputs, or call one of its functions.
  *
  * @param {Object} program algorithm model
  * @param {string} inputs one value per line
  * @param {string} [lang] UI language for the error messages
- * @returns {{output: string, after: string, error: (string|null)}} output written so far, the part of it written
- *     after the last input, and the error that stopped the run
+ * @param {string|null} [call] a call such as Sum(2, 3) instead of running the main function
+ * @returns {{output: string, after: string, error: (string|null), call: boolean, result: (string|null)}} output
+ *     written so far, the part of it written after the last input, the error that stopped the run, and for a call
+ *     the value the function returned
  */
-export const runProgram = (program, inputs, lang = null) => {
-    const queue = parseInputs(inputs);
+export const runProgram = (program, inputs, lang = null, call = null) => {
+    const queue = parseInputs(call === null ? inputs : '');
     const pieces = [];
     let read = 0;
+    let returned = null;
     const result = (error) => {
         const after = pieces.filter((p) => p.read >= read).map((p) => p.text).join('');
-        return {output: pieces.map((p) => p.text).join(''), after, error};
+        return {output: pieces.map((p) => p.text).join(''), after, error, call: call !== null, result: returned};
     };
     try {
-        const gen = execute(program, {maxSteps: MAX_STEPS});
+        const gen = execute(program, {maxSteps: MAX_STEPS, call});
         let res = gen.next();
         while (!res.done) {
             const ev = res.value;
             if (ev.event === 'output') {
                 pieces.push({text: ev.text, read});
+            } else if (ev.event === 'result') {
+                returned = ev.text;
             }
             if (ev.event === 'input') {
                 if (!queue.length) {
@@ -118,8 +133,10 @@ export const runProgram = (program, inputs, lang = null) => {
     }
 };
 
+const NUMBER = /-?\d+(?:\.\d+)?/g;
+
 /**
- * The part of the output that tests compare.
+ * The part of the output that tests compare (for a function test, the value it returned).
  *
  * @param {{output: string, after: string}} run result of runProgram
  * @param {object} [check]
@@ -128,8 +145,42 @@ export const runProgram = (program, inputs, lang = null) => {
  * @returns {string}
  */
 export const checkedOutput = (run, {afterinput = false, numbers = false} = {}) => {
-    const text = afterinput ? run.after : run.output;
-    return numbers ? (text.match(/-?\d+(?:\.\d+)?/g) || []).join('\n') : text;
+    let text = afterinput ? run.after : run.output;
+    if (run.call) {
+        text = run.result ?? '';
+    }
+    return numbers ? (text.match(NUMBER) || []).join('\n') : text;
+};
+
+/**
+ * Are two lines of output the same, with the comparison options of the question?
+ *
+ * @param {string} a expected line
+ * @param {string} b actual line
+ * @param {object} [check]
+ * @param {boolean} [check.ignorecase] capital and small letters are the same
+ * @param {boolean} [check.ignorespaces] any run of spaces is one space, and spaces at the ends do not count
+ * @param {number} [check.tolerance] numbers may differ by this much
+ * @returns {boolean}
+ */
+export const sameLine = (a, b, {ignorecase = false, ignorespaces = false, tolerance = 0} = {}) => {
+    const prep = (line) => {
+        let text = String(line ?? '');
+        if (ignorespaces) {
+            text = text.replace(/\s+/g, ' ').trim();
+        }
+        return ignorecase ? text.toLowerCase() : text;
+    };
+    const [x, y] = [prep(a), prep(b)];
+    if (x === y) {
+        return true;
+    }
+    if (!(Number(tolerance) > 0) || x.replace(NUMBER, '#') !== y.replace(NUMBER, '#')) {
+        return false;
+    }
+    const nx = x.match(NUMBER) || [];
+    const ny = y.match(NUMBER) || [];
+    return nx.every((n, i) => Math.abs(Number(n) - Number(ny[i])) <= Number(tolerance) + 1e-9);
 };
 
 /**
@@ -137,13 +188,14 @@ export const checkedOutput = (run, {afterinput = false, numbers = false} = {}) =
  *
  * @param {string} expected expected output
  * @param {string} actual actual output
+ * @param {object} [check] comparison options, see sameLine
  * @returns {number} line index, or -1 when they are equal
  */
-export const firstDiffLine = (expected, actual) => {
+export const firstDiffLine = (expected, actual, check = {}) => {
     const a = normalize(expected).split('\n');
     const b = normalize(actual).split('\n');
     for (let i = 0; i < Math.max(a.length, b.length); i++) {
-        if (a[i] !== b[i]) {
+        if (a[i] === undefined || b[i] === undefined || !sameLine(a[i], b[i], check)) {
             return i;
         }
     }
@@ -160,9 +212,9 @@ export const firstDiffLine = (expected, actual) => {
  * @returns {Array} [{pass, actual, error, diffLine}]
  */
 export const runTests = (program, tests, lang = null, check = {}) => tests.map((tc) => {
-    const run = runProgram(program, tc.inputs, lang);
+    const run = runProgram(program, tc.inputs, lang, callText(tc));
     const actual = checkedOutput(run, check);
-    const diffLine = firstDiffLine(tc.expected, actual);
+    const diffLine = firstDiffLine(tc.expected, actual, check);
     return {pass: !run.error && diffLine === -1, actual, error: run.error, diffLine};
 });
 
@@ -178,7 +230,7 @@ export const runTests = (program, tests, lang = null, check = {}) => tests.map((
 export const computeExpected = (solution, tests, lang = null, check = {}) => {
     const errors = [];
     const result = tests.map((tc, index) => {
-        const run = runProgram(solution, tc.inputs, lang);
+        const run = runProgram(solution, tc.inputs, lang, callText(tc));
         if (run.error) {
             errors.push({index, error: run.error});
         }
@@ -193,7 +245,28 @@ export const computeExpected = (solution, tests, lang = null, check = {}) => {
  * @param {Array} tests [{inputs, expected}]
  * @returns {string}
  */
-export const serializeTests = (tests) => serialize(tests.map((tc) => ({inputs: tc.inputs, expected: tc.expected})));
+export const serializeTests = (tests) => serialize(tests.map((tc) => (tc.call ?
+    {inputs: tc.inputs, expected: tc.expected, call: tc.call} : {inputs: tc.inputs, expected: tc.expected})));
+
+/**
+ * A test with only the fields a test has: inputs, expected, and when set hidden, weight and call.
+ *
+ * @param {Object} tc test from storage
+ * @returns {Object}
+ */
+export const cleanTest = (tc) => {
+    const out = {inputs: String(tc.inputs ?? ''), expected: String(tc.expected ?? '')};
+    if (tc.hidden) {
+        out.hidden = true;
+    }
+    if (tc.weight !== undefined && tc.weight !== null && tc.weight !== '' && Number(tc.weight) >= 0) {
+        out.weight = Number(tc.weight);
+    }
+    if (typeof tc.call === 'string' && /^[A-Za-z_][A-Za-z0-9_]*$/.test(tc.call)) {
+        out.call = tc.call;
+    }
+    return out;
+};
 
 /**
  * Decode the data-algorithm-tests attribute; anything unreadable gives no tests.
@@ -205,7 +278,7 @@ export const deserializeTests = (text) => {
     try {
         const data = text ? decodeData(text) : [];
         return Array.isArray(data) ? data.filter((tc) => tc && typeof tc === 'object')
-            .map((tc) => ({inputs: String(tc.inputs ?? ''), expected: String(tc.expected ?? '')})) : [];
+            .map((tc) => cleanTest(tc)) : [];
     } catch (e) {
         return [];
     }
@@ -226,10 +299,11 @@ export class TestsPanel {
      * @param {Function} [opts.getSolution] () => solution the expected outputs come from (teacher)
      * @param {object} [opts.check] what is compared, see checkedOutput
      * @param {boolean} [opts.hiddenOption] the teacher can hide a test from students (question type)
+     * @param {boolean} [opts.weightOption] the teacher can give a test a weight in the grade (question type)
      * @param {Function} [opts.onChange] (tests) => called when the teacher changes the tests
      */
     constructor(host, {tests = [], mode = 'student', lang = null, getProgram = null, getSolution = null, check = {},
-            hiddenOption = false, onChange = null} = {}) {
+            hiddenOption = false, weightOption = false, onChange = null} = {}) {
         this.tests = tests.map((tc) => ({...tc}));
         this.mode = mode;
         this.lang = lang;
@@ -237,6 +311,7 @@ export class TestsPanel {
         this.getSolution = getSolution;
         this.check = check;
         this.hiddenOption = hiddenOption;
+        this.weightOption = weightOption;
         this.onChange = onChange;
         this.results = null;
         this.stale = false;
@@ -328,15 +403,55 @@ export class TestsPanel {
         this.root.append(list);
     }
 
+    /** @returns {string[]} names of the functions of the solution a test can call (all but the main one) */
+    functionNames() {
+        const program = this.getSolution ? this.getSolution() : null;
+        const fns = program && Array.isArray(program.functions) ? program.functions : [];
+        const main = fns.find((f) => String(f.name).toLowerCase() === 'main') || fns[0];
+        return fns.filter((f) => f !== main).map((f) => f.name);
+    }
+
     teacherRow(tc, i) {
         const error = (this.errors || []).find((e) => e.index === i);
-        const inputs = el('textarea', {'class': 'form-control form-control-sm', rows: 3, placeholder: this.t('inputshint'),
-            'aria-label': `${this.t('testcase', {n: i + 1})}: ${this.t('inputs')}`,
+        const label = tc.call ? 'arguments' : 'inputs';
+        const inputs = el('textarea', {'class': 'form-control form-control-sm', rows: 3,
+            placeholder: this.t(tc.call ? 'argumentshint' : 'inputshint'),
+            'aria-label': `${this.t('testcase', {n: i + 1})}: ${this.t(label)}`,
             oninput: () => {
                 tc.inputs = inputs.value;
                 this.changed();
             }});
         inputs.value = tc.inputs;
+        // What the test runs: the whole algorithm with inputs, or one function with arguments.
+        const names = this.functionNames();
+        if (tc.call && !names.includes(tc.call)) {
+            names.push(tc.call);
+        }
+        const kind = el('select', {'class': 'custom-select custom-select-sm form-select form-select-sm tiny_algorithm-test-kind',
+            'aria-label': `${this.t('testcase', {n: i + 1})}: ${this.t('testtype')}`, onchange: () => {
+                if (kind.value) {
+                    tc.call = kind.value;
+                } else {
+                    delete tc.call;
+                }
+                this.render();
+                this.changed();
+            }}, el('option', {value: ''}, this.t('testio')),
+        names.map((name) => el('option', {value: name, selected: name === tc.call}, this.t('testcall', {name}))));
+        let weight = '';
+        if (this.weightOption) {
+            const box = el('input', {type: 'number', min: 0, step: 'any', 'class': 'form-control form-control-sm',
+                value: tc.weight ?? 1, oninput: () => {
+                    const w = Number(box.value);
+                    if (box.value === '' || !(w >= 0) || w === 1) {
+                        delete tc.weight;
+                    } else {
+                        tc.weight = w;
+                    }
+                    this.changed();
+                }});
+            weight = el('label', {'class': 'tiny_algorithm-test-weight'}, this.t('weight'), ' ', box);
+        }
         let hidden = '';
         if (this.hiddenOption) {
             const box = el('input', {type: 'checkbox', 'class': 'form-check-input', onchange: () => {
@@ -347,7 +462,7 @@ export class TestsPanel {
             hidden = el('label', {'class': 'tiny_algorithm-test-hidden'}, box, ' ', this.t('hiddentest'));
         }
         return el('li', {'class': 'tiny_algorithm-test'},
-            el('div', {'class': 'tiny_algorithm-test-head'}, el('span', {}, this.t('testcase', {n: i + 1})), hidden,
+            el('div', {'class': 'tiny_algorithm-test-head'}, el('span', {}, this.t('testcase', {n: i + 1})), kind, weight, hidden,
                 el('button', {type: 'button', 'class': 'btn btn-link btn-sm', onclick: () => {
                     this.tests.splice(i, 1);
                     this.errors = null;
@@ -355,7 +470,7 @@ export class TestsPanel {
                     this.changed();
                 }}, tr('delete', this.lang))),
             el('div', {'class': 'tiny_algorithm-test-cols'},
-                el('label', {}, el('span', {}, this.t('inputs')), inputs),
+                el('label', {}, el('span', {}, this.t(label)), inputs),
                 el('div', {}, el('span', {}, this.t('expected')), el('pre', {'class': 'tiny_algorithm-test-out'}, tc.expected))),
             error ? el('div', {'class': 'tiny_algorithm-error'}, this.t('solutionfails', {n: i + 1, error: error.error})) : '');
     }
@@ -367,7 +482,8 @@ export class TestsPanel {
         r.pass ? '✓' : '✗') : '';
         const row = el('li', {'class': 'tiny_algorithm-test'},
             el('div', {'class': 'tiny_algorithm-test-head'}, mark, el('span', {}, this.t('testcase', {n: i + 1})),
-                el('code', {'class': 'tiny_algorithm-test-inputs'}, inputLines(tc.inputs).join(', ') || this.t('noinputs'))));
+                el('code', {'class': 'tiny_algorithm-test-inputs'},
+                    callText(tc) || inputLines(tc.inputs).join(', ') || this.t('noinputs'))));
         if (r && !r.pass) {
             const lines = (text) => normalize(text).split('\n').map((line, n) =>
                 el('span', {'class': n === r.diffLine ? 'tiny_algorithm-diff-line' : ''}, `${line}\n`));

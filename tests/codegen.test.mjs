@@ -150,10 +150,9 @@ test('python and C matrices match the interpreter', {timeout: 240000}, (t) => {
     assert.equal(execFileSync(exe, [], {timeout: 10000, input: matrixInput}).toString().replace(/\r\n/g, '\n'), expected);
 });
 
-// Java writes a whole Real as 7.0 where the interpreter writes 7, so rich() is not compared here.
 test('Java output matches the interpreter', {timeout: 240000}, (t) => {
     const dir = mkdtempSync(join(tmpdir(), 'alg-java-'));
-    for (const [program, input] of [[sample(), ''], [strings(), ''], [matrix(), matrixInput]]) {
+    for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput]]) {
         writeFileSync(join(dir, 'Main.java'), generate('java', program));
         try {
             execFileSync('javac', ['-d', dir, join(dir, 'Main.java')], {timeout: 120000, stdio: 'ignore'});
