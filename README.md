@@ -10,15 +10,17 @@
 export Flowgorithm `.fprg` files and generate **Python**, **C**, **C++**, **Java**, **C#**, **JavaScript** or **Pascal** code -
 without leaving the editor.
 
-> Status: **stable** (1.0). Inspired by Flowgorithm, not affiliated with it.
+> Status: **stable** (2.0). Inspired by Flowgorithm, not affiliated with it.
 
 ## ✨ Features
 
 | Feature | Description |
 |---------|-------------|
 | 🧱 **Visual Editor** | Declare, Assign, Input, Output, If, For, While, Do…While, Call, Return, Comment; several functions, undo / redo; renaming a function also renames its calls |
+| ✋ **Drag, Copy and Paste** | Drag a block onto a **+** sign with the mouse or a finger; **Ctrl + C / X / V / D** copy, cut, paste and duplicate blocks, also between diagrams; a right click (or Shift + F10) on a block opens a menu with Copy, Cut, Duplicate, Paste, Delete and **Move to… / Copy to…**, which lets you click the **+** sign where the block should go; the dialog asks before closing with changes that are not inserted |
+| 🔢 **Arrays and Matrices** | A Declare block with one size is an array `a[i]`, with two sizes a matrix `m[i, j]` (or `m[i][j]`); the variable watch shows a matrix as a table |
 | ▶️ **Interpreter** | Run / Step / Stop with a speed slider, the running block is highlighted, console with input prompts |
-| 🛡️ **Safe Execution** | Infinite-loop guard, arrays up to 100000 elements, and clear errors in the user's language (undeclared variable, division by zero, index out of range) |
+| 🛡️ **Safe Execution** | Infinite-loop guard, arrays and matrices up to 100000 elements, and clear errors in the user's language (undeclared variable, division by zero, index out of range) |
 | ⌨️ **Keyboard** | Arrow keys move between the blocks and the **+** signs, **Enter** or **Space** edits a block or opens the block menu, **Delete** removes, **Escape** cancels; Enter in a field never submits the form around the editor |
 | 🔍 **Variable Watch** | Current value of every variable while stepping, changed values highlighted, long arrays shortened |
 | 🔎 **Zoom** | **−**, **+**, **100%**, **Fit** buttons or **Ctrl + mouse wheel** |
@@ -27,7 +29,7 @@ without leaving the editor.
 | 🖼️ **Editable Images** | The diagram is a normal SVG image that stores its model - double-click it to edit again |
 | 💬 **Forums and Assignments** | Where Moodle cleans the HTML (forum posts, assignment text, glossary…) the diagram is saved as an image file of the text, so it stays visible, editable and interactive |
 | ✍️ **Students Edit and Test** | Let students change their own copy of a diagram in any content, run the teacher's tests and see the differences (with `filter_algorithm`) |
-| 🧪 **Tests from the Solution** | The teacher enters only the inputs; the expected outputs are computed from the teacher's solution |
+| 🧪 **Tests from the Solution** | The teacher enters only the inputs; the expected outputs are computed from the teacher's solution. A test can also call one function with arguments and check the value it returns |
 | 🧩 **Starting Template** | Students can start from an empty or partial template instead of the solution; the solution can be shown on request |
 | ⚙️ **Per-diagram Options** | *Interactive*, *Show generated code*, *Show variable watch* (turn code off in quiz questions) |
 | 🌐 **Languages** | English, Serbian Latin and Serbian Cyrillic |
@@ -41,6 +43,8 @@ without leaving the editor.
 | ![Editor](docs/screenshots/editor.png) | ![Reader view](docs/screenshots/reader-view.png) |
 | **Quiz: analyse an algorithm** | **Quiz: draw an algorithm** |
 | ![Quiz analyse](docs/screenshots/quiz-analyse.png) | ![Quiz draw](docs/screenshots/quiz-draw.png) |
+| **A matrix in the variable watch** | |
+| ![Matrix](docs/screenshots/matrix.png) | |
 
 ## 📋 Requirements
 
@@ -153,8 +157,9 @@ lib/editor/tiny/plugins/algorithm/
 
 - Variable names are case insensitive in the interpreter, but not in the generated code.
 - Arrays, functions and `.fprg` import are verified by the Node tests and real Flowgorithm files, not inside the Moodle dialog.
-- Exercises are for practice, not for assessment: the solution and the expected outputs are part of the page HTML, and nothing
-  is graded or sent to the server.
+- Exercises are for practice, not for assessment: the solution and the expected outputs are part of the diagram (its SVG
+  file), and nothing is graded or sent to the server. For graded work use `qtype_algorithm`.
+- Functions cannot take a matrix as a parameter, and Flowgorithm `.fprg` files cannot hold matrices (the export says so).
 - A student's edited copy lives in the browser (`localStorage`) and does not follow them to another device or browser. When the
   teacher changes the diagram or its tests, students start again from the new version.
 

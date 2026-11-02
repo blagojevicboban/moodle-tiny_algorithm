@@ -34,7 +34,8 @@ export const STR = {
         keyhint: 'Keyboard: the arrow keys move between the blocks and the + signs, Enter edits or inserts, ' +
             'Delete removes the selected block, Alt + arrow moves it, Ctrl + C, X, V and D copy, cut, paste and duplicate it, ' +
             'Escape cancels. With the mouse or a finger, drag a block onto a + sign to move it.',
-        up: 'Up', down: 'Down', 'delete': 'Delete', duplicate: 'Duplicate', paste: 'Paste',
+        up: 'Up', down: 'Down', 'delete': 'Delete', duplicate: 'Duplicate', paste: 'Paste', cut: 'Cut',
+        moveto: 'Move to…', copyto: 'Copy to…', placehint: 'Click the + sign where the block should go (Escape cancels).',
         imported: 'Flowgorithm file imported.', stopped: 'Stopped.',
         fprgmatrix: 'Flowgorithm files cannot hold matrices (arrays with two sizes), so the algorithm was not exported.',
         finished: 'Program finished.', error: 'Error',

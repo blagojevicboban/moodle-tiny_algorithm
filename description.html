@@ -13,17 +13,20 @@
     <li><strong>Tests from the solution:</strong> the teacher enters only the inputs; the expected outputs are computed from the teacher's solution.</li>
   </ul>
 
-  <h3>What's new in 1.2.0</h3>
+  <h3>What's new in 2.0.0</h3>
   <ul>
-    <li><strong>Forums and assignments:</strong> in forum posts, assignment text and other content that Moodle cleans, the diagram disappeared after saving. It is now saved as an image file of the text, so it stays visible, can be edited again and, with filter_algorithm, stays interactive. Diagrams inserted with an older version come back after opening them in the editor and clicking Insert.</li>
-    <li>Renaming a function also renames every call of it.</li>
-    <li>All CSS classes carry the plugin name (tiny_algorithm-...), so they cannot clash with the theme.</li>
+    <li><strong>Drag, copy and paste:</strong> drag a block onto a + sign with the mouse or a finger; Ctrl + C, X, V and D copy, cut, paste and duplicate blocks, also from one diagram to another. A right click on a block opens a menu with Move to and Copy to: click the + sign where the block should go. Alt + arrow moves the selected block.</li>
+    <li><strong>Matrices:</strong> a Declare block with two sizes is a matrix, used as m[i, j] or m[i][j], in the interpreter, the variable watch (a small table) and the code in all seven languages.</li>
+    <li><strong>Function tests:</strong> a test can call one function with arguments and check the value it returns.</li>
+    <li>The dialog asks before closing with changes that are not inserted; the fields are locked while the algorithm runs; the editor works better on phones (larger + signs, two fingers zoom).</li>
+    <li>One storage format: everything the viewer needs is in the SVG of the diagram, and the alt text says how many functions and blocks it has. Diagrams from 1.x keep working.</li>
+    <li>Generated code: C arrays start from zeros, Java writes whole numbers without .0 and string arrays start empty, C# writes Reals with a dot on every computer, Python array sizes keep their parentheses.</li>
   </ul>
 
   <h3>Requirements</h3>
   <ul>
     <li>Moodle 4.5 LTS to 5.3 (PHP as required by your Moodle version).</li>
-    <li>Companion plugins (optional): filter_algorithm 1.2.0 (Run / Step and the student features for readers) and qtype_algorithm 1.2.0 (quiz question type with automatic grading).</li>
+    <li>Companion plugins (optional): filter_algorithm 2.0.0 (Run / Step and the student features for readers) and qtype_algorithm 2.0.0 (quiz question type with automatic grading).</li>
   </ul>
 
   <h3>Privacy</h3>

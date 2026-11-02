@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.0.0 – 2026-11-02 (stable)
+
+- **One storage format:** the image keeps only its source, classes and alt text; the model, the options, the solution and
+  the tests are only in the SVG (`embed.js`). Images written by 1.x (with `data-algorithm` attributes) are still read. The
+  alt text comes from the new `imagealt` string (name, number of functions and blocks).
+- **Drag and drop:** blocks are dragged onto a **+** sign with the mouse, a pen or a finger (pointer events, one undo step);
+  a finger on the background still scrolls, two fingers zoom. No text selection while dragging.
+- **Copy and paste:** Ctrl/Cmd + C, X, V and D copy, cut, paste and duplicate the selected block (system clipboard as JSON,
+  with a fallback in memory), **Paste** in the block menu, a **Duplicate** button; Alt + arrow moves the selected block.
+- **Context menu:** a right click (or the Menu key, Shift + F10) on a block offers Copy, Cut, Duplicate, Paste below, Delete,
+  **Move to…** and **Copy to…**: the + signs are marked and the one clicked (or chosen with Enter) receives the block;
+  Escape cancels. A right click on a + sign opens the block menu.
+- The dialog asks before Cancel, the X, Escape or a click outside throw away changes; the fields are locked while the
+  algorithm runs; array parameters keep their `[]` when the parameter list is edited; larger targets for fingers.
+- **Matrices:** Declare has a second size (`size2`); `m[i, j]` and `m[i][j]`; the interpreter checks the number of indexes
+  (new error `e.dimensions`) and each index, the size limit counts all elements; code in all seven languages; the variable
+  watch shows a matrix as a table; the `.fprg` export refuses a matrix (`fprgmatrix`).
+- **Function tests:** a test with `call` runs one function with the inputs as arguments and compares the value it returns
+  (`execute(program, {call})`, `callText`). **Comparison options** `ignorecase`, `ignorespaces`, `tolerance` (`sameLine`).
+  The tests panel lets the teacher choose what a test runs, and (question type) its weight.
+- Generated code fixed: C arrays start from zeros (`memset`), Java writes whole Reals as `7` (`fmt`) and String arrays start
+  as `""`, C# writes Reals with a dot whatever the language of the computer, Python `[0] * (n + 1)`.
+- New Node tests: storage format, copy and move of blocks, matrices (compiled in C, C++, C#, Java, JavaScript, Pascal,
+  Python), function tests, comparison options.
+
 ## 1.2.0 – 2026-11-02 (stable)
 
 - **Fixed: diagrams disappeared in forum posts, assignment text and other content that Moodle cleans.** The HTML cleaning
