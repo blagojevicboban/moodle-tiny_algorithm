@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Pascal: Char(s, i) compiles with ToCode:** `Char(s, i)` is now `Copy(s, i + 1, 1)`, a string of one character;
+  `s[i + 1]` was a Char, so `ToCode(Char(s, i))` did not compile.
+- **CI runs the Pascal test again:** only `fp-compiler` is installed (the `fpc` package took 18 minutes on a slow
+  mirror), and a program that does not compile now fails the test instead of skipping it as "no compiler".
+
 ## 2.1.0 – 2026-11-04 (stable)
 
 - **Arrows on the connections:** a line that enters a block, the line back to the condition of a loop, the exit of a
