@@ -301,8 +301,9 @@ const LANGS = {
             if (l === 'isnumeric') {
                 return `TryStrToFloat(${args[0]}, Dummy)`;
             }
-            // Pascal strings start at 1.
-            const at = (t, i) => (/^\d+$/.test(i) ? `${t}[${Number(i) + 1}]` : `${t}[${i} + 1]`);
+            // Pascal strings start at 1. Copy gives a string of one character like Flowgorithm (s[i] would be a Char,
+            // which ToCode cannot index).
+            const at = (t, i) => `Copy(${t}, ${/^\d+$/.test(i) ? Number(i) + 1 : `${i} + 1`}, 1)`;
             const ch = charCall(l, args, {at, fromCode: (n) => `Chr(${n})`, code: (t) => `Ord(${t}[1])`});
             if (ch) {
                 return ch;

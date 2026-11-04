@@ -291,7 +291,7 @@ test('C++, JavaScript and Pascal generators have the expected shape', () => {
     assert.match(pas, /repeat[\s\S]+until not \(k > 7\);/);
     assert.match(pas, /i := i - 3;/);
     assert.match(pas, /Ord\(name\[1\]\)/);
-    assert.match(generate('pascal', strings()), /r := r \+ s\[i \+ 1\];/);
+    assert.match(generate('pascal', strings()), /r := r \+ Copy\(s, i \+ 1, 1\);/);
 });
 
 /**
