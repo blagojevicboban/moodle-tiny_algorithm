@@ -1,8 +1,27 @@
-<div class="algorithm-description">
-  <h2>Tiny Algorithm: Flowchart Editor</h2>
+<div>
+  <p><strong>Tiny Algorithm: Flowchart Editor</strong></p>
   <p><em>Draw algorithms as flowcharts right in the Moodle text editor, run them step by step and turn them into code.</em></p>
+  <div>
+    <a href="https://github.com/blagojevicboban/moodle-tiny_algorithm/actions/workflows/ci.yml" target="_blank" rel="noreferrer noopener"><img src="https://github.com/blagojevicboban/moodle-tiny_algorithm/actions/workflows/ci.yml/badge.svg" alt="Moodle Plugin CI"></a>
+    <a href="https://moodle.org" target="_blank" rel="noreferrer noopener"><img src="https://img.shields.io/badge/Moodle-4.5%20to%205.3-orange.svg" alt="Moodle 4.5 to 5.3"></a>
+    <a href="https://github.com/blagojevicboban/moodle-tiny_algorithm" target="_blank" rel="noreferrer noopener"><img src="https://img.shields.io/badge/License-GPL%20v3-blue.svg" alt="License GPL v3"></a>
+  </div>
 
-  <h3>Features</h3>
+  <p><strong>Live demo:</strong> try the plugin on <a href="https://algorithm.tsp.edu.rs" target="_blank" rel="noreferrer noopener">algorithm.tsp.edu.rs</a>. Log in as a guest, or use the demo accounts <strong>teacher</strong> and <strong>student</strong> (password <strong>Demo-2026</strong>). Everything is reset every night.</p>
+
+  <hr>
+  <p><strong>What's New in v2.0.0</strong></p>
+  <ul>
+    <li><strong>Drag, copy and paste:</strong> drag a block onto a + sign with the mouse or a finger; Ctrl + C, X, V and D copy, cut, paste and duplicate blocks, also from one diagram to another. A right click on a block opens a menu with Move to and Copy to: click the + sign where the block should go. Alt + arrow moves the selected block.</li>
+    <li><strong>Matrices:</strong> a Declare block with two sizes is a matrix, used as m[i, j] or m[i][j], in the interpreter, the variable watch (a small table) and the code in all seven languages.</li>
+    <li><strong>Function tests:</strong> a test can call one function with arguments and check the value it returns.</li>
+    <li><strong>Safer editing and phones:</strong> the dialog asks before closing with changes that are not inserted; the fields are locked while the algorithm runs; the editor works better on phones (larger + signs, two fingers zoom).</li>
+    <li><strong>One storage format:</strong> everything the viewer needs is in the SVG of the diagram, and the alt text says how many functions and blocks it has. Diagrams from 1.x keep working.</li>
+    <li><strong>Generated code:</strong> C arrays start from zeros, Java writes whole numbers without .0 and string arrays start empty, C# writes Reals with a dot on every computer, Python array sizes keep their parentheses.</li>
+  </ul>
+
+  <hr>
+  <p><strong>Core features</strong></p>
   <ul>
     <li><strong>Visual editor:</strong> Declare, Assign, Input, Output, If, For, While, Do...While, Call, Return, Comment; several functions, undo / redo.</li>
     <li><strong>Interpreter:</strong> Run / Step / Stop, console with input, variable watch, infinite-loop guard and clear error messages.</li>
@@ -13,26 +32,28 @@
     <li><strong>Tests from the solution:</strong> the teacher enters only the inputs; the expected outputs are computed from the teacher's solution.</li>
   </ul>
 
-  <h3>What's new in 2.0.0</h3>
+  <hr>
+  <p><strong>The algorithm plugins</strong></p>
   <ul>
-    <li><strong>Drag, copy and paste:</strong> drag a block onto a + sign with the mouse or a finger; Ctrl + C, X, V and D copy, cut, paste and duplicate blocks, also from one diagram to another. A right click on a block opens a menu with Move to and Copy to: click the + sign where the block should go. Alt + arrow moves the selected block.</li>
-    <li><strong>Matrices:</strong> a Declare block with two sizes is a matrix, used as m[i, j] or m[i][j], in the interpreter, the variable watch (a small table) and the code in all seven languages.</li>
-    <li><strong>Function tests:</strong> a test can call one function with arguments and check the value it returns.</li>
-    <li>The dialog asks before closing with changes that are not inserted; the fields are locked while the algorithm runs; the editor works better on phones (larger + signs, two fingers zoom).</li>
-    <li>One storage format: everything the viewer needs is in the SVG of the diagram, and the alt text says how many functions and blocks it has. Diagrams from 1.x keep working.</li>
-    <li>Generated code: C arrays start from zeros, Java writes whole numbers without .0 and string arrays start empty, C# writes Reals with a dot on every computer, Python array sizes keep their parentheses.</li>
+    <li><strong><a href="https://marketplace.moodle.com/plugins/tiny_algorithm" target="_blank" rel="noreferrer noopener">Algorithm (flowchart)</a></strong> (this plugin): the flowchart editor in TinyMCE, with the interpreter and code generation.</li>
+    <li><strong><a href="https://marketplace.moodle.com/plugins/filter_algorithm" target="_blank" rel="noreferrer noopener">Algorithm viewer (Run / Step)</a></strong>: Run / Step for readers and the student features in any content.</li>
+    <li><strong><a href="https://marketplace.moodle.com/plugins/qtype_algorithm" target="_blank" rel="noreferrer noopener">Algorithm question type</a></strong>: quiz questions graded automatically with tests.</li>
   </ul>
 
-  <h3>Requirements</h3>
+  <hr>
+  <p><strong>Requirements</strong></p>
   <ul>
-    <li>Moodle 4.5 LTS to 5.3 (PHP as required by your Moodle version).</li>
-    <li>Companion plugins (optional): filter_algorithm 2.0.0 (Run / Step and the student features for readers) and qtype_algorithm 2.0.0 (quiz question type with automatic grading).</li>
+    <li><strong>Moodle:</strong> 4.5 LTS to 5.3 (PHP as required by your Moodle version).</li>
+    <li><strong>Companion plugins (optional):</strong> filter_algorithm 2.0.0 (Run / Step and the student features for readers) and qtype_algorithm 2.0.0 (quiz question type with automatic grading).</li>
   </ul>
 
-  <h3>Privacy</h3>
+  <hr>
+  <p><strong>Privacy</strong></p>
   <p>The editor and interpreter run in the browser; nothing is sent to external services. The diagram is stored in the text you save. The plugin keeps two display preferences (code and variable panels) and the student's own copy of an editable diagram in the browser's local storage and implements the Moodle Privacy API (no personal data stored).</p>
 
-  <p>Languages: English and Serbian (Latin and Cyrillic). Source, documentation and issue tracker:
-    <a href="https://github.com/blagojevicboban/moodle-tiny_algorithm" target="_blank" rel="noreferrer noopener">github.com/blagojevicboban/moodle-tiny_algorithm</a>.
+  <hr>
+  <p>Developed by <strong>Boban Blagojevi&#263;</strong>. Languages: English and Serbian (Latin and Cyrillic).<br>
+    Source, documentation and issue tracker:
+    <a href="https://github.com/blagojevicboban/moodle-tiny_algorithm" target="_blank" rel="noreferrer noopener">github.com/blagojevicboban/moodle-tiny_algorithm</a><br>
     Licensed under the GNU GPL v3 or later.</p>
 </div>

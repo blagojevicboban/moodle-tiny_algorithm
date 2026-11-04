@@ -11,6 +11,8 @@ export Flowgorithm `.fprg` files and generate **Python**, **C**, **C++**, **Java
 without leaving the editor.
 
 > Status: **stable** (2.0). Inspired by Flowgorithm, not affiliated with it.
+>
+> 🌐 **Live demo:** [algorithm.tsp.edu.rs](https://algorithm.tsp.edu.rs) (log in as a guest, or use `teacher` / `student` with password `Demo-2026`; reset every night)
 
 ## ✨ Features
 
