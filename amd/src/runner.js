@@ -21,7 +21,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import {execute} from './interpreter';
-import {renderProgram} from './render';
+import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
 import {Watch} from './watch';
@@ -244,6 +244,9 @@ export class AlgorithmRunner {
 
     highlight(id) {
         this.svgHost.querySelectorAll('.tiny_algorithm-running').forEach((n) => n.classList.remove('tiny_algorithm-running'));
+        if (!id) {
+            showBranch(this.svgHost, null);
+        }
         const n = id && this.svgHost.querySelector(`.tiny_algorithm-node[data-id="${id}"]`);
         if (n) {
             n.classList.add('tiny_algorithm-running');
@@ -297,6 +300,8 @@ export class AlgorithmRunner {
                     this.highlight(ev.id);
                     this.watch.update(ev.vars);
                     await this.waitNext(run);
+                } else if (ev.event === 'branch') {
+                    showBranch(this.svgHost, ev);
                 } else if (ev.event === 'done') {
                     this.watch.update(ev.vars);
                 } else if (ev.event === 'output') {

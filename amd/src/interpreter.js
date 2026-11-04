@@ -281,6 +281,18 @@ export function* execute(program, {maxSteps = 1000000, call = null} = {}) {
     };
 
     /**
+     * Evaluate the condition of a decision and tell the host which way it goes (the editor marks that branch).
+     *
+     * @param {Object} b if, while or do-while block
+     * @param {Object} env environment
+     */
+    function* condition(b, env) {
+        const taken = Boolean(yield* evalStr(b.cond, env));
+        yield {event: 'branch', id: b.id, taken};
+        return taken;
+    }
+
+    /**
      * Run a list of blocks in order.
      *
      * @param {Object[]} list blocks
@@ -334,7 +346,12 @@ export function* execute(program, {maxSteps = 1000000, call = null} = {}) {
         if (!env[b.variable.toLowerCase()]) {
             env[b.variable.toLowerCase()] = {type: 'Integer', value: 0, name: b.variable};
         }
-        for (let i = start; step > 0 ? i <= end : i >= end; i += step) {
+        for (let i = start; ; i += step) {
+            const taken = step > 0 ? i <= end : i >= end;
+            yield {event: 'branch', id: b.id, taken};
+            if (!taken) {
+                break;
+            }
             env[b.variable.toLowerCase()].value = i;
             const r = yield* runList(b.body, env);
             if (r) {
@@ -389,9 +406,9 @@ export function* execute(program, {maxSteps = 1000000, call = null} = {}) {
                 break;
             }
             case 'if':
-                return yield* runList((yield* evalStr(b.cond, env)) ? b.then : b.else, env);
+                return yield* runList((yield* condition(b, env)) ? b.then : b.else, env);
             case 'while':
-                while (yield* evalStr(b.cond, env)) {
+                while (yield* condition(b, env)) {
                     const r = yield* runList(b.body, env);
                     if (r) {
                         return r;
@@ -407,7 +424,7 @@ export function* execute(program, {maxSteps = 1000000, call = null} = {}) {
                         return r;
                     }
                     yield tick(b.id, env);
-                    again = yield* evalStr(b.cond, env);
+                    again = yield* condition(b, env);
                 }
                 break;
             }

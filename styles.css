@@ -104,6 +104,21 @@
     stroke-dasharray: 6 3;
 }
 
+/* The branch a decision has just taken: thicker and in the colour of the running block. */
+.tiny_algorithm-edge.tiny_algorithm-taken > path:not(.tiny_algorithm-arrow) {
+    stroke: #c2410c;
+    stroke-width: 3;
+}
+
+.tiny_algorithm-edge.tiny_algorithm-taken > .tiny_algorithm-arrow {
+    fill: #c2410c;
+}
+
+.tiny_algorithm-edge.tiny_algorithm-taken > text {
+    fill: #9a3412;
+    font-weight: bold;
+}
+
 /* The running block is marked by its border too, not only by its colour. */
 .tiny_algorithm-node.tiny_algorithm-running > :first-child {
     fill: #fdba74;

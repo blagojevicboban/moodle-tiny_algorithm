@@ -18,7 +18,8 @@
  *
  * Primitives: {t:'shape', shape, x, y, w, h, text, id}, {t:'line', pts:[[x,y],...], label, arrow},
  * {t:'slot', x, y, list, index}. All coordinates are absolute (the y axis points down). A line with arrow
- * ends in an arrowhead: it enters a block or joins another line there.
+ * ends in an arrowhead: it enters a block or joins another line there. A line with branch ('<id>:T' or '<id>:F')
+ * leaves a decision; the editor marks it while the algorithm runs.
  *
  * @module tiny_algorithm/layout
  * @copyright  2026 Boban Blagojević
@@ -158,6 +159,13 @@ function measureBlock(b) {
     }
 }
 
+// Mark the lines from index from on (up to, not including, index to) as the branch of a decision.
+const tagBranch = (out, from, to, key) => out.slice(from, to).forEach((it) => {
+    if (it.t === 'line') {
+        it.branch = key;
+    }
+});
+
 const shape = (out, b, cx, y, s) => out.push({
     t: 'shape', shape: shapeOf(b), x: cx - s.w / 2, y, w: s.w, h: s.h, text: labelOf(b), lines: linesOf(b), id: b.id, type: b.type,
 });
@@ -194,29 +202,39 @@ function drawBlock(out, b, cx, y) {
             const eAxis = cx + m.dE;
             const my = y + s.h / 2;
             const end = y + m.h;
-            out.push({t: 'line', pts: [[cx - s.w / 2, my], [tAxis, my]], label: {text: 'T', x: cx - s.w / 2 - 12, y: my - 6}});
-            out.push({t: 'line', pts: [[cx + s.w / 2, my], [eAxis, my]], label: {text: 'F', x: cx + s.w / 2 + 12, y: my - 6}});
+            out.push({t: 'line', pts: [[cx - s.w / 2, my], [tAxis, my]], label: {text: 'T', x: cx - s.w / 2 - 12, y: my - 6},
+                branch: `${b.id}:T`});
+            out.push({t: 'line', pts: [[cx + s.w / 2, my], [eAxis, my]], label: {text: 'F', x: cx + s.w / 2 + 12, y: my - 6},
+                branch: `${b.id}:F`});
+            // The first line of each branch belongs to it too.
+            let from = out.length;
             const th = drawList(out, b.then, tAxis, my);
+            tagBranch(out, from, from + 1, `${b.id}:T`);
+            from = out.length;
             const eh = drawList(out, b.else, eAxis, my);
+            tagBranch(out, from, from + 1, `${b.id}:F`);
             // Both branches run into the point below the condition.
-            out.push({t: 'line', pts: [[tAxis, my + th], [tAxis, end], [cx, end]], arrow: true});
-            out.push({t: 'line', pts: [[eAxis, my + eh], [eAxis, end], [cx, end]], arrow: true});
+            out.push({t: 'line', pts: [[tAxis, my + th], [tAxis, end], [cx, end]], arrow: true, branch: `${b.id}:T`});
+            out.push({t: 'line', pts: [[eAxis, my + eh], [eAxis, end], [cx, end]], arrow: true, branch: `${b.id}:F`});
             return m.h;
         }
         case 'while':
         case 'for': {
             shape(out, b, cx, y, s);
             const bodyTop = y + s.h;
+            const from = out.length;
             const bh = drawList(out, b.body, cx, bodyTop);
+            tagBranch(out, from, from + 1, `${b.id}:T`);
             const xl = cx - m.l;
             const xr = cx + m.r;
             const my = y + s.h / 2;
             const bodyBottom = bodyTop + bh;
             const end = bodyBottom + G;
-            out.push({t: 'line', pts: [[cx, y + s.h], [cx, bodyTop]], label: {text: 'T', x: cx + 10, y: y + s.h + 10}});
+            out.push({t: 'line', pts: [[cx, y + s.h], [cx, bodyTop]], label: {text: 'T', x: cx + 10, y: y + s.h + 10},
+                branch: `${b.id}:T`});
             out.push({t: 'line', pts: [[cx, bodyBottom], [xl, bodyBottom], [xl, my], [cx - s.w / 2, my]], arrow: true});
             out.push({t: 'line', pts: [[cx + s.w / 2, my], [xr, my], [xr, end], [cx, end]], arrow: true,
-                label: {text: 'F', x: cx + s.w / 2 + 12, y: my - 6}});
+                label: {text: 'F', x: cx + s.w / 2 + 12, y: my - 6}, branch: `${b.id}:F`});
             return m.h;
         }
         case 'dowhile': {
@@ -225,6 +243,7 @@ function drawBlock(out, b, cx, y) {
             shape(out, b, cx, dy, s);
             const xr = cx + m.r;
             out.push({t: 'line', pts: [[cx + s.w / 2, dy + s.h / 2], [xr, dy + s.h / 2], [xr, y], [cx, y]], arrow: true,
+                branch: `${b.id}:T`,
                 label: {text: 'T', x: cx + s.w / 2 + 12, y: dy + s.h / 2 - 6}});
             return m.h;
         }

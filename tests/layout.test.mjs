@@ -71,6 +71,37 @@ test('the SVG draws one arrowhead per arrow line', () => {
     const fn = sample();
     const arrows = layoutFunction(fn).items.filter((it) => it.t === 'line' && it.arrow && it.pts.length > 1);
     const {svg} = renderFunction(fn);
-    const heads = svg.match(/<path d="M[^"]*Z" fill=/g) || [];
+    const heads = svg.match(/<path class="tiny_algorithm-arrow" d="M[^"]*Z" fill=/g) || [];
     assert.equal(heads.length, arrows.length);
+});
+
+test('the lines leaving a decision carry its branch, T and F', () => {
+    const fn = sample();
+    const {items} = layoutFunction(fn);
+    const keys = new Set(items.filter((it) => it.t === 'line' && it.branch).map((it) => it.branch));
+    const [ifb, whileb, forb, dob] = fn.body;
+    for (const key of [`${ifb.id}:T`, `${ifb.id}:F`, `${whileb.id}:T`, `${whileb.id}:F`, `${forb.id}:T`, `${forb.id}:F`,
+        `${dob.id}:T`]) {
+        assert.ok(keys.has(key), key);
+    }
+    const {svg} = renderFunction(fn);
+    assert.match(svg, new RegExp(`<g class="tiny_algorithm-edge" data-branch="${whileb.id}:F">`));
+});
+
+test('the interpreter reports which way every decision goes', async() => {
+    const {execute} = await import('../amd/src/interpreter.js');
+    const p = createProgram();
+    const out = (expr) => createBlock('output', {expr});
+    const ifb = createBlock('if', {cond: '1 > 2', then: [out('1')], else: [out('2')]});
+    const forb = createBlock('for', {variable: 'i', start: '1', end: '2', step: '1', body: []});
+    const dob = createBlock('dowhile', {cond: 'false', body: []});
+    p.functions[0].body = [createBlock('declare', {name: 'i'}), ifb, forb, dob];
+    const branches = [];
+    const gen = execute(p);
+    for (let res = gen.next(); !res.done; res = gen.next()) {
+        if (res.value.event === 'branch') {
+            branches.push(`${res.value.id === ifb.id ? 'if' : res.value.id === forb.id ? 'for' : 'do'}:${res.value.taken}`);
+        }
+    }
+    assert.deepEqual(branches, ['if:false', 'for:true', 'for:true', 'for:false', 'do:false']);
 });

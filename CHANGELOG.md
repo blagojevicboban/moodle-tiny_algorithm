@@ -11,6 +11,9 @@
   says `suma`), and knows its type there too (C printed such a Real with `%d`).
 - **Save as SVG or PNG:** two new toolbar buttons download all functions of the diagram as one picture, for handouts,
   tests on paper and slides. The PNG is twice the size on screen; the SVG keeps the model like the inserted image.
+- **The branch taken is marked while running:** after every condition of an If, While, For or Do...While, Run and
+  Step colour the T or F branch the algorithm takes (thicker line, bold label), in the editor, the viewer of
+  filter_algorithm and quiz questions. The interpreter reports it with a new `branch` event.
 
 ## 2.0.0 – 2026-11-02 (stable)
 

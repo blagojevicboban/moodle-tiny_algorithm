@@ -25,7 +25,7 @@ import {
     blocksFromText, blocksToText, canMoveBlock, cloneProgram, copyBlock, createBlock, createProgram, findBlock, moveBlock,
     renameFunction, walk,
 } from './model';
-import {renderFunction, renderProgram} from './render';
+import {renderFunction, renderProgram, showBranch} from './render';
 import {execute} from './interpreter';
 import {checkExpr} from './expr';
 import {generate, isMatrix, languages, languageLabels, extensionOf} from './codegen';
@@ -963,6 +963,9 @@ export class AlgorithmEditor {
 
     highlight(id) {
         this.canvas.querySelectorAll('.tiny_algorithm-running').forEach((n) => n.classList.remove('tiny_algorithm-running'));
+        if (!id) {
+            showBranch(this.canvas, null);
+        }
         const n = id && this.canvas.querySelector(`.tiny_algorithm-node[data-id="${id}"]`);
         if (n) {
             n.classList.add('tiny_algorithm-running');
@@ -1034,6 +1037,8 @@ export class AlgorithmEditor {
                     this.highlight(ev.id);
                     this.watch.update(ev.vars);
                     await this.waitNext(run);
+                } else if (ev.event === 'branch') {
+                    showBranch(this.canvas, ev);
                 } else if (ev.event === 'done') {
                     this.watch.update(ev.vars);
                 } else if (ev.event === 'output') {

@@ -84,14 +84,35 @@ const lineSvg = (it) => {
         const bx = x2 - ux * ARROW_L;
         const by = y2 - uy * ARROW_L;
         const pt = (x, y) => `${+x.toFixed(1)},${+y.toFixed(1)}`;
-        s += `<path d="M${pt(x2, y2)} L${pt(bx - uy * ARROW_W, by + ux * ARROW_W)} ` +
+        s += `<path class="tiny_algorithm-arrow" d="M${pt(x2, y2)} L${pt(bx - uy * ARROW_W, by + ux * ARROW_W)} ` +
             `L${pt(bx + uy * ARROW_W, by - ux * ARROW_W)} Z" fill="${COLORS.stroke}"/>`;
     }
     if (it.label) {
         s += `<text x="${it.label.x}" y="${it.label.y}" text-anchor="middle" font-size="11" ` +
             `font-family="Segoe UI, Arial, sans-serif" fill="#374151">${esc(it.label.text)}</text>`;
     }
+    if (it.branch) {
+        s = `<g class="tiny_algorithm-edge" data-branch="${esc(it.branch)}">${s}</g>`;
+    }
     return s;
+};
+
+/**
+ * Mark the branch a decision has just taken (event 'branch' of the interpreter); null clears the mark.
+ *
+ * @param {Element} root element that holds the rendered SVG
+ * @param {?{id: string, taken: boolean}} ev branch event
+ */
+export const showBranch = (root, ev) => {
+    root.querySelectorAll('.tiny_algorithm-taken').forEach((n) => n.classList.remove('tiny_algorithm-taken'));
+    if (ev) {
+        const key = `${ev.id}:${ev.taken ? 'T' : 'F'}`;
+        root.querySelectorAll('.tiny_algorithm-edge').forEach((n) => {
+            if (n.dataset.branch === key) {
+                n.classList.add('tiny_algorithm-taken');
+            }
+        });
+    }
 };
 
 /**
