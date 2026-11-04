@@ -305,12 +305,18 @@ test('C++, JavaScript and Pascal generators have the expected shape', () => {
 const runGenerated = (lang, program, input) => {
     const dir = mkdtempSync(join(tmpdir(), `alg-${lang}-`));
     const opts = {timeout: 120000, input, stdio: ['pipe', 'pipe', 'ignore']};
+    // False only when the compiler is not installed; a program that does not compile fails the test.
     const tryRun = (cmd, args) => {
         try {
-            execFileSync(cmd, args, {timeout: 120000, stdio: 'ignore'});
+            execFileSync(cmd, args, {timeout: 120000, stdio: 'pipe'});
             return true;
-        } catch {
-            return false;
+        } catch (e) {
+            const text = `${e.stdout || ''}${e.stderr || ''}`;
+            if (e.code === 'ENOENT' || /No module named/.test(text)) {
+                return false;
+            }
+            throw new Error(`${cmd} ${args.join(' ')} failed:
+${text}`);
         }
     };
     const exe = join(dir, process.platform === 'win32' ? 'main.exe' : 'main');

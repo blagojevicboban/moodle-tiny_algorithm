@@ -16,7 +16,8 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Free Pascal
-        run: sudo apt-get update && sudo apt-get install -y fpc
+        # Only the compiler and its units: the fpc package also pulls in about 100 MB of IDE libraries.
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fp-compiler
       - name: Node tests
         run: node --import ./tests/register.mjs --test "tests/*.test.mjs"
 
