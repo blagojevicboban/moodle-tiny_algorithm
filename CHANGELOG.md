@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Do...While shows its F branch:** the line below the condition is labelled F and is marked while running when the
+  loop ends, like the F branch of the other conditions.
 - **Pascal: Char(s, i) compiles with ToCode:** `Char(s, i)` is now `Copy(s, i + 1, 1)`, a string of one character;
   `s[i + 1]` was a Char, so `ToCode(Char(s, i))` did not compile.
 - **CI runs the Pascal test again:** only `fp-compiler` is installed (the `fpc` package took 18 minutes on a slow

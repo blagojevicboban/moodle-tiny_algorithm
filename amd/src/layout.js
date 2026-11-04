@@ -171,15 +171,25 @@ const shape = (out, b, cx, y, s) => out.push({
 });
 
 // The last line gets an arrow only when a block follows the list (endArrow); otherwise it runs into another line.
+// The line below a Do...While is the way out of the loop: it carries the F of that condition.
+const lineAfter = (prev, cx, cy, arrow) => {
+    const line = {t: 'line', pts: [[cx, cy], [cx, cy + G]], arrow};
+    if (prev && prev.type === 'dowhile') {
+        line.branch = `${prev.id}:F`;
+        line.label = {text: 'F', x: cx + 10, y: cy + 10};
+    }
+    return line;
+};
+
 const drawList = (out, list, cx, y, endArrow = false) => {
     let cy = y;
     list.forEach((b, i) => {
-        out.push({t: 'line', pts: [[cx, cy], [cx, cy + G]], arrow: true});
+        out.push(lineAfter(list[i - 1], cx, cy, true));
         out.push({t: 'slot', x: cx, y: cy + G / 2, list, index: i});
         cy += G;
         cy += drawBlock(out, b, cx, cy);
     });
-    out.push({t: 'line', pts: [[cx, cy], [cx, cy + G]], arrow: endArrow});
+    out.push(lineAfter(list[list.length - 1], cx, cy, endArrow));
     out.push({t: 'slot', x: cx, y: cy + G / 2, list, index: list.length});
     return cy + G - y;
 };

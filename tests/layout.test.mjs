@@ -81,7 +81,7 @@ test('the lines leaving a decision carry its branch, T and F', () => {
     const keys = new Set(items.filter((it) => it.t === 'line' && it.branch).map((it) => it.branch));
     const [ifb, whileb, forb, dob] = fn.body;
     for (const key of [`${ifb.id}:T`, `${ifb.id}:F`, `${whileb.id}:T`, `${whileb.id}:F`, `${forb.id}:T`, `${forb.id}:F`,
-        `${dob.id}:T`]) {
+        `${dob.id}:T`, `${dob.id}:F`]) {
         assert.ok(keys.has(key), key);
     }
     const {svg} = renderFunction(fn);
