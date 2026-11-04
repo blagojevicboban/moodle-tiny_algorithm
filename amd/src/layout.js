@@ -16,8 +16,9 @@
 /**
  * Flowchart layout: converts a statement list into drawing primitives.
  *
- * Primitives: {t:'shape', shape, x, y, w, h, text, id}, {t:'line', pts:[[x,y],...], label},
- * {t:'slot', x, y, list, index}. All coordinates are absolute (the y axis points down).
+ * Primitives: {t:'shape', shape, x, y, w, h, text, id}, {t:'line', pts:[[x,y],...], label, arrow},
+ * {t:'slot', x, y, list, index}. All coordinates are absolute (the y axis points down). A line with arrow
+ * ends in an arrowhead: it enters a block or joins another line there.
  *
  * @module tiny_algorithm/layout
  * @copyright  2026 Boban Blagojević
@@ -161,15 +162,16 @@ const shape = (out, b, cx, y, s) => out.push({
     t: 'shape', shape: shapeOf(b), x: cx - s.w / 2, y, w: s.w, h: s.h, text: labelOf(b), lines: linesOf(b), id: b.id, type: b.type,
 });
 
-const drawList = (out, list, cx, y) => {
+// The last line gets an arrow only when a block follows the list (endArrow); otherwise it runs into another line.
+const drawList = (out, list, cx, y, endArrow = false) => {
     let cy = y;
     list.forEach((b, i) => {
-        out.push({t: 'line', pts: [[cx, cy], [cx, cy + G]]});
+        out.push({t: 'line', pts: [[cx, cy], [cx, cy + G]], arrow: true});
         out.push({t: 'slot', x: cx, y: cy + G / 2, list, index: i});
         cy += G;
         cy += drawBlock(out, b, cx, cy);
     });
-    out.push({t: 'line', pts: [[cx, cy], [cx, cy + G]]});
+    out.push({t: 'line', pts: [[cx, cy], [cx, cy + G]], arrow: endArrow});
     out.push({t: 'slot', x: cx, y: cy + G / 2, list, index: list.length});
     return cy + G - y;
 };
@@ -196,8 +198,9 @@ function drawBlock(out, b, cx, y) {
             out.push({t: 'line', pts: [[cx + s.w / 2, my], [eAxis, my]], label: {text: 'F', x: cx + s.w / 2 + 12, y: my - 6}});
             const th = drawList(out, b.then, tAxis, my);
             const eh = drawList(out, b.else, eAxis, my);
-            out.push({t: 'line', pts: [[tAxis, my + th], [tAxis, end], [eAxis, end]]});
-            out.push({t: 'line', pts: [[eAxis, my + eh], [eAxis, end]]});
+            // Both branches run into the point below the condition.
+            out.push({t: 'line', pts: [[tAxis, my + th], [tAxis, end], [cx, end]], arrow: true});
+            out.push({t: 'line', pts: [[eAxis, my + eh], [eAxis, end], [cx, end]], arrow: true});
             return m.h;
         }
         case 'while':
@@ -211,17 +214,17 @@ function drawBlock(out, b, cx, y) {
             const bodyBottom = bodyTop + bh;
             const end = bodyBottom + G;
             out.push({t: 'line', pts: [[cx, y + s.h], [cx, bodyTop]], label: {text: 'T', x: cx + 10, y: y + s.h + 10}});
-            out.push({t: 'line', pts: [[cx, bodyBottom], [xl, bodyBottom], [xl, my], [cx - s.w / 2, my]]});
-            out.push({t: 'line', pts: [[cx + s.w / 2, my], [xr, my], [xr, end], [cx, end]],
+            out.push({t: 'line', pts: [[cx, bodyBottom], [xl, bodyBottom], [xl, my], [cx - s.w / 2, my]], arrow: true});
+            out.push({t: 'line', pts: [[cx + s.w / 2, my], [xr, my], [xr, end], [cx, end]], arrow: true,
                 label: {text: 'F', x: cx + s.w / 2 + 12, y: my - 6}});
             return m.h;
         }
         case 'dowhile': {
-            const bh = drawList(out, b.body, cx, y);
+            const bh = drawList(out, b.body, cx, y, true);
             const dy = y + bh;
             shape(out, b, cx, dy, s);
             const xr = cx + m.r;
-            out.push({t: 'line', pts: [[cx + s.w / 2, dy + s.h / 2], [xr, dy + s.h / 2], [xr, y], [cx, y]],
+            out.push({t: 'line', pts: [[cx + s.w / 2, dy + s.h / 2], [xr, dy + s.h / 2], [xr, y], [cx, y]], arrow: true,
                 label: {text: 'T', x: cx + s.w / 2 + 12, y: dy + s.h / 2 - 6}});
             return m.h;
         }
@@ -245,7 +248,7 @@ export const layoutFunction = (fn) => {
     const head = `${fn.name}(${fn.params.map((p) => p.name).join(', ')})`;
     items.push({t: 'shape', shape: 'oval', x: cx - 50, y: MARGIN, w: 100, h: ovalH, text: head, id: 'start', type: 'start'});
     const y0 = MARGIN + ovalH;
-    const lh = drawList(items, fn.body, cx, y0);
+    const lh = drawList(items, fn.body, cx, y0, true);
     const yEnd = y0 + lh;
     items.push({t: 'shape', shape: 'oval', x: cx - 40, y: yEnd, w: 80, h: ovalH, text: 'End', id: 'end', type: 'end'});
     return {items, width: cx + Math.max(m.r, 60) + MARGIN, height: yEnd + ovalH + MARGIN};

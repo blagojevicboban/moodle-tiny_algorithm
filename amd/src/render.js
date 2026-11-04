@@ -69,9 +69,24 @@ const shapeSvg = (it, editable = false) => {
     return `<g class="tiny_algorithm-node" data-id="${esc(it.id)}"${focus}>${body}${text}</g>`;
 };
 
+const ARROW_L = 7; // Arrowhead length.
+const ARROW_W = 3.5; // Half of its width.
+
 const lineSvg = (it) => {
     const d = it.pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
     let s = `<path d="${d}" fill="none" stroke="${COLORS.stroke}" stroke-width="1.5"/>`;
+    const [[x1, y1], [x2, y2]] = it.pts.slice(-2);
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    if (it.arrow && len) {
+        // Arrowhead with its tip on the end point, pointing along the last segment.
+        const ux = (x2 - x1) / len;
+        const uy = (y2 - y1) / len;
+        const bx = x2 - ux * ARROW_L;
+        const by = y2 - uy * ARROW_L;
+        const pt = (x, y) => `${+x.toFixed(1)},${+y.toFixed(1)}`;
+        s += `<path d="M${pt(x2, y2)} L${pt(bx - uy * ARROW_W, by + ux * ARROW_W)} ` +
+            `L${pt(bx + uy * ARROW_W, by - ux * ARROW_W)} Z" fill="${COLORS.stroke}"/>`;
+    }
     if (it.label) {
         s += `<text x="${it.label.x}" y="${it.label.y}" text-anchor="middle" font-size="11" ` +
             `font-family="Segoe UI, Arial, sans-serif" fill="#374151">${esc(it.label.text)}</text>`;

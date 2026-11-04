@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Arrows on the connections:** a line that enters a block, the line back to the condition of a loop, the exit of a
+  loop and the two branches of an If that meet below it end in an arrowhead (`layout.js` marks the lines, `render.js`
+  draws a small triangle, no SVG marker ids). Lines that only run on into another line stay plain. Saved images get
+  the arrows when the diagram is opened and inserted again. New `tests/layout.test.mjs`.
+
 ## 2.0.0 – 2026-11-02 (stable)
 
 - **One storage format:** the image keeps only its source, classes and alt text; the model, the options, the solution and
