@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **The running block is marked in the code too:** during Run and Step the lines of the generated code that belong to
+  the current block are highlighted and scrolled into view, in the editor, the viewer of filter_algorithm and quiz
+  questions (`generateLines` in `codegen.js` tells the block of every line, `codeview.js` shows and marks them).
 - **Matrices as parameters:** a parameter written `m: Integer[,]` (or `Integer[][]`) is a matrix, passed by reference
   like an array and used as `m[i, j]`. Passing an array, a number or a matrix of the wrong kind gives a clear error.
   The generated code supports it in all seven languages (in C the function also gets the numbers of rows and

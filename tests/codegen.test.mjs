@@ -414,3 +414,24 @@ for (const lang of ['javascript', 'cpp', 'pascal']) {
         }
     });
 }
+
+test('every line of the code knows the block it comes from', async() => {
+    const {generateLines} = await import('../amd/src/codegen.js');
+    const p = createProgram();
+    const out = B('output', {expr: 'i'});
+    const loop = B('for', {variable: 'i', start: '1', end: '3', step: '1', body: [out]});
+    const cond = B('if', {cond: 'i > 0', then: [B('output', {expr: '"pos"'})], else: []});
+    p.functions[0].body = [B('declare', {name: 'i'}), loop, cond];
+    for (const lang of ['python', 'c', 'cpp', 'java', 'csharp', 'javascript', 'pascal']) {
+        const {text, owners} = generateLines(lang, p);
+        const lines = text.replace(/\n$/, '').split('\n');
+        assert.equal(owners.length, lines.length, lang);
+        assert.equal(text, generate(lang, p), lang);
+        const of = (id) => lines.filter((l, i) => owners[i] === id).join('\n');
+        assert.match(of(loop.id), /for/i, lang);
+        assert.match(of(out.id), /\bi\b/, lang);
+        assert.doesNotMatch(of(out.id), /for/i, lang);
+        assert.match(of(cond.id), /if/i, lang);
+        assert.doesNotMatch(of(cond.id), /pos/, lang);
+    }
+});

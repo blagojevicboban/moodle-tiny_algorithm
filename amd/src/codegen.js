@@ -347,7 +347,23 @@ const DEFAULTS = {
  */
 const allBlocks = (list) => list.flatMap((b) => [b, ...allBlocks([...(b.then || []), ...(b.else || []), ...(b.body || [])])]);
 
-export const generate = (lang, program) => {
+/**
+ * Generate the program in a language.
+ *
+ * @param {string} lang python, c, cpp, java, csharp, javascript or pascal
+ * @param {Object} program the algorithm
+ * @returns {string} source code
+ */
+export const generate = (lang, program) => generateLines(lang, program).text;
+
+/**
+ * Generate the program and tell which block every line of the code comes from (for marking the running block).
+ *
+ * @param {string} lang python, c, cpp, java, csharp, javascript or pascal
+ * @param {Object} program the algorithm
+ * @returns {{text: string, owners: Array}} source code, and per line the id of its block or null
+ */
+export const generateLines = (lang, program) => {
     const L = LANGS[lang];
     if (!L) {
         throw new Error(`Unsupported language ${lang}`);
@@ -448,7 +464,13 @@ export const generate = (lang, program) => {
     const fmtSpec = {Integer: '%d', Real: '%g', String: '%s', Boolean: '%d'};
 
     const out = [];
-    const emit = (ind, line) => out.push('    '.repeat(ind) + line);
+    // The block whose code is being written; every line remembers it.
+    const owners = [];
+    let owner = null;
+    const emit = (ind, line) => {
+        out.push('    '.repeat(ind) + line);
+        owners.push(owner);
+    };
 
     const printStmt = (b, ind) => {
         const {node, walk} = expr(b.expr);
@@ -645,8 +667,14 @@ export const generate = (lang, program) => {
         close(ind);
     };
 
-    // eslint-disable-next-line complexity
     const stmt = (b, ind) => {
+        const outer = owner;
+        owner = b.id || null;
+        stmtCode(b, ind);
+        owner = outer;
+    };
+    // eslint-disable-next-line complexity
+    const stmtCode = (b, ind) => {
         switch (b.type) {
             case 'declare': declare(b, ind); break;
             case 'assign': assignStmt(b, ind); break;
@@ -710,7 +738,6 @@ export const generate = (lang, program) => {
         }
     };
 
-    // Pascal: the variables of a function (its declarations and for-loop counters) for the var section.
     // A matrix parameter and the matrix passed to it need the same named type in Pascal.
     const pascalMatrix = (type) => {
         needs.pascalMatrix = needs.pascalMatrix || new Set();
@@ -718,6 +745,7 @@ export const generate = (lang, program) => {
         return `T${type}Matrix`;
     };
 
+    // Pascal: the variables of a function (its declarations and for-loop counters) for the var section.
     const pascalVars = (f) => {
         const vars = new Map();
         allBlocks(f.body).forEach((b) => {
@@ -827,6 +855,7 @@ export const generate = (lang, program) => {
         emit(0, '');
     });
     const body = out.splice(0);
+    const bodyOwners = owners.splice(0);
 
     const emitHeader = () => {
         if (lang === 'python') {
@@ -949,8 +978,12 @@ export const generate = (lang, program) => {
     };
     emitHeader();
     out.push(...body);
+    owners.push(...bodyOwners);
     emitFooter();
-    return out.join('\n').replace(/\n*$/, '\n');
+    // One owner per line of the text (an emitted piece may hold several lines).
+    const lineOwners = out.flatMap((piece, i) => piece.split('\n').map(() => owners[i]));
+    const text = out.join('\n').replace(/\n*$/, '\n');
+    return {text, owners: lineOwners.slice(0, text.split('\n').length - 1)};
 };
 
 export const languages = Object.keys(LANGS);

@@ -25,7 +25,8 @@ import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
 import {Watch} from './watch';
-import {generate, languages, languageLabels} from './codegen';
+import {languages, languageLabels} from './codegen';
+import {markCode, showCode} from './codeview';
 
 const el = (tag, attrs = {}, ...kids) => {
     const e = document.createElement(tag);
@@ -107,7 +108,7 @@ export class AlgorithmRunner {
                 onclick: () => this.toggleCode(), title: this.t('hidecode'), 'aria-label': this.t('hidecode')}, '×');
             this.codePane = el('div', {'class': 'tiny_algorithm-view-code'},
                 el('div', {'class': 'tiny_algorithm-code-bar'}, el('strong', {}, this.t('code')), this.codeSelect,
-                    btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent)), close),
+                    btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeText || '')), close),
                 this.codeEl);
             this.root.append(this.codePane);
             this.renderCode();
@@ -177,9 +178,10 @@ export class AlgorithmRunner {
 
     renderCode() {
         try {
-            this.codeEl.textContent = generate(this.codeLang, this.program);
+            this.codeText = showCode(this.codeEl, this.codeLang, this.program);
         } catch (err) {
-            this.codeEl.textContent = `// ${errorText(err)}`;
+            this.codeText = `// ${errorText(err)}`;
+            this.codeEl.textContent = this.codeText;
         }
     }
 
@@ -243,6 +245,9 @@ export class AlgorithmRunner {
     }
 
     highlight(id) {
+        if (this.codeEl) {
+            markCode(this.codeEl, id);
+        }
         this.svgHost.querySelectorAll('.tiny_algorithm-running').forEach((n) => n.classList.remove('tiny_algorithm-running'));
         if (!id) {
             showBranch(this.svgHost, null);

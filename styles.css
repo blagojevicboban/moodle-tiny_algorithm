@@ -119,6 +119,12 @@
     font-weight: bold;
 }
 
+/* One line of the generated code; the lines of the running block are marked like the block. */
+.tiny_algorithm-codeline-current {
+    background: #fed7aa;
+    box-shadow: inset 3px 0 #c2410c;
+}
+
 /* The running block is marked by its border too, not only by its colour. */
 .tiny_algorithm-node.tiny_algorithm-running > :first-child {
     fill: #fdba74;
@@ -257,10 +263,12 @@
 }
 
 .tiny_algorithm-code {
+    position: relative;
     max-height: 220px;
     overflow: auto;
     margin: 0;
     font-size: .8rem;
+    line-height: 1.4;
     background: #fff;
     border: 1px solid #dee2e6;
     padding: .4rem;

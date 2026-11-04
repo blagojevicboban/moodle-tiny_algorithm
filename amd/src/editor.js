@@ -28,7 +28,8 @@ import {
 import {renderFunction, renderProgram, showBranch} from './render';
 import {execute} from './interpreter';
 import {checkExpr} from './expr';
-import {generate, isMatrix, languages, languageLabels, extensionOf} from './codegen';
+import {isMatrix, languages, languageLabels, extensionOf} from './codegen';
+import {markCode, showCode} from './codeview';
 import {importFprg, exportFprg} from './flowgorithm';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
@@ -144,7 +145,7 @@ export class AlgorithmEditor {
             this.codeLang = this.codeSelect.value;
             this.renderCode();
         }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
-        this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeEl.textContent));
+        this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeText || ''));
         this.dlBtn = btn('download', () => this.exportCode());
         this.tabConsole = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('console')), this.consoleEl);
         this.tabCode = el('div', {'class': 'tiny_algorithm-pane'},
@@ -237,9 +238,10 @@ export class AlgorithmEditor {
 
     renderCode() {
         try {
-            this.codeEl.textContent = generate(this.codeLang, this.program);
+            this.codeText = showCode(this.codeEl, this.codeLang, this.program);
         } catch (e) {
-            this.codeEl.textContent = `// ${errorText(e)}`;
+            this.codeText = `// ${errorText(e)}`;
+            this.codeEl.textContent = this.codeText;
         }
     }
 
@@ -956,7 +958,7 @@ export class AlgorithmEditor {
     }
 
     exportCode() {
-        this.download(`main.${extensionOf(this.codeLang)}`, this.codeEl.textContent, 'text/plain');
+        this.download(`main.${extensionOf(this.codeLang)}`, this.codeText || '', 'text/plain');
     }
 
     // ---- Execution --------------------------------------------------------------------------------------------------------
@@ -969,6 +971,7 @@ export class AlgorithmEditor {
     }
 
     highlight(id) {
+        markCode(this.codeEl, id);
         this.canvas.querySelectorAll('.tiny_algorithm-running').forEach((n) => n.classList.remove('tiny_algorithm-running'));
         if (!id) {
             showBranch(this.canvas, null);
