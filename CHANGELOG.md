@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.2.0 – 2026-11-05 (stable)
 
 - **The running block is marked in the code too:** during Run and Step the lines of the generated code that belong to
   the current block are highlighted and scrolled into view, in the editor, the viewer of filter_algorithm and quiz
