@@ -9,6 +9,8 @@
 - **Names as declared in the generated code:** the interpreter ignores capital letters in names, the languages do not.
   The code now writes every variable, parameter and function the way it was declared (`Suma` also where the diagram
   says `suma`), and knows its type there too (C printed such a Real with `%d`).
+- **Save as SVG or PNG:** two new toolbar buttons download all functions of the diagram as one picture, for handouts,
+  tests on paper and slides. The PNG is twice the size on screen; the SVG keeps the model like the inserted image.
 
 ## 2.0.0 – 2026-11-02 (stable)
 

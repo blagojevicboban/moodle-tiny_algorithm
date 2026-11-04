@@ -122,6 +122,7 @@ export class AlgorithmEditor {
             el('span', {'class': 'tiny_algorithm-sep'}), el('span', {'class': 'tiny_algorithm-zoom-slot'}),
             el('span', {'class': 'tiny_algorithm-sep'}), btn('import', () => this.fileInput.click()),
             btn('export', () => this.exportFile()),
+            btn('exportsvg', () => this.exportImage('svg')), btn('exportpng', () => this.exportImage('png')),
             this.fileInput);
         this.canvas = el('div', {'class': 'tiny_algorithm-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
             onkeydown: (e) => this.onKey(e), oncopy: (e) => this.onCopy(e, false), oncut: (e) => this.onCopy(e, true),
@@ -916,6 +917,35 @@ export class AlgorithmEditor {
             return;
         }
         this.download(`${this.program.name || 'algorithm'}.fprg`, exportFprg(this.program), 'application/xml');
+    }
+
+    /**
+     * Download all functions as one picture. The SVG keeps the model, so it can be inserted and edited again.
+     *
+     * @param {string} format svg or png
+     */
+    exportImage(format) {
+        const svg = renderProgram(this.program);
+        const name = this.program.name || 'algorithm';
+        if (format === 'svg') {
+            this.download(`${name}.svg`, svg, 'image/svg+xml');
+            return;
+        }
+        // PNG at twice the size, so it stays sharp in documents and slides.
+        const url = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth * 2;
+            canvas.height = img.naturalHeight * 2;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(2, 2);
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(url);
+            canvas.toBlob((blob) => blob && this.download(`${name}.png`, blob, 'image/png'), 'image/png');
+        };
+        img.onerror = () => URL.revokeObjectURL(url);
+        img.src = url;
     }
 
     exportCode() {

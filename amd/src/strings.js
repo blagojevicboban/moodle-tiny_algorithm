@@ -28,7 +28,8 @@ export const STR = {
         hidewatch: 'Hide variables', watchempty: 'Run or step the algorithm to see the variables.', zoomin: 'Zoom in',
         zoomout: 'Zoom out', zoomreset: 'Reset zoom (100%)', fit: 'Fit', undo: 'Undo', redo: 'Redo', run: 'Run', step: 'Step',
         stop: 'Stop', addfn: '+ Function', delfn: '− Function',
-        'import': 'Import .fprg', 'export': 'Export .fprg', copy: 'Copy', download: 'Download', speed: 'Speed',
+        'import': 'Import .fprg', 'export': 'Export .fprg', exportsvg: 'Save as SVG', exportpng: 'Save as PNG',
+        copy: 'Copy', download: 'Download', speed: 'Speed',
         console: 'Console', code: 'Code', 'function': 'Function', name: 'Name', params: 'Parameters (a: Integer, b: Real[])',
         returns: 'Return type', hint: 'Click a + to insert a block, click a block to edit it.',
         keyhint: 'Keyboard: the arrow keys move between the blocks and the + signs, Enter edits or inserts, ' +
