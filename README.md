@@ -10,7 +10,7 @@
 export Flowgorithm `.fprg` files and generate **Python**, **C**, **C++**, **Java**, **C#**, **JavaScript** or **Pascal** code -
 without leaving the editor.
 
-> Status: **stable** (2.0). Inspired by Flowgorithm, not affiliated with it.
+> Status: **stable** (2.1). Inspired by Flowgorithm, not affiliated with it.
 >
 > 🌐 **Live demo:** [algorithm.tsp.edu.rs](https://algorithm.tsp.edu.rs) (log in as a guest, or use `teacher` / `student` with password `Demo-2026`; reset every night)
 
@@ -21,14 +21,15 @@ without leaving the editor.
 | 🧱 **Visual Editor** | Declare, Assign, Input, Output, If, For, While, Do…While, Call, Return, Comment; several functions, undo / redo; renaming a function also renames its calls |
 | ✋ **Drag, Copy and Paste** | Drag a block onto a **+** sign with the mouse or a finger; **Ctrl + C / X / V / D** copy, cut, paste and duplicate blocks, also between diagrams; a right click (or Shift + F10) on a block opens a menu with Copy, Cut, Duplicate, Paste, Delete and **Move to… / Copy to…**, which lets you click the **+** sign where the block should go; the dialog asks before closing with changes that are not inserted |
 | 🔢 **Arrays and Matrices** | A Declare block with one size is an array `a[i]`, with two sizes a matrix `m[i, j]` (or `m[i][j]`); the variable watch shows a matrix as a table |
-| ▶️ **Interpreter** | Run / Step / Stop with a speed slider, the running block is highlighted, console with input prompts |
+| ▶️ **Interpreter** | Run / Step / Stop with a speed slider, the running block and the branch each condition takes (T or F) are highlighted, console with input prompts |
 | 🛡️ **Safe Execution** | Infinite-loop guard, arrays and matrices up to 100000 elements, and clear errors in the user's language (undeclared variable, division by zero, index out of range) |
 | ⌨️ **Keyboard** | Arrow keys move between the blocks and the **+** signs, **Enter** or **Space** edits a block or opens the block menu, **Delete** removes, **Escape** cancels; Enter in a field never submits the form around the editor |
 | 🔍 **Variable Watch** | Current value of every variable while stepping, changed values highlighted, long arrays shortened |
 | 🔎 **Zoom** | **−**, **+**, **100%**, **Fit** buttons or **Ctrl + mouse wheel** |
 | 📂 **Flowgorithm Files** | Import and export real `.fprg` files; unsupported elements are reported, not silently dropped |
-| 💻 **Code Generation** | Python, C, C++, Java, C#, JavaScript and Pascal; the tests compile and run the generated programs and compare them with the interpreter |
-| 🖼️ **Editable Images** | The diagram is a normal SVG image that stores its model - double-click it to edit again |
+| 💻 **Code Generation** | Python, C, C++, Java, C#, JavaScript and Pascal, every name written as declared; the tests compile and run the generated programs and compare them with the interpreter |
+| ➡️ **Arrows** | Every connection that enters a block, goes back to a loop condition or joins another line ends in an arrow |
+| 🖼️ **Editable Images** | The diagram is a normal SVG image that stores its model - double-click it to edit again; **Save as SVG** or **Save as PNG** downloads it for handouts and slides |
 | 💬 **Forums and Assignments** | Where Moodle cleans the HTML (forum posts, assignment text, glossary…) the diagram is saved as an image file of the text, so it stays visible, editable and interactive |
 | ✍️ **Students Edit and Test** | Let students change their own copy of a diagram in any content, run the teacher's tests and see the differences (with `filter_algorithm`) |
 | 🧪 **Tests from the Solution** | The teacher enters only the inputs; the expected outputs are computed from the teacher's solution. A test can also call one function with arguments and check the value it returns |

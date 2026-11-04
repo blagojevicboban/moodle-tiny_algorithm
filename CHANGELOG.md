@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.0 – 2026-11-04 (stable)
 
 - **Arrows on the connections:** a line that enters a block, the line back to the condition of a loop, the exit of a
   loop and the two branches of an If that meet below it end in an arrowhead (`layout.js` marks the lines, `render.js`
