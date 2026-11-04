@@ -356,6 +356,19 @@ export const generate = (lang, program) => {
     const semi = lang === 'python' ? '' : ';';
     const fns = Object.fromEntries(program.functions.map((f) => [f.name.toLowerCase(), f]));
     let syms = {};
+    // The interpreter ignores the case of names, the languages (but Pascal) do not: every name is written as declared.
+    let canon = {};
+    const nameOf = (name) => canon[String(name).toLowerCase()] || name;
+    const fixNames = (n) => {
+        if (n.k === 'var' || n.k === 'idx') {
+            n.name = nameOf(n.name);
+        } else if (n.k === 'call' && fns[n.name.toLowerCase()]) {
+            n.name = fns[n.name.toLowerCase()].name;
+        }
+        [n.e, n.l, n.r, n.index, n.index2, ...(n.args || [])].forEach((c) => c && fixNames(c));
+        return n;
+    };
+    const parse = (src) => fixNames(parseExpr(src));
 
     const expr = (src) => {
         // Code of a node; ctx is the precedence the surrounding code needs, so lower precedence gets parentheses.
@@ -407,7 +420,7 @@ export const generate = (lang, program) => {
             return lang === 'csharp' ? `${n.name}[${walk(n.index)}, ${walk(n.index2)}]` :
                 `${n.name}[${walk(n.index)}][${walk(n.index2)}]`;
         };
-        const node = parseExpr(src);
+        const node = parse(src);
         // The code is built on demand: building it may mark helpers as needed (C++ str()).
         return {node, walk, get code() {
             return walk(node);
@@ -449,7 +462,7 @@ export const generate = (lang, program) => {
         }
     };
     const inputStmt = (b, ind) => {
-        const t = parseExpr(b.target);
+        const t = parse(b.target);
         const sym = syms[t.name] || {type: 'Integer'};
         const target = ex(b.target);
         if (lang === 'python') {
@@ -480,7 +493,7 @@ export const generate = (lang, program) => {
 
     const assignStmt = (b, ind) => {
         const target = ex(b.target);
-        if (lang !== 'c' || typeOf(parseExpr(b.target), syms, fns) !== 'String') {
+        if (lang !== 'c' || typeOf(parse(b.target), syms, fns) !== 'String') {
             emit(ind, `${target} ${pascal ? ':=' : '='} ${ex(b.expr)}${semi}`);
             return;
         }
@@ -588,7 +601,8 @@ export const generate = (lang, program) => {
     };
     const close = (ind) => lang !== 'python' && emit(ind, pascal ? 'end;' : '}');
 
-    const forStmt = (b, ind) => {
+    const forStmt = (blk, ind) => {
+        const b = {...blk, variable: nameOf(blk.variable)};
         const step = String(b.step || '1').trim() || '1';
         const neg = /^-/.test(step);
         if (lang === 'python') {
@@ -692,8 +706,8 @@ export const generate = (lang, program) => {
                 String(b.name).split(',').map((s) => s.trim()).filter(Boolean).forEach((name) => {
                     vars.set(name, `${of}${TYPE_NAMES.pascal[b.varType]}`);
                 });
-            } else if (b.type === 'for' && !vars.has(b.variable)) {
-                vars.set(b.variable, 'Integer');
+            } else if (b.type === 'for' && !vars.has(nameOf(b.variable))) {
+                vars.set(nameOf(b.variable), 'Integer');
             }
         });
         f.params.forEach((p) => vars.delete(p.name));
@@ -740,6 +754,19 @@ export const generate = (lang, program) => {
         syms = {};
         f.params.forEach((p) => {
             syms[p.name] = {type: p.type, array: Boolean(p.array)};
+        });
+        // The first spelling wins: parameters, then declarations and For variables in the order of the diagram.
+        canon = {};
+        const spell = (name) => {
+            canon[name.toLowerCase()] = canon[name.toLowerCase()] || name;
+        };
+        f.params.forEach((p) => spell(p.name));
+        allBlocks(f.body).forEach((b) => {
+            if (b.type === 'declare') {
+                String(b.name).split(',').map((x) => x.trim()).filter(Boolean).forEach(spell);
+            } else if (b.type === 'for' && String(b.variable || '').trim()) {
+                spell(String(b.variable).trim());
+            }
         });
         if (pascal) {
             if (!isMain) {

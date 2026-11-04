@@ -157,7 +157,6 @@ lib/editor/tiny/plugins/algorithm/
 
 ## ⚠️ Known Limitations
 
-- Variable names are case insensitive in the interpreter, but not in the generated code.
 - Arrays, functions and `.fprg` import are verified by the Node tests and real Flowgorithm files, not inside the Moodle dialog.
 - Exercises are for practice, not for assessment: the solution and the expected outputs are part of the diagram (its SVG
   file), and nothing is graded or sent to the server. For graded work use `qtype_algorithm`.

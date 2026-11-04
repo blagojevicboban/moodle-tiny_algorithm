@@ -6,6 +6,9 @@
   loop and the two branches of an If that meet below it end in an arrowhead (`layout.js` marks the lines, `render.js`
   draws a small triangle, no SVG marker ids). Lines that only run on into another line stay plain. Saved images get
   the arrows when the diagram is opened and inserted again. New `tests/layout.test.mjs`.
+- **Names as declared in the generated code:** the interpreter ignores capital letters in names, the languages do not.
+  The code now writes every variable, parameter and function the way it was declared (`Suma` also where the diagram
+  says `suma`), and knows its type there too (C printed such a Real with `%d`).
 
 ## 2.0.0 – 2026-11-02 (stable)
 

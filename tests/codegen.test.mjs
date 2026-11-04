@@ -150,9 +150,36 @@ test('python and C matrices match the interpreter', {timeout: 240000}, (t) => {
     assert.equal(execFileSync(exe, [], {timeout: 10000, input: matrixInput}).toString().replace(/\r\n/g, '\n'), expected);
 });
 
+// Names written with other capital letters than in the declaration (the interpreter does not mind).
+const mixedCase = () => {
+    const p = createProgram();
+    p.functions[0].body = [
+        B('declare', {name: 'Suma', varType: 'Real'}),
+        B('declare', {name: 'I', varType: 'Integer'}),
+        B('assign', {target: 'suma', expr: '0.5'}),
+        B('for', {variable: 'i', start: '1', end: '3', step: '1', body: [B('assign', {target: 'SUMA', expr: 'suma + Dvaput(i)'})]}),
+        B('output', {expr: 'suma'}),
+    ];
+    p.functions.push({name: 'Dvaput', params: [{name: 'X', type: 'Integer', array: false}], returnType: 'Integer',
+        body: [B('return', {expr: 'x * 2'})]});
+    return p;
+};
+
+test('every name is written as declared, in every language', () => {
+    for (const lang of ['python', 'c', 'cpp', 'java', 'csharp', 'javascript', 'pascal']) {
+        const code = generate(lang, mixedCase());
+        assert.doesNotMatch(code, /\bsuma\b|\bSUMA\b/, `${lang}: Suma`);
+        assert.doesNotMatch(code, /\bdvaput\(/, `${lang}: Dvaput`);
+        assert.doesNotMatch(code, /\bx \* 2/, `${lang}: X`);
+        assert.doesNotMatch(code, /\bi\b/, `${lang}: I`);
+    }
+    // The type of Suma is known also where it is written suma.
+    assert.match(generate('c', mixedCase()), /printf\("%g\\n", Suma\)/);
+});
+
 test('Java output matches the interpreter', {timeout: 240000}, (t) => {
     const dir = mkdtempSync(join(tmpdir(), 'alg-java-'));
-    for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput]]) {
+    for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput], [mixedCase(), '']]) {
         writeFileSync(join(dir, 'Main.java'), generate('java', program));
         try {
             execFileSync('javac', ['-d', dir, join(dir, 'Main.java')], {timeout: 120000, stdio: 'ignore'});
@@ -310,7 +337,7 @@ const runGenerated = (lang, program, input) => {
 
 for (const lang of ['javascript', 'cpp', 'pascal']) {
     test(`${lang} output matches the interpreter`, {timeout: 240000}, (t) => {
-        for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput]]) {
+        for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput], [mixedCase(), '']]) {
             const out = runGenerated(lang, program, input);
             if (out === null) {
                 t.skip(`no ${lang} compiler`);
