@@ -382,7 +382,7 @@ export const generate = (lang, program) => {
                 case 'var': code = n.name; break;
                 case 'idx': code = indexCode(n); break;
                 case 'un': code = n.op === '!' ? `${L.not}${walk(n.e, 8)}` : `${n.op}${walk(n.e, 8)}`; break;
-                case 'call': code = L.call(n.name, n.args.map((a) => walk(a)), n.args.map((a) => typeOf(a, syms, fns))); break;
+                case 'call': code = L.call(n.name, callArgs(n), n.args.map((a) => typeOf(a, syms, fns))); break;
                 case 'bin': code = walkBin(n); break;
                 default: code = '';
             }
@@ -412,6 +412,22 @@ export const generate = (lang, program) => {
             }
             const op = (L.ops && L.ops[n.op]) || n.op;
             return `${walk(n.l, CMP.includes(n.op) ? p + 0.5 : p)} ${op} ${walk(n.r, p + 0.5)}`;
+        };
+        // Arguments of a call. In C a matrix parameter needs its numbers of rows and columns too: from the matrix
+        // parameter of the caller, or with sizeof from a matrix declared there.
+        const callArgs = (n) => {
+            const f = fns[n.name.toLowerCase()];
+            return n.args.flatMap((a, i) => {
+                const p = f && f.params[i];
+                if (lang !== 'c' || !p || !p.matrix || a.k !== 'var') {
+                    return [walk(a)];
+                }
+                const m = a.name;
+                if (syms[m] && syms[m].param) {
+                    return [`${m}_rows`, `${m}_cols`, m];
+                }
+                return [`(int) (sizeof ${m} / sizeof ${m}[0])`, `(int) (sizeof ${m}[0] / sizeof ${m}[0][0])`, m];
+            });
         };
         // Element of an array a[i]; of a matrix a[i, j] in C# and a[i][j] in the other languages.
         const indexCode = (n) => {
@@ -695,17 +711,21 @@ export const generate = (lang, program) => {
     };
 
     // Pascal: the variables of a function (its declarations and for-loop counters) for the var section.
+    // A matrix parameter and the matrix passed to it need the same named type in Pascal.
+    const pascalMatrix = (type) => {
+        needs.pascalMatrix = needs.pascalMatrix || new Set();
+        needs.pascalMatrix.add(type);
+        return `T${type}Matrix`;
+    };
+
     const pascalVars = (f) => {
         const vars = new Map();
         allBlocks(f.body).forEach((b) => {
             if (b.type === 'declare') {
                 const arr = Boolean(String(b.size || '').trim());
-                let of = arr ? 'array of ' : '';
-                if (isMatrix(b)) {
-                    of = 'array of array of ';
-                }
+                const of = arr ? 'array of ' : '';
                 String(b.name).split(',').map((s) => s.trim()).filter(Boolean).forEach((name) => {
-                    vars.set(name, `${of}${TYPE_NAMES.pascal[b.varType]}`);
+                    vars.set(name, isMatrix(b) ? pascalMatrix(b.varType) : `${of}${TYPE_NAMES.pascal[b.varType]}`);
                 });
             } else if (b.type === 'for' && !vars.has(nameOf(b.variable))) {
                 vars.set(nameOf(b.variable), 'Integer');
@@ -716,7 +736,8 @@ export const generate = (lang, program) => {
     };
     const pascalHead = (f) => {
         const ps = f.params
-            .map((p) => `${p.array ? 'var ' : ''}${p.name}: ${p.array ? 'array of ' : ''}${TYPE_NAMES.pascal[p.type]}`)
+            .map((p) => `${p.array ? 'var ' : ''}${p.name}: ` +
+                (p.matrix ? pascalMatrix(p.type) : `${p.array ? 'array of ' : ''}${TYPE_NAMES.pascal[p.type]}`))
             .join('; ');
         const args = ps ? `(${ps})` : '';
         return f.returnType ? `function ${f.name}${args}: ${TYPE_NAMES.pascal[f.returnType]};` : `procedure ${f.name}${args};`;
@@ -733,6 +754,15 @@ export const generate = (lang, program) => {
         const tn = TYPE_NAMES[lang];
         const ret = f.returnType ? tn[f.returnType] : 'void';
         const ps = f.params.map((p) => {
+            if (p.matrix) {
+                const dims = `[${p.name}_rows][${p.name}_cols]`;
+                return {
+                    java: `${tn[p.type]}[][] ${p.name}`,
+                    csharp: `${tn[p.type]}[,] ${p.name}`,
+                    cpp: `vector<vector<${tn[p.type]}>>& ${p.name}`,
+                }[lang] || `int ${p.name}_rows, int ${p.name}_cols, ` +
+                    (p.type === 'String' ? `char ${p.name}${dims}[256]` : `${tn[p.type]} ${p.name}${dims}`);
+            }
             if (lang === 'cpp') {
                 return `${p.array ? `vector<${tn[p.type]}>&` : tn[p.type]} ${p.name}`;
             }
@@ -754,7 +784,7 @@ export const generate = (lang, program) => {
         const isMain = f.name.toLowerCase() === mainName;
         syms = {};
         f.params.forEach((p) => {
-            syms[p.name] = {type: p.type, array: Boolean(p.array)};
+            syms[p.name] = {type: p.type, array: Boolean(p.array), matrix: Boolean(p.matrix), param: true};
         });
         // The first spelling wins: parameters, then declarations and For variables in the order of the diagram.
         canon = {};
@@ -857,6 +887,11 @@ export const generate = (lang, program) => {
             emit(0, '');
             emit(0, 'uses SysUtils, Math;');
             emit(0, '');
+            if (needs.pascalMatrix) {
+                emit(0, 'type');
+                [...needs.pascalMatrix].sort().forEach((t) => emit(1, `T${t}Matrix = array of array of ${TYPE_NAMES.pascal[t]};`));
+                emit(0, '');
+            }
             if (/isnumeric\s*\(/i.test(JSON.stringify(program.functions))) {
                 emit(0, 'var');
                 emit(1, 'Dummy: Double;');

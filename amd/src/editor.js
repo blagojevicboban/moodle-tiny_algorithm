@@ -286,12 +286,16 @@ export class AlgorithmEditor {
                     }
                 })),
                 this.field(this.t('params'), 'text',
-                    this.fn.params.map((p) => `${p.name}: ${p.type}${p.array ? '[]' : ''}`).join(', '), (v) => this.commit(() => {
-                    // "a: Integer[]" is an array parameter.
-                    this.fn.params = v.split(',').map((s) => s.trim()).filter(Boolean).map((s) => {
+                    this.fn.params.map((p) => `${p.name}: ${p.type}${['', '[]', '[,]'][p.matrix ? 2 : Number(Boolean(p.array))]}`)
+                        .join(', '),
+                    (v) => this.commit(() => {
+                    // "a: Integer[]" is an array parameter, "m: Integer[,]" (or Integer[][]) a matrix.
+                    this.fn.params = v.replace(/\[\s*,\s*\]/g, '[][]').split(',').map((s) => s.trim()).filter(Boolean).map((s) => {
                         const [name, type = ''] = s.split(':').map((x) => x.trim());
-                        const array = /\[\s*\]$/.test(type);
-                        return {name, type: type.replace(/\[\s*\]$/, '').trim() || 'Integer', array};
+                        const matrix = /\[\s*\]\s*\[\s*\]$/.test(type);
+                        const array = matrix || /\[\s*\]$/.test(type);
+                        const p = {name, type: type.replace(/(\[\s*\]\s*)+$/, '').trim() || 'Integer', array};
+                        return matrix ? {...p, matrix} : p;
                     });
                 })),
                 this.field(this.t('returns'), 'text', this.fn.returnType || '', (v) => this.commit(() => {
@@ -909,9 +913,12 @@ export class AlgorithmEditor {
 
     exportFile() {
         let matrix = false;
-        this.program.functions.forEach((f) => walk(f.body, (b) => {
-            matrix = matrix || (b.type === 'declare' && isMatrix(b));
-        }));
+        this.program.functions.forEach((f) => {
+            matrix = matrix || f.params.some((p) => p.matrix);
+            walk(f.body, (b) => {
+                matrix = matrix || (b.type === 'declare' && isMatrix(b));
+            });
+        });
         if (matrix) {
             this.log(this.t('fprgmatrix'), 'tiny_algorithm-error'); // Flowgorithm has no matrices.
             return;

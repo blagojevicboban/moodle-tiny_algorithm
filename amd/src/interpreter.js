@@ -453,7 +453,20 @@ export function* execute(program, {maxSteps = 1000000, call = null} = {}) {
         }
         const env = {};
         fn.params.forEach((p, i) => {
-            env[p.name.toLowerCase()] = {name: p.name, type: p.type, value: p.array ? args[i] : coerce(p.type, args[i], p.name)};
+            if (!p.array) {
+                env[p.name.toLowerCase()] = {name: p.name, type: p.type, value: coerce(p.type, args[i], p.name)};
+                return;
+            }
+            // An array or a matrix is passed by reference; its shape must match the parameter.
+            const value = args[i];
+            const dims = p.matrix ? 2 : 1;
+            if (!Array.isArray(value)) {
+                throw new AlgorithmError('notarray', {name: p.name});
+            }
+            if (value.length && Array.isArray(value[0]) !== (dims === 2)) {
+                throw new AlgorithmError('dimensions', {name: p.name, count: String(dims)});
+            }
+            env[p.name.toLowerCase()] = {name: p.name, type: p.type, value, dims};
         });
         const r = yield* runList(fn.body, env);
         lastEnv = env; // The last function to finish is the main one.

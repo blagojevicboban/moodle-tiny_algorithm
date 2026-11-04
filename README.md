@@ -161,7 +161,7 @@ lib/editor/tiny/plugins/algorithm/
 - Arrays, functions and `.fprg` import are verified by the Node tests and real Flowgorithm files, not inside the Moodle dialog.
 - Exercises are for practice, not for assessment: the solution and the expected outputs are part of the diagram (its SVG
   file), and nothing is graded or sent to the server. For graded work use `qtype_algorithm`.
-- Functions cannot take a matrix as a parameter, and Flowgorithm `.fprg` files cannot hold matrices (the export says so).
+- Flowgorithm `.fprg` files cannot hold matrices, also not as parameters (the export says so).
 - A student's edited copy lives in the browser (`localStorage`) and does not follow them to another device or browser. When the
   teacher changes the diagram or its tests, students start again from the new version.
 

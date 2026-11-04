@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Matrices as parameters:** a parameter written `m: Integer[,]` (or `Integer[][]`) is a matrix, passed by reference
+  like an array and used as `m[i, j]`. Passing an array, a number or a matrix of the wrong kind gives a clear error.
+  The generated code supports it in all seven languages (in C the function also gets the numbers of rows and
+  columns, in Pascal the matrix has a named type).
 - **Do...While shows its F branch:** the line below the condition is labelled F and is marked while running when the
   loop ends, like the F branch of the other conditions.
 - **Pascal: Char(s, i) compiles with ToCode:** `Char(s, i)` is now `Copy(s, i + 1, 1)`, a string of one character;

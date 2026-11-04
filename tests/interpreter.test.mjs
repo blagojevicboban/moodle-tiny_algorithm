@@ -147,3 +147,25 @@ test('matrices: two sizes, both index forms, errors per dimension and the size l
     empty.functions[0].body = [B('declare', {name: 'e', varType: 'Integer', size: '', size2: '4'}), B('output', {expr: 'e'})];
     assert.equal(runSync(empty), '0\n', 'a second size without the first is ignored');
 });
+
+test('a matrix parameter is passed by reference and must be a matrix', () => {
+    const p = createProgram();
+    p.functions[0].body = [
+        B('declare', {name: 'a', varType: 'Integer', size: '2', size2: '3'}),
+        B('declare', {name: 'v', varType: 'Integer', size: '3'}),
+        B('call', {expr: 'Set(a)'}),
+        B('output', {expr: 'a[1, 2] & " " & Get(a)'}),
+    ];
+    const m = {name: 'm', type: 'Integer', array: true, matrix: true};
+    p.functions.push({name: 'Set', params: [m], returnType: null, body: [B('assign', {target: 'm[1, 2]', expr: '7'})]});
+    p.functions.push({name: 'Get', params: [m], returnType: 'Integer', body: [B('return', {expr: 'm[1][2] + 1'})]});
+    assert.equal(runSync(p), '7 8\n');
+    // An array where a matrix is expected, a matrix where an array is expected, a number where a matrix is expected.
+    p.functions[0].body[2] = B('call', {expr: 'Set(v)'});
+    assert.throws(() => runSync(p), (e) => e.code === 'dimensions' && e.values.name === 'm');
+    p.functions.push({name: 'Row', params: [{name: 'r', type: 'Integer', array: true}], returnType: null, body: []});
+    p.functions[0].body[2] = B('call', {expr: 'Row(a)'});
+    assert.throws(() => runSync(p), (e) => e.code === 'dimensions' && e.values.name === 'r');
+    p.functions[0].body[2] = B('call', {expr: 'Set(5)'});
+    assert.throws(() => runSync(p), (e) => e.code === 'notarray');
+});

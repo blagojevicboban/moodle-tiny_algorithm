@@ -105,6 +105,47 @@ test('C# generator output has the expected shape', () => {
     assert.match(code, /Console\.WriteLine\("Sum = " \+ s\);/);
 });
 
+// Matrices as parameters: filled and read by functions, passed on from one function to another, Real and String too.
+const matrixParam = () => {
+    const p = createProgram();
+    p.functions[0].body = [
+        B('declare', {name: 'n', varType: 'Integer'}),
+        B('input', {target: 'n'}),
+        B('declare', {name: 'a', varType: 'Integer', size: 'n', size2: 'n + 1'}),
+        B('declare', {name: 'r', varType: 'Real', size: '2', size2: '2'}),
+        B('declare', {name: 't', varType: 'String', size: '2', size2: '2'}),
+        B('call', {expr: 'Fill(a, n, n + 1)'}),
+        B('output', {expr: 'Total(a, n, n + 1)'}),
+        B('output', {expr: 'Outer(a, n, n + 1)'}),
+        B('call', {expr: 'Mark(r, t)'}),
+        B('output', {expr: 'r[0, 1] & " " & t[1, 0] & t[0, 1]'}),
+    ];
+    const fn = (name, params, returnType, body) => ({name, params, returnType, body});
+    const m = (name, type = 'Integer') => ({name, type, array: true, matrix: true});
+    const v = (name) => ({name, type: 'Integer', array: false});
+    p.functions.push(fn('Fill', [m('m'), v('rows'), v('cols')], null, [
+        B('declare', {name: 'i, j', varType: 'Integer'}),
+        B('for', {variable: 'i', start: '0', end: 'rows - 1', step: '1', body: [
+            B('for', {variable: 'j', start: '0', end: 'cols - 1', step: '1', body: [
+                B('assign', {target: 'm[i, j]', expr: 'i * 10 + j'})]})]}),
+    ]));
+    p.functions.push(fn('Total', [m('m'), v('rows'), v('cols')], 'Integer', [
+        B('declare', {name: 'i, j, s', varType: 'Integer'}),
+        B('assign', {target: 's', expr: '0'}),
+        B('for', {variable: 'i', start: '0', end: 'rows - 1', step: '1', body: [
+            B('for', {variable: 'j', start: '0', end: 'cols - 1', step: '1', body: [
+                B('assign', {target: 's', expr: 's + m[i][j]'})]})]}),
+        B('return', {expr: 's'}),
+    ]));
+    p.functions.push(fn('Outer', [m('m'), v('rows'), v('cols')], 'Integer', [B('return', {expr: 'Total(m, rows, cols) * 2'})]));
+    p.functions.push(fn('Mark', [m('x', 'Real'), m('y', 'String')], null, [
+        B('assign', {target: 'x[0, 1]', expr: '2.5'}),
+        B('assign', {target: 'y[1, 0]', expr: '"a"'}),
+        B('assign', {target: 'y[0, 1]', expr: '"b"'}),
+    ]));
+    return p;
+};
+
 test('C# output compiles and matches interpreter', {timeout: 240000}, (t) => {
     let major;
     try {
@@ -119,35 +160,53 @@ test('C# output compiles and matches interpreter', {timeout: 240000}, (t) => {
     writeFileSync(join(dir, 'Program.cs'), generate('csharp', sample()));
     const out = execFileSync('dotnet', ['run', '--project', dir], {timeout: 200000}).toString().replace(/\r\n/g, '\n');
     assert.equal(out, runSync(sample()));
-    writeFileSync(join(dir, 'Program.cs'), generate('csharp', matrix()));
-    const mout = execFileSync('dotnet', ['run', '--project', dir], {timeout: 200000, input: matrixInput}).toString()
-        .replace(/\r\n/g, '\n');
-    assert.equal(mout, runSync(matrix(), ['3', '7']));
+    for (const [program, input] of [[matrix(), matrixInput], [matrixParam(), '3\n']]) {
+        writeFileSync(join(dir, 'Program.cs'), generate('csharp', program));
+        const mout = execFileSync('dotnet', ['run', '--project', dir], {timeout: 200000, input}).toString()
+            .replace(/\r\n/g, '\n');
+        assert.equal(mout, runSync(program, input.split('\n').filter(Boolean)));
+    }
 });
 
 test('python and C matrices match the interpreter', {timeout: 240000}, (t) => {
     const dir = mkdtempSync(join(tmpdir(), 'alg-mx-'));
-    const expected = runSync(matrix(), ['3', '7']);
-    try {
-        writeFileSync(join(dir, 'a.py'), generate('python', matrix()));
-        assert.equal(execFileSync('python', ['-I', join(dir, 'a.py')], {timeout: 10000, input: matrixInput}).toString()
-            .replace(/\r\n/g, '\n'), expected);
-    } catch (e) {
-        if (e.code === 'ENOENT') {
-            t.skip('python not available');
+    // gcc, else the C compiler of the ziglang Python package; a program that does not compile fails the test.
+    const compilers = [['gcc'], ['python', '-m', 'ziglang', 'cc']];
+    let cc = null;
+    for (const [k, [program, input]] of [[matrix(), matrixInput], [matrixParam(), '3\n']].entries()) {
+        // A new executable each time: Windows may still hold the previous one.
+        const exe = join(dir, process.platform === 'win32' ? `c${k}.exe` : `c${k}`);
+        const expected = runSync(program, input.split('\n').filter(Boolean));
+        try {
+            writeFileSync(join(dir, 'a.py'), generate('python', program));
+            assert.equal(execFileSync('python', ['-I', join(dir, 'a.py')], {timeout: 10000, input}).toString()
+                .replace(/\r\n/g, '\n'), expected);
+        } catch (e) {
+            if (e.code === 'ENOENT') {
+                t.skip('python not available');
+                return;
+            }
+            throw e;
+        }
+        writeFileSync(join(dir, 'c.c'), generate('c', program));
+        for (const [cmd, ...pre] of cc ? [cc] : compilers) {
+            try {
+                execFileSync(cmd, [...pre, join(dir, 'c.c'), '-o', exe, '-lm'], {timeout: 120000, stdio: 'pipe'});
+                cc = [cmd, ...pre];
+                break;
+            } catch (e) {
+                const text = `${e.stdout || ''}${e.stderr || ''}`;
+                if (e.code !== 'ENOENT' && !/No module named/.test(text)) {
+                    throw new Error(`${cmd} failed:\n${text}`);
+                }
+            }
+        }
+        if (!cc) {
+            t.skip('no C compiler (gcc or python -m ziglang cc)');
             return;
         }
-        throw e;
+        assert.equal(execFileSync(exe, [], {timeout: 10000, input}).toString().replace(/\r\n/g, '\n'), expected);
     }
-    const exe = join(dir, process.platform === 'win32' ? 'c.exe' : 'c');
-    writeFileSync(join(dir, 'c.c'), generate('c', matrix()));
-    try {
-        execFileSync('python', ['-m', 'ziglang', 'cc', join(dir, 'c.c'), '-o', exe, '-lm'], {timeout: 120000, stdio: 'ignore'});
-    } catch {
-        t.diagnostic('no C compiler (python -m ziglang cc)');
-        return;
-    }
-    assert.equal(execFileSync(exe, [], {timeout: 10000, input: matrixInput}).toString().replace(/\r\n/g, '\n'), expected);
 });
 
 // Names written with other capital letters than in the declaration (the interpreter does not mind).
@@ -179,7 +238,8 @@ test('every name is written as declared, in every language', () => {
 
 test('Java output matches the interpreter', {timeout: 240000}, (t) => {
     const dir = mkdtempSync(join(tmpdir(), 'alg-java-'));
-    for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput], [mixedCase(), '']]) {
+    for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput], [mixedCase(), ''],
+        [matrixParam(), '3\n']]) {
         writeFileSync(join(dir, 'Main.java'), generate('java', program));
         try {
             execFileSync('javac', ['-d', dir, join(dir, 'Main.java')], {timeout: 120000, stdio: 'ignore'});
@@ -343,7 +403,8 @@ ${text}`);
 
 for (const lang of ['javascript', 'cpp', 'pascal']) {
     test(`${lang} output matches the interpreter`, {timeout: 240000}, (t) => {
-        for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput], [mixedCase(), '']]) {
+        for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput],
+            [mixedCase(), ''], [matrixParam(), '3\n']]) {
             const out = runGenerated(lang, program, input);
             if (out === null) {
                 t.skip(`no ${lang} compiler`);
