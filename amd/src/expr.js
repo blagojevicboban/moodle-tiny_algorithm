@@ -67,7 +67,7 @@ const tokenize = (src) => {
             }
             const w = src.slice(i, j);
             const lw = w.toLowerCase();
-            if (WORD_OPS[lw]) {
+            if (Object.hasOwn(WORD_OPS, lw)) {
                 tokens.push({t: 'op', v: WORD_OPS[lw]});
             } else if (lw === 'true' || lw === 'false') {
                 tokens.push({t: 'bool', v: lw === 'true'});
@@ -91,7 +91,15 @@ const tokenize = (src) => {
     return tokens;
 };
 
-export const parseExpr = (src) => {
+/**
+ * Parse an expression.
+ *
+ * @param {string} src expression text
+ * @param {Object} [options]
+ * @param {boolean} [options.literals] also accept array literals [1, 2] and [[1, 2], [3, 4]] (the call of a function test)
+ * @returns {Object} AST
+ */
+export const parseExpr = (src, {literals = false} = {}) => {
     const toks = tokenize(String(src));
     let p = 0;
     const peek = () => toks[p];
@@ -112,6 +120,17 @@ export const parseExpr = (src) => {
     };
 
     let parseOr;
+    // Expressions separated by commas up to a closing bracket: the arguments of a call or the items of an array.
+    const list = (close) => {
+        const items = [];
+        if (!isOp(close)) {
+            do {
+                items.push(parseOr());
+            } while (isOp(',') && p++);
+        }
+        expectOp(close);
+        return items;
+    };
     const primary = () => {
         const t = toks[p++];
         if (!t) {
@@ -129,14 +148,7 @@ export const parseExpr = (src) => {
         if (t.t === 'id') {
             if (isOp('(')) {
                 p++;
-                const args = [];
-                if (!isOp(')')) {
-                    do {
-                        args.push(parseOr());
-                    } while (isOp(',') && p++);
-                }
-                expectOp(')');
-                return {k: 'call', name: t.v, args};
+                return {k: 'call', name: t.v, args: list(')')};
             }
             if (isOp('[')) {
                 // An array element a[i], a matrix element a[i, j] or a[i][j].
@@ -161,6 +173,9 @@ export const parseExpr = (src) => {
             const e = parseOr();
             expectOp(')');
             return e;
+        }
+        if (literals && t.t === 'op' && t.v === '[') {
+            return {k: 'arr', items: list(']')};
         }
         throw new AlgorithmError('unexpected', {token: String(t.v)});
     };

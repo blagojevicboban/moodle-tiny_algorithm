@@ -21,7 +21,7 @@
  * @copyright  2026 Boban Blagojević
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-import {execute} from './interpreter';
+import {RANDOM_SEED, execute} from './interpreter';
 import {decodeData, serialize} from './model';
 import {errorText, fill, t as tr} from './strings';
 
@@ -108,7 +108,7 @@ export const runProgram = (program, inputs, lang = null, call = null) => {
         return {output: pieces.map((p) => p.text).join(''), after, error, call: call !== null, result: returned};
     };
     try {
-        const gen = execute(program, {maxSteps: MAX_STEPS, call});
+        const gen = execute(program, {maxSteps: MAX_STEPS, call, seed: RANDOM_SEED});
         let res = gen.next();
         while (!res.done) {
             const ev = res.value;

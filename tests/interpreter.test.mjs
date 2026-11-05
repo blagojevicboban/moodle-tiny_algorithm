@@ -20,7 +20,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createProgram, createBlock as B} from '../amd/src/model.js';
-import {execute, runSync} from '../amd/src/interpreter.js';
+import {MAX_CALL_DEPTH, RANDOM_SEED, execute, runSync} from '../amd/src/interpreter.js';
 
 const prog = (...body) => {
     const p = createProgram();
@@ -168,4 +168,73 @@ test('a matrix parameter is passed by reference and must be a matrix', () => {
     assert.throws(() => runSync(p), (e) => e.code === 'dimensions' && e.values.name === 'r');
     p.functions[0].body[2] = B('call', {expr: 'Set(5)'});
     assert.throws(() => runSync(p), (e) => e.code === 'notarray');
+});
+
+test('a recursion 200 calls deep inside loops and conditions runs; one more stops with a clear error', () => {
+    const deep = (n) => {
+        const p = prog(B('output', {expr: `Down(${n})`}));
+        const inner = [B('if', {cond: 'n <= 1', then: [B('return', {expr: '1'})], 'else': [
+            B('while', {cond: 'true', body: [B('for', {variable: 'k', start: '1', end: '1', step: '1', body: [
+                B('dowhile', {cond: 'false', body: [B('if', {cond: 'true', then: [
+                    B('return', {expr: 'Down(n - 1) + 1'})], 'else': []})]})]})]})]})];
+        p.functions.push({name: 'Down', params: [{name: 'n', type: 'Integer'}], returnType: 'Integer', body: inner});
+        return p;
+    };
+    assert.equal(runSync(deep(MAX_CALL_DEPTH)), `${MAX_CALL_DEPTH}\n`);
+    assert.throws(() => runSync(deep(MAX_CALL_DEPTH + 1)), (e) => e.code === 'calldepth');
+});
+
+test('Random with a seed gives the same numbers every time; without a seed it varies', () => {
+    const p = prog(B('for', {variable: 'i', start: '1', end: '30', step: '1', body: [
+        B('output', {expr: 'Random(1000)', newline: false}), B('output', {expr: '" "', newline: false})]}));
+    const a = runSync(p, [], {seed: RANDOM_SEED});
+    assert.equal(a, runSync(p, [], {seed: RANDOM_SEED}));
+    assert.notEqual(a, runSync(p, [], {seed: RANDOM_SEED + 1}));
+    assert.match(a, /^(\d{1,3} ){30}$/);
+});
+
+test('typed input accepts only values of the type', () => {
+    for (const [type, ok, bad] of [['Integer', ['3', ' -4 ', '+5'], ['3.7', '0x10', '1e3', '', 'Infinity']],
+        ['Real', ['3', '-.5', '2.5e3', '7.'], ['0x10', 'Infinity', '3,5', 'abc']],
+        ['Boolean', ['true', 'FALSE', ' True '], ['yes', '1', '']]]) {
+        const p = prog(B('declare', {name: 'v', varType: type}), B('input', {target: 'v'}), B('output', {expr: 'v'}));
+        ok.forEach((v) => assert.doesNotThrow(() => runSync(p, [v]), `${type} ${v}`));
+        bad.forEach((v) => assert.throws(() => runSync(p, [v]), (e) => e.code === 'invalidinput', `${type} ${v}`));
+    }
+});
+
+test('Break leaves the innermost loop, Continue goes to its next round', () => {
+    const loops = (kind) => prog(B('for', {variable: 'i', start: '1', end: '3', step: '1', body: [
+        B('for', {variable: 'j', start: '1', end: '3', step: '1', body: [
+            B('if', {cond: 'j = 2', then: [B(kind)], 'else': []}), B('output', {expr: 'i * 10 + j', newline: false}),
+            B('output', {expr: '" "', newline: false})]})]}));
+    assert.equal(runSync(loops('break')), '11 21 31 ');
+    assert.equal(runSync(loops('continue')), '11 13 21 23 31 33 ');
+    assert.throws(() => runSync(prog(B('break'))), (e) => e.code === 'notinloop');
+});
+
+test('names of JavaScript object properties are ordinary names', () => {
+    const p = prog(B('declare', {name: 'constructor, toString'}), B('assign', {target: 'constructor', expr: '2'}),
+        B('output', {expr: 'constructor + toString'}));
+    assert.equal(runSync(p), '2\n');
+    assert.throws(() => runSync(prog(B('output', {expr: 'constructor(1)'}))), (e) => e.code === 'unknownfunction');
+    assert.throws(() => runSync(prog(B('output', {expr: 'valueOf'}))), (e) => e.code === 'notdeclared');
+});
+
+test('a function test call can pass arrays and matrices and shows them after the call', () => {
+    const p = createProgram();
+    p.functions.push({name: 'Neg', params: [{name: 'a', type: 'Real', array: true}], returnType: 'Integer', body: [
+        B('for', {variable: 'i', start: '0', end: 'Len(a) - 1', step: '1', body: [B('assign', {target: 'a[i]', expr: '-a[i]'})]}),
+        B('return', {expr: 'Len(a)'})]});
+    const result = (call) => {
+        const gen = execute(p, {call});
+        for (let r = gen.next(); !r.done; r = gen.next()) {
+            if (r.value.event === 'result') {
+                return r.value.text;
+            }
+        }
+        return null;
+    };
+    assert.equal(result('Neg([1, 2.5, "3"])'), '3\na = [-1, -2.5, -3]');
+    assert.throws(() => result('Neg([[1]])'), (e) => e.code === 'argshape');
 });

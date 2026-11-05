@@ -58,7 +58,8 @@ export const STR = {
         inputshint: 'One value per line, "" for an empty value',
         testtype: 'What the test runs', testio: 'Algorithm: inputs → output',
         testcall: 'Function {name}: arguments → returned value', arguments: 'Arguments',
-        argumentshint: 'Values of the arguments, e.g. 2, 3 or one per line', weight: 'Weight',
+        argumentshint: 'Values of the arguments, e.g. 2, 3 or one per line; an array [1, 2, 3], a matrix [[1, 2], [3, 4]]',
+        weight: 'Weight',
         expected: 'Expected output', actual: 'Your output', noinputs: '(no input)',
         stale: 'You changed the algorithm since this run. Test again.',
         hiddentest: 'Hidden from students',
@@ -81,6 +82,12 @@ export const STR = {
         'e.forstepzero': 'For loop step cannot be 0', 'e.argcount': "Function '{name}' expects {count} argument(s)",
         'e.arraysize': 'Array size {size} is larger than {max}',
         'e.dimensions': 'The number of indexes for {name} must be {count}',
+        'e.calldepth': 'Too many nested function calls (more than {max}). ' +
+            'Does the recursion have a stop condition that is reached?',
+        'e.outputlimit': 'The output is longer than {max} characters',
+        'e.notinloop': '{block} can only be inside a loop',
+        'e.argshape': 'The value for {name} does not fit the parameter (a single value, an array or a matrix with rows of ' +
+            'the same length)',
     },
 };
 

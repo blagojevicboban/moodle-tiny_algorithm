@@ -78,3 +78,22 @@ test('interpreter errors keep the English message and are shown in the loaded la
     assert.throws(() => runSync(program, []), (e) => e instanceof AlgorithmError && e.code === 'notdeclared' &&
         e.message === "Variable 'y' is not declared");
 });
+
+test('the error messages are the same as those of the PHP interpreter of qtype_algorithm', (t) => {
+    let php;
+    try {
+        php = readFileSync(new URL('../../moodle-qtype_algorithm/classes/local/algorithm_error.php', import.meta.url), 'utf8');
+    } catch (e) {
+        t.skip('qtype_algorithm is not next to this plugin');
+        return;
+    }
+    const table = php.slice(php.indexOf('const MESSAGES'), php.indexOf('];', php.indexOf('const MESSAGES')));
+    const messages = {};
+    const literal = /'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"/g;
+    for (const m of table.matchAll(/'(\w+)' => ((?:(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")\s*\.?\s*)+),/g)) {
+        messages[m[1]] = [...m[2].matchAll(literal)].map((x) => (x[1] ?? x[2]).replace(/\\(.)/g, '$1')).join('');
+    }
+    const keys = Object.keys(STR.en).filter((k) => k.startsWith('e.')).map((k) => k.slice(2));
+    assert.deepEqual(Object.keys(messages).sort(), keys.sort());
+    keys.forEach((k) => assert.equal(messages[k], STR.en[`e.${k}`], k));
+});

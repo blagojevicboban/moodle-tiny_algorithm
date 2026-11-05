@@ -42,6 +42,8 @@ const defaults = {
     'for': () => ({variable: 'i', start: '1', end: '10', step: '1', body: []}),
     call: () => ({expr: 'f()'}),
     'return': () => ({expr: ''}),
+    'break': () => ({}),
+    'continue': () => ({}),
     comment: () => ({text: 'Comment'}),
 };
 
