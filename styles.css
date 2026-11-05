@@ -942,3 +942,34 @@ generated code on the right; stacked when the content area is narrow. */
     margin: .4rem 0 .2rem;
     white-space: pre-wrap;
 }
+
+/* Tabs of the side panel: only on a narrow screen. */
+.tiny_algorithm-tabbar {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .tiny_algorithm-tabbar {
+        display: flex;
+        gap: .25rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .tiny_algorithm-tabbar [aria-selected="true"] {
+        font-weight: 600;
+        text-decoration: underline;
+    }
+
+    .tiny_algorithm-side[data-tab="console"] [data-pane="watch"],
+    .tiny_algorithm-side[data-tab="console"] [data-pane="code"],
+    .tiny_algorithm-side[data-tab="watch"] [data-pane="console"],
+    .tiny_algorithm-side[data-tab="watch"] [data-pane="code"],
+    .tiny_algorithm-side[data-tab="code"] [data-pane="console"],
+    .tiny_algorithm-side[data-tab="code"] [data-pane="watch"] {
+        display: none;
+    }
+}
+
+.tiny_algorithm-test-run {
+    margin-left: auto;
+}

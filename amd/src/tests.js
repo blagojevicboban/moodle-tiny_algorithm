@@ -301,9 +301,11 @@ export class TestsPanel {
      * @param {boolean} [opts.hiddenOption] the teacher can hide a test from students (question type)
      * @param {boolean} [opts.weightOption] the teacher can give a test a weight in the grade (question type)
      * @param {Function} [opts.onChange] (tests) => called when the teacher changes the tests
+     * @param {Function} [opts.onRunInputs] (values) => step through the algorithm with the inputs of a failed test
      */
     constructor(host, {tests = [], mode = 'student', lang = null, getProgram = null, getSolution = null, check = {},
-            hiddenOption = false, weightOption = false, onChange = null} = {}) {
+            hiddenOption = false, weightOption = false, onChange = null, onRunInputs = null} = {}) {
+        this.onRunInputs = onRunInputs;
         this.tests = tests.map((tc) => ({...tc}));
         this.mode = mode;
         this.lang = lang;
@@ -484,6 +486,12 @@ export class TestsPanel {
             el('div', {'class': 'tiny_algorithm-test-head'}, mark, el('span', {}, this.t('testcase', {n: i + 1})),
                 el('code', {'class': 'tiny_algorithm-test-inputs'},
                     callText(tc) || inputLines(tc.inputs).join(', ') || this.t('noinputs'))));
+        if (r && !r.pass && this.onRunInputs && !callText(tc)) {
+            row.querySelector('.tiny_algorithm-test-head').append(el('button', {type: 'button',
+                'class': 'btn btn-secondary btn-sm tiny_algorithm-test-run',
+                onclick: () => this.onRunInputs(parseInputs(tc.inputs))},
+            `▶ ${this.t('runinputs')}`));
+        }
         if (r && !r.pass) {
             const lines = (text) => normalize(text).split('\n').map((line, n) =>
                 el('span', {'class': n === r.diffLine ? 'tiny_algorithm-diff-line' : ''}, `${line}\n`));

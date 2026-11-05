@@ -289,6 +289,10 @@ const exportList = (list, ind, ctx) => {
     const x = (e) => fprgExpr(e, ctx.missing);
     let out = '';
     for (const b of list) {
+        // Flowgorithm has no comments on blocks: the comment becomes a Comment block before it.
+        if (typeof b.note === 'string' && b.note.trim()) {
+            out += `${pad}<comment${attrs({text: b.note.trim()})}/>\n`;
+        }
         switch (b.type) {
             case 'declare': {
                 const arr = String(b.size || '').trim() !== '';

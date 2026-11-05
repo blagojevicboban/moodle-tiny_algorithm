@@ -80,6 +80,8 @@ let clipboard = null;
 
 // Distance (px) the pointer must move before pressing a block becomes dragging it.
 const DRAG_START = 6;
+// Time (ms) a finger rests on a block before its menu opens.
+const LONG_PRESS = 600;
 
 export class AlgorithmEditor {
     /**
@@ -181,8 +183,16 @@ export class AlgorithmEditor {
             el('h6', {}, this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn), this.codeEl);
         this.watch = new Watch(this.lang);
         this.tabWatch = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('variables')), this.watch.root);
-        this.side = el('div', {'class': 'tiny_algorithm-side'}, this.props, this.tabConsole, this.tabWatch,
-            this.showCode ? this.tabCode : []);
+        // On a narrow screen the console, the variables and the code share the space below the diagram as tabs.
+        const tab = (key) => el('button', {type: 'button', role: 'tab', 'class': 'btn btn-sm btn-link',
+            'data-tab': key, onclick: () => this.showTab(key)}, this.t(key === 'watch' ? 'variables' : key));
+        this.tabBar = el('div', {'class': 'tiny_algorithm-tabbar', role: 'tablist'}, tab('console'), tab('watch'),
+            this.showCode ? tab('code') : []);
+        this.tabConsole.dataset.pane = 'console';
+        this.tabWatch.dataset.pane = 'watch';
+        this.tabCode.dataset.pane = 'code';
+        this.side = el('div', {'class': 'tiny_algorithm-side', 'data-tab': 'console'}, this.props, this.tabBar, this.tabConsole,
+            this.tabWatch, this.showCode ? this.tabCode : []);
         this.root = el('div', {'class': 'tiny_algorithm-editor', onkeydown: (e) => this.onRunKey(e)}, this.toolbar,
             this.emptyBar(), el('div', {'class': 'tiny_algorithm-main'}, this.canvasWrap, this.side), this.announcer);
         container.append(this.root);
@@ -891,6 +901,17 @@ export class AlgorithmEditor {
     onPointerDown(e) {
         const node = !this.running && e.button === 0 && e.target.closest('.tiny_algorithm-node[role="button"]');
         this.press = node ? {id: node.dataset.id, x: e.clientX, y: e.clientY, pointer: e.pointerId, node} : null;
+        clearTimeout(this.longPress);
+        if (node && e.pointerType === 'touch') {
+            // A long press on a block opens its menu, like a right click.
+            const at = {clientX: e.clientX, clientY: e.clientY, target: e.target, preventDefault: () => null};
+            this.longPress = setTimeout(() => {
+                if (this.press && !this.drag) {
+                    this.press = null;
+                    this.onContextMenu(at);
+                }
+            }, LONG_PRESS);
+        }
     }
 
     onPointerMove(e) {
@@ -906,6 +927,7 @@ export class AlgorithmEditor {
             if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < DRAG_START) {
                 return;
             }
+            clearTimeout(this.longPress);
             this.drag = p;
             this.closePalette();
             this.canvas.setPointerCapture(e.pointerId);
@@ -957,6 +979,7 @@ export class AlgorithmEditor {
     }
 
     endDrag() {
+        clearTimeout(this.longPress);
         if (this.dropSlot) {
             this.dropSlot.classList.remove('tiny_algorithm-drop');
         }
@@ -1181,6 +1204,31 @@ export class AlgorithmEditor {
         }
     }
 
+    /**
+     * Show one pane of the side panel (narrow screens).
+     *
+     * @param {string} key console, watch or code
+     */
+    showTab(key) {
+        this.side.dataset.tab = key;
+        this.tabBar.querySelectorAll('[role="tab"]').forEach((b) => b.setAttribute('aria-selected',
+            String(b.dataset.tab === key)));
+    }
+
+    /**
+     * Step through the algorithm with given input values (a failed test): they are entered by themselves.
+     *
+     * @param {string[]} values input values, one per input
+     */
+    startWithInputs(values) {
+        if (this.running) {
+            this.stop();
+            return;
+        }
+        this.pendingInputs = [...values];
+        this.start(true);
+    }
+
     /** The trace table of the last run; a row selects its block. */
     showTrace() {
         openTrace(this.root, this.trace, {cut: this.traceCut,
@@ -1246,6 +1294,12 @@ export class AlgorithmEditor {
      * @returns {Promise<?string>}
      */
     askInput(run, ev, hint) {
+        if (!hint && this.pendingInputs && this.pendingInputs.length) {
+            // Values of a test are entered by themselves.
+            const v = this.pendingInputs.shift();
+            this.log(`${ev.name} (${ev.type}) ? ${v}`);
+            return Promise.resolve(v);
+        }
         return new Promise((resolve) => {
             const input = el('input', {type: 'text', 'class': 'form-control form-control-sm tiny_algorithm-input',
                 'aria-label': `${ev.name} (${ev.type})`, onkeydown: (e) => {
@@ -1323,6 +1377,7 @@ export class AlgorithmEditor {
             this.traceCut = Boolean(run.traceCut);
         } finally {
             this.running = null;
+            this.pendingInputs = null;
             this.highlight(null);
             this.refresh();
         }

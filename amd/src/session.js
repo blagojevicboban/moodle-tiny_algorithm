@@ -42,6 +42,42 @@ export const blockLabel = (program, id) => {
 };
 
 /**
+ * What deserves a warning before the algorithm runs: functions that may end without returning their value, and
+ * blocks after a Break, Continue or Return that never run.
+ *
+ * @param {Object} program algorithm
+ * @returns {string[]} messages
+ */
+export const checkProgram = (program) => {
+    const jumps = ['break', 'continue', 'return'];
+    let unreachable = 0;
+    const visit = (list) => {
+        let jumped = false;
+        (list || []).forEach((b) => {
+            if (jumped) {
+                unreachable++;
+            }
+            jumped = jumped || jumps.includes(b.type);
+            ['then', 'else', 'body'].forEach((k) => visit(b[k]));
+        });
+    };
+    // A list always returns when one of its blocks does: a Return, or an If whose two branches both always return.
+    const returns = (b) => b.type === 'return' || (b.type === 'if' && always(b.then) && always(b.else));
+    const always = (list) => (list || []).some(returns);
+    const messages = [];
+    program.functions.forEach((f, i) => {
+        visit(f.body);
+        if (i > 0 && f.returnType && !always(f.body)) {
+            messages.push(t('noreturn', {name: f.name}));
+        }
+    });
+    if (unreachable) {
+        messages.push(t('unreachable', {count: String(unreachable)}));
+    }
+    return messages;
+};
+
+/**
  * Wait before the next step: until Step (or Continue) is pressed, or the time of the speed slider has passed.
  *
  * @param {Object} run the run
@@ -134,6 +170,7 @@ export const runSession = async(ui, run) => {
         }
     };
     ui.status('running', 0);
+    checkProgram(program).forEach((message) => ui.info(`⚠ ${message}`));
     try {
         const gen = execute(program);
         let res = gen.next();

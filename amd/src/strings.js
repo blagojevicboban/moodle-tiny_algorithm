@@ -57,6 +57,8 @@ export const STR = {
         'b.declare': 'Declare', 'b.assign': 'Assign', 'b.input': 'Input', 'b.output': 'Output', 'b.if': 'If',
         'b.for': 'For', 'b.while': 'While', 'b.dowhile': 'Do … While', 'b.call': 'Call', 'b.return': 'Return',
         'b.comment': 'Comment', 'b.break': 'Break', 'b.continue': 'Continue',
+        noreturn: '{name} may end without Return: a call of it then has no value.',
+        unreachable: 'Blocks after a Break, Continue or Return never run: {count}.', runinputs: 'Step with this input',
         pseudocode: 'Pseudo-code', note: 'Comment', addnote: 'Add a comment', textdescription: 'Text description',
         pcfunction: 'FUNCTION', pcendfunction: 'END FUNCTION', pcdeclare: 'DECLARE', pcinput: 'INPUT', pcoutput: 'OUTPUT',
         pcif: 'IF', pcthen: 'THEN', pcelse: 'ELSE', pcendif: 'END IF', pcwhile: 'WHILE', pcendwhile: 'END WHILE',

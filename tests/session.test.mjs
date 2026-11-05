@@ -103,3 +103,15 @@ test('the trace table shows the values after each step, and as CSV', async() => 
     assert.deepEqual(rows[1].changed, [false, false, true, false]);
     assert.equal(traceCsv(trace), '#,Block,n,Output\n1,Integer n,0,\n2,Input n ← 5,5,\n3,Output n * 2,5,10\n');
 });
+
+test('warnings before a run: a function that may end without Return, blocks that never run', async() => {
+    const {checkProgram} = await import('../amd/src/session.js');
+    const p = createProgram();
+    p.functions[0].body = [B('while', {cond: 'true', body: [B('break'), B('output', {expr: '1'})]})];
+    p.functions.push({name: 'Half', params: [], returnType: 'Integer', body: [B('if', {cond: 'true',
+        then: [B('return', {expr: '1'})], 'else': []})]});
+    p.functions.push({name: 'Full', params: [], returnType: 'Integer', body: [B('if', {cond: 'true',
+        then: [B('return', {expr: '1'})], 'else': [B('return', {expr: '2'})]})]});
+    assert.deepEqual(checkProgram(p), ['Half may end without Return: a call of it then has no value.',
+        'Blocks after a Break, Continue or Return never run: 1.']);
+});
