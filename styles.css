@@ -139,6 +139,11 @@
     box-shadow: inset 3px 0 #c2410c;
 }
 
+/* Blocks after a Break, Continue or Return in the same list are never reached. */
+.tiny_algorithm-node.tiny_algorithm-unreachable {
+    opacity: .45;
+}
+
 /* The running block is marked by its border too, not only by its colour. */
 .tiny_algorithm-node.tiny_algorithm-running > :first-child {
     fill: #fdba74;

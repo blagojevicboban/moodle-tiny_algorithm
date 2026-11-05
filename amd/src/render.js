@@ -66,7 +66,8 @@ const shapeSvg = (it, editable = false) => {
         : `<text x="${x + w / 2}" y="${y + h / 2}" ${attrsText}>${esc(it.text)}</text>`;
     const focus = editable && !['start', 'end'].includes(it.type) ?
         ` tabindex="-1" role="button" aria-label="${esc(`${tr(`b.${it.type}`)}: ${it.text}`)}"` : '';
-    return `<g class="tiny_algorithm-node" data-id="${esc(it.id)}"${focus}>${body}${text}</g>`;
+    const cls = it.faded ? 'tiny_algorithm-node tiny_algorithm-unreachable' : 'tiny_algorithm-node';
+    return `<g class="${cls}" data-id="${esc(it.id)}"${focus}>${body}${text}</g>`;
 };
 
 const ARROW_L = 7; // Arrowhead length.
@@ -74,7 +75,8 @@ const ARROW_W = 3.5; // Half of its width.
 
 const lineSvg = (it) => {
     const d = it.pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
-    let s = `<path d="${d}" fill="none" stroke="${COLORS.stroke}" stroke-width="1.5"/>`;
+    // A jump (Break, Continue, an early Return) is dashed, so it is not taken for the normal way.
+    let s = `<path d="${d}" fill="none" stroke="${COLORS.stroke}" stroke-width="1.5"${it.jump ? ' stroke-dasharray="6 3"' : ''}/>`;
     const [[x1, y1], [x2, y2]] = it.pts.slice(-2);
     const len = Math.hypot(x2 - x1, y2 - y1);
     if (it.arrow && len) {

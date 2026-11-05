@@ -500,7 +500,8 @@ const runAny = (lang, program, input) => {
             return true;
         } catch (e) {
             const text = `${e.stdout || ''}${e.stderr || ''}`;
-            if (e.code === 'ENOENT' || /No module named/.test(text)) {
+            // Not installed (through a shell on Windows the error is a message, not ENOENT).
+            if (e.code === 'ENOENT' || /No module named|is not recognized|command not found/.test(text)) {
                 return false;
             }
             throw new Error(`${cmd} ${args.join(' ')} failed:\n${text}\n${code}`);

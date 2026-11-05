@@ -21,7 +21,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {layoutFunction} from '../amd/src/layout.js';
 import {renderFunction} from '../amd/src/render.js';
-import {createProgram, createBlock} from '../amd/src/model.js';
+import {createProgram, createBlock, createBlock as B} from '../amd/src/model.js';
 
 const sample = () => {
     const p = createProgram();
@@ -104,4 +104,26 @@ test('the interpreter reports which way every decision goes', async() => {
         }
     }
     assert.deepEqual(branches, ['if:false', 'for:true', 'for:true', 'for:false', 'do:false']);
+});
+
+test('Break, Continue and an early Return draw a dashed line to where they go; blocks after them are faded', () => {
+    const brk = B('break');
+    const cont = B('continue');
+    const after = B('output', {expr: '1'});
+    const loop = B('while', {cond: 'true', body: [B('if', {cond: 'x > 1', then: [brk], 'else': [cont, after]})]});
+    const early = B('return', {expr: '1'});
+    const fn = {name: 'F', params: [], returnType: 'Integer', body: [loop, B('if', {cond: 'true', then: [early], 'else': []}),
+        B('return', {expr: '2'})]};
+    const {items} = layoutFunction(fn);
+    const jump = (id) => items.find((it) => it.t === 'line' && it.branch === `${id}:T` && it.jump);
+    const loopShape = items.find((it) => it.id === loop.id);
+    const loopCx = loopShape.x + loopShape.w / 2;
+    assert.ok(jump(brk.id).pts.at(-1)[0] > loopCx, 'Break goes right, to the way out');
+    assert.ok(jump(cont.id).pts.at(-1)[0] < loopCx, 'Continue goes left, to the way back');
+    assert.ok(jump(early.id), 'an early Return goes to End');
+    assert.equal(items.filter((it) => it.jump).length, 3, 'the last Return needs no line');
+    assert.equal(items.find((it) => it.id === after.id).faded, true);
+    assert.equal(items.find((it) => it.id === brk.id).faded, false);
+    const slots = items.filter((it) => it.t === 'slot');
+    assert.ok(slots.some((s) => s.inLoop) && slots.some((s) => !s.inLoop));
 });

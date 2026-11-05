@@ -29,7 +29,8 @@ export const newId = () => `n${Date.now().toString(36)}${(counter++).toString(36
 
 export const VAR_TYPES = ['Integer', 'Real', 'String', 'Boolean'];
 
-export const BLOCK_TYPES = ['declare', 'assign', 'input', 'output', 'if', 'while', 'for', 'dowhile', 'call', 'return', 'comment'];
+export const BLOCK_TYPES = ['declare', 'assign', 'input', 'output', 'if', 'while', 'for', 'dowhile', 'call', 'return', 'break',
+    'continue', 'comment'];
 
 const defaults = {
     declare: () => ({name: 'x', varType: 'Integer', size: '', size2: ''}),

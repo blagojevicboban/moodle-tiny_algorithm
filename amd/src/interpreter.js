@@ -571,12 +571,16 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
             case 'call':
                 yield* evalStr(b.expr, env);
                 break;
-            case 'return':
-                return [RETURN, hasText(b.expr) ? yield* evalStr(b.expr, env) : undefined];
+            case 'return': {
+                const value = hasText(b.expr) ? yield* evalStr(b.expr, env) : undefined;
+                yield {event: 'branch', id: b.id, taken: true};
+                return [RETURN, value];
+            }
             case 'break':
-                return [BREAK];
             case 'continue':
-                return [CONTINUE];
+                // The editor marks the line of the jump.
+                yield {event: 'branch', id: b.id, taken: true};
+                return [b.type === 'break' ? BREAK : CONTINUE];
             default:
                 break;
         }

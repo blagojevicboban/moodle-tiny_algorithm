@@ -56,7 +56,7 @@ export const STR = {
         'f.end': 'To', 'f.step': 'Step', 'f.text': 'Text',
         'b.declare': 'Declare', 'b.assign': 'Assign', 'b.input': 'Input', 'b.output': 'Output', 'b.if': 'If',
         'b.for': 'For', 'b.while': 'While', 'b.dowhile': 'Do … While', 'b.call': 'Call', 'b.return': 'Return',
-        'b.comment': 'Comment',
+        'b.comment': 'Comment', 'b.break': 'Break', 'b.continue': 'Continue',
         edit: 'Edit', done: 'Done editing', resetwork: 'Restore original',
         resetconfirm: 'Discard your changes and restore the original algorithm?', modified: 'Your version',
         fullscreen: 'Full screen', exitfullscreen: 'Exit full screen', showsolution: 'Show solution',

@@ -31,8 +31,19 @@ const CHAR_W = 7.6;
 const BOX_H = 40;
 const DIAMOND_H = 56;
 const MARGIN = 24;
+// Distance of the line of a jump (Break, Continue, an early Return) from what it passes.
+const JUMP = 14;
+
+// Labels that are only a word and one field of the block.
+const SIMPLE_LABELS = {
+    input: (b) => `Input ${b.target}`, output: (b) => `Output ${b.expr}`, call: (b) => `Call ${b.expr}`,
+    'break': () => 'Break', 'continue': () => 'Continue', comment: (b) => b.text,
+};
 
 export const labelOf = (b) => {
+    if (Object.hasOwn(SIMPLE_LABELS, b.type)) {
+        return SIMPLE_LABELS[b.type](b);
+    }
     switch (b.type) {
         case 'declare': {
             const size = String(b.size || '').trim();
@@ -40,15 +51,11 @@ export const labelOf = (b) => {
             return `${b.varType} ${b.name}${size ? `[${size}${size2 ? `, ${size2}` : ''}]` : ''}`;
         }
         case 'assign': return `${b.target} = ${b.expr}`;
-        case 'input': return `Input ${b.target}`;
-        case 'output': return `Output ${b.expr}`;
         case 'if':
         case 'while':
         case 'dowhile': return b.cond;
         case 'for': return `${b.variable} = ${b.start} to ${b.end}${String(b.step || '1').trim() === '1' ? '' : ` step ${b.step}`}`;
-        case 'call': return `Call ${b.expr}`;
         case 'return': return `Return ${b.expr || ''}`.trim();
-        case 'comment': return b.text;
         default: return b.type;
     }
 };
@@ -91,8 +98,28 @@ export const linesOf = (b) => (b.type === 'comment' ? wrapText(b.text) : [labelO
 const shapeOf = (b) => ({
     declare: 'rect', assign: 'rect', call: 'rect', comment: 'note',
     input: 'para', output: 'para', 'if': 'diamond', 'while': 'diamond', dowhile: 'diamond', 'for': 'hexagon',
-    'return': 'oval',
+    'return': 'oval', 'break': 'oval', 'continue': 'oval',
 }[b.type]);
+
+/**
+ * Break and Continue blocks of a loop body (also inside If blocks, not inside other loops).
+ *
+ * @param {Array} list blocks
+ * @returns {{brk: boolean, cont: boolean}}
+ */
+const jumpsOf = (list) => {
+    const found = {brk: false, cont: false};
+    const visit = (blocks) => (blocks || []).forEach((b) => {
+        found.brk = found.brk || b.type === 'break';
+        found.cont = found.cont || b.type === 'continue';
+        if (b.type === 'if') {
+            visit(b.then);
+            visit(b.else);
+        }
+    });
+    visit(list);
+    return found;
+};
 
 const sizeOf = (b) => {
     if (b.type === 'comment') {
@@ -151,8 +178,11 @@ function measureBlock(b) {
             return {l: Math.max(m.l, s.w / 2) + G, r: Math.max(m.r, s.w / 2) + G, h: s.h + m.h + G, m, s};
         }
         case 'dowhile': {
+            // Continue goes round the left side to the condition, Break round the right side to the way out.
             const m = measureList(b.body);
-            return {l: Math.max(m.l, s.w / 2), r: Math.max(m.r, s.w / 2) + G, h: m.h + s.h, m, s};
+            const j = jumpsOf(b.body);
+            return {l: Math.max(m.l, s.w / 2) + (j.cont ? JUMP : 0), r: Math.max(m.r, s.w / 2) + G + (j.brk ? JUMP : 0),
+                h: m.h + s.h, m, s, j};
         }
         default:
             return {l: s.w / 2, r: s.w / 2, h: s.h, s};
@@ -166,8 +196,9 @@ const tagBranch = (out, from, to, key) => out.slice(from, to).forEach((it) => {
     }
 });
 
-const shape = (out, b, cx, y, s) => out.push({
+const shape = (out, b, cx, y, s, ctx = {}) => out.push({
     t: 'shape', shape: shapeOf(b), x: cx - s.w / 2, y, w: s.w, h: s.h, text: labelOf(b), lines: linesOf(b), id: b.id, type: b.type,
+    faded: Boolean(ctx.faded),
 });
 
 // The last line gets an arrow only when a block follows the list (endArrow); otherwise it runs into another line.
@@ -181,18 +212,43 @@ const lineAfter = (prev, cx, cy, arrow) => {
     return line;
 };
 
-const drawList = (out, list, cx, y, endArrow = false) => {
+/**
+ * Draw a list of blocks with the lines and "+" signs between them; returns its height.
+ *
+ * @param {Array} out SVG fragments collected so far
+ * @param {Array} list blocks
+ * @param {number} cx centre x
+ * @param {number} y top y
+ * @param {boolean} endArrow the last line ends in an arrow (a block follows)
+ * @param {Object} ctx loop: jumps of the innermost loop, fn: early returns, tail: the function ends after this list,
+ *     faded: the blocks can never run
+ * @returns {number}
+ */
+const drawList = (out, list, cx, y, endArrow = false, ctx = {}) => {
     let cy = y;
+    let jumped = Boolean(ctx.faded);
     list.forEach((b, i) => {
         out.push(lineAfter(list[i - 1], cx, cy, true));
-        out.push({t: 'slot', x: cx, y: cy + G / 2, list, index: i});
+        out.push({t: 'slot', x: cx, y: cy + G / 2, list, index: i, inLoop: Boolean(ctx.loop)});
         cy += G;
-        cy += drawBlock(out, b, cx, cy);
+        cy += drawBlock(out, b, cx, cy, {...ctx, faded: jumped, last: i === list.length - 1});
+        // Blocks after a Break, Continue or Return in the same list are never reached.
+        jumped = jumped || ['break', 'continue', 'return'].includes(b.type);
     });
     out.push(lineAfter(list[list.length - 1], cx, cy, endArrow));
-    out.push({t: 'slot', x: cx, y: cy + G / 2, list, index: list.length});
+    out.push({t: 'slot', x: cx, y: cy + G / 2, list, index: list.length, inLoop: Boolean(ctx.loop)});
     return cy + G - y;
 };
+
+/**
+ * A jump (Break, Continue, an early Return) waits for the place it goes to; finish() draws it from there.
+ *
+ * @param {Array} jumps jumps of a loop or function
+ * @param {Array} out SVG fragments
+ * @param {Function} route (jump) => points from the jump to its target
+ */
+const finishJumps = (jumps, out, route) => jumps.forEach((j) => out.push({t: 'line', pts: route(j), arrow: true,
+    branch: `${j.id}:T`, jump: true}));
 
 /**
  * Draw a block and return the y below it.
@@ -201,13 +257,16 @@ const drawList = (out, list, cx, y, endArrow = false) => {
  * @param {Object} b block
  * @param {number} cx centre x
  * @param {number} y top y
+ * @param {Object} ctx see drawList
  */
-function drawBlock(out, b, cx, y) {
+function drawBlock(out, b, cx, y, ctx = {}) {
     const m = measureBlock(b);
     const s = m.s;
+    // The If continues where its list continues; a loop body never ends the function.
+    const tail = Boolean(ctx.tail && ctx.last);
     switch (b.type) {
         case 'if': {
-            shape(out, b, cx, y, s);
+            shape(out, b, cx, y, s, ctx);
             const tAxis = cx - m.dT;
             const eAxis = cx + m.dE;
             const my = y + s.h / 2;
@@ -218,10 +277,11 @@ function drawBlock(out, b, cx, y) {
                 branch: `${b.id}:F`});
             // The first line of each branch belongs to it too.
             let from = out.length;
-            const th = drawList(out, b.then, tAxis, my);
+            const inner = {...ctx, tail};
+            const th = drawList(out, b.then, tAxis, my, false, inner);
             tagBranch(out, from, from + 1, `${b.id}:T`);
             from = out.length;
-            const eh = drawList(out, b.else, eAxis, my);
+            const eh = drawList(out, b.else, eAxis, my, false, inner);
             tagBranch(out, from, from + 1, `${b.id}:F`);
             // Both branches run into the point below the condition.
             out.push({t: 'line', pts: [[tAxis, my + th], [tAxis, end], [cx, end]], arrow: true, branch: `${b.id}:T`});
@@ -230,13 +290,16 @@ function drawBlock(out, b, cx, y) {
         }
         case 'while':
         case 'for': {
-            shape(out, b, cx, y, s);
+            shape(out, b, cx, y, s, ctx);
             const bodyTop = y + s.h;
             const from = out.length;
-            const bh = drawList(out, b.body, cx, bodyTop);
+            const loop = [];
+            const bh = drawList(out, b.body, cx, bodyTop, false, {...ctx, loop, tail: false});
             tagBranch(out, from, from + 1, `${b.id}:T`);
             const xl = cx - m.l;
             const xr = cx + m.r;
+            // Break runs into the way out on the right, Continue into the way back on the left.
+            finishJumps(loop, out, (j) => [[j.x, j.y], [j.type === 'break' ? xr : xl, j.y]]);
             const my = y + s.h / 2;
             const bodyBottom = bodyTop + bh;
             const end = bodyBottom + G;
@@ -248,17 +311,30 @@ function drawBlock(out, b, cx, y) {
             return m.h;
         }
         case 'dowhile': {
-            const bh = drawList(out, b.body, cx, y, true);
+            const loop = [];
+            const bh = drawList(out, b.body, cx, y, true, {...ctx, loop, tail: false});
             const dy = y + bh;
-            shape(out, b, cx, dy, s);
-            const xr = cx + m.r;
+            shape(out, b, cx, dy, s, ctx);
+            const xr = cx + m.r - (m.j.brk ? JUMP : 0);
+            const xb = cx + m.r;
+            const xc = cx - m.l;
+            finishJumps(loop, out, (j) => (j.type === 'break' ?
+                [[j.x, j.y], [xb, j.y], [xb, dy + s.h + G / 2], [cx, dy + s.h + G / 2]] :
+                [[j.x, j.y], [xc, j.y], [xc, dy + s.h / 2], [cx - s.w / 2, dy + s.h / 2]]));
             out.push({t: 'line', pts: [[cx + s.w / 2, dy + s.h / 2], [xr, dy + s.h / 2], [xr, y], [cx, y]], arrow: true,
                 branch: `${b.id}:T`,
                 label: {text: 'T', x: cx + s.w / 2 + 12, y: dy + s.h / 2 - 6}});
             return m.h;
         }
         default:
-            shape(out, b, cx, y, s);
+            shape(out, b, cx, y, s, ctx);
+            if ((b.type === 'break' || b.type === 'continue') && ctx.loop) {
+                const left = b.type === 'continue';
+                ctx.loop.push({id: b.id, type: b.type, x: left ? cx - s.w / 2 : cx + s.w / 2, y: y + s.h / 2});
+            } else if (b.type === 'return' && ctx.fn && !tail) {
+                // A Return that is not the last step of the function jumps to End.
+                ctx.fn.push({id: b.id, type: b.type, x: cx + s.w / 2, y: y + s.h / 2});
+            }
             return m.h;
     }
 }
@@ -277,8 +353,12 @@ export const layoutFunction = (fn) => {
     const head = `${fn.name}(${fn.params.map((p) => p.name).join(', ')})`;
     items.push({t: 'shape', shape: 'oval', x: cx - 50, y: MARGIN, w: 100, h: ovalH, text: head, id: 'start', type: 'start'});
     const y0 = MARGIN + ovalH;
-    const lh = drawList(items, fn.body, cx, y0, true);
+    const returns = [];
+    const lh = drawList(items, fn.body, cx, y0, true, {fn: returns, tail: true});
     const yEnd = y0 + lh;
+    // Early returns go round the right side of the diagram into the line above End.
+    const xr = cx + Math.max(m.r, 60) + JUMP;
+    finishJumps(returns, items, (j) => [[j.x, j.y], [xr, j.y], [xr, yEnd - G / 2], [cx, yEnd - G / 2]]);
     items.push({t: 'shape', shape: 'oval', x: cx - 40, y: yEnd, w: 80, h: ovalH, text: 'End', id: 'end', type: 'end'});
-    return {items, width: cx + Math.max(m.r, 60) + MARGIN, height: yEnd + ovalH + MARGIN};
+    return {items, width: cx + Math.max(m.r, 60) + MARGIN + (returns.length ? JUMP : 0), height: yEnd + ovalH + MARGIN};
 };

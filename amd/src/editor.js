@@ -35,7 +35,10 @@ import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
 import {Watch} from './watch';
 
-const PALETTE = ['declare', 'assign', 'input', 'output', 'if', 'for', 'while', 'dowhile', 'call', 'return', 'comment'];
+const PALETTE = ['declare', 'assign', 'input', 'output', 'if', 'for', 'while', 'dowhile', 'call', 'return', 'break', 'continue',
+    'comment'];
+// Blocks that only make sense inside a loop.
+const LOOP_ONLY = ['break', 'continue'];
 
 const FIELDS = {
     declare: [['name', 'text'], ['varType', 'type'], ['size', 'text'], ['size2', 'text']],
@@ -48,6 +51,8 @@ const FIELDS = {
     'for': [['variable', 'text'], ['start', 'expr'], ['end', 'expr'], ['step', 'expr']],
     call: [['expr', 'expr']],
     'return': [['expr', 'expr']],
+    'break': [],
+    'continue': [],
     comment: [['text', 'text']],
 };
 
@@ -553,7 +558,7 @@ export class AlgorithmEditor {
         }, this.t('paste'))] : [];
         this.palette = el('div', {'class': 'tiny_algorithm-palette', role: 'menu', style: `left:${x + 6}px;top:${y + 6}px`,
             onkeydown: (ev) => this.onPaletteKey(ev, item)}, ...paste,
-            PALETTE.map((type) => el('button', {
+            PALETTE.filter((type) => slot.inLoop || !LOOP_ONLY.includes(type)).map((type) => el('button', {
                 type: 'button', role: 'menuitem', 'class': 'btn btn-sm btn-light',
                 onclick: (ev) => {
                     ev.stopPropagation();
