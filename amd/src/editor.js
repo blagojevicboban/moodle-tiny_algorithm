@@ -73,8 +73,19 @@ let clipboard = null;
 const DRAG_START = 6;
 
 export class AlgorithmEditor {
-    constructor(container, {program = null, lang = null, onChange = null} = {}) {
+    /**
+     * @param {HTMLElement} container element that receives the editor
+     * @param {Object} [options]
+     * @param {Object|null} [options.program] algorithm to edit
+     * @param {string|null} [options.lang] UI language
+     * @param {Function|null} [options.onChange] called with the algorithm after each drawing
+     * @param {boolean} [options.showCode] show the generated code (a quiz question may hide it)
+     * @param {boolean} [options.fileTools] show import, export and the image buttons (a quiz question may hide them)
+     */
+    constructor(container, {program = null, lang = null, onChange = null, showCode = true, fileTools = true} = {}) {
         this.lang = lang;
+        this.showCode = showCode;
+        this.fileTools = fileTools;
         this.onChange = onChange;
         this.program = program || createProgram();
         this.fnIndex = 0;
@@ -121,10 +132,10 @@ export class AlgorithmEditor {
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnUndo, this.btnRedo,
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnStep, this.btnStop, this.speed,
             el('span', {'class': 'tiny_algorithm-sep'}), el('span', {'class': 'tiny_algorithm-zoom-slot'}),
-            el('span', {'class': 'tiny_algorithm-sep'}), btn('import', () => this.fileInput.click()),
-            btn('export', () => this.exportFile()),
-            btn('exportsvg', () => this.exportImage('svg')), btn('exportpng', () => this.exportImage('png')),
-            this.fileInput);
+            this.fileTools ? [el('span', {'class': 'tiny_algorithm-sep'}), btn('import', () => this.fileInput.click()),
+                btn('export', () => this.exportFile()),
+                btn('exportsvg', () => this.exportImage('svg')), btn('exportpng', () => this.exportImage('png')),
+                this.fileInput] : []);
         this.canvas = el('div', {'class': 'tiny_algorithm-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
             onkeydown: (e) => this.onKey(e), oncopy: (e) => this.onCopy(e, false), oncut: (e) => this.onCopy(e, true),
             onpaste: (e) => this.onPaste(e), onpointerdown: (e) => this.onPointerDown(e),
@@ -153,7 +164,8 @@ export class AlgorithmEditor {
             el('h6', {}, this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn), this.codeEl);
         this.watch = new Watch(this.lang);
         this.tabWatch = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('variables')), this.watch.root);
-        this.side = el('div', {'class': 'tiny_algorithm-side'}, this.props, this.tabConsole, this.tabWatch, this.tabCode);
+        this.side = el('div', {'class': 'tiny_algorithm-side'}, this.props, this.tabConsole, this.tabWatch,
+            this.showCode ? this.tabCode : []);
         this.root = el('div', {'class': 'tiny_algorithm-editor'}, this.toolbar,
             el('div', {'class': 'tiny_algorithm-main'}, this.canvas, this.side));
         container.append(this.root);
@@ -238,6 +250,9 @@ export class AlgorithmEditor {
     }
 
     renderCode() {
+        if (!this.showCode) {
+            return;
+        }
         try {
             this.codeText = showCode(this.codeEl, this.codeLang, this.program);
         } catch (e) {
