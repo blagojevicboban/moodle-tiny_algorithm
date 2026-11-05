@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.3 – 2026-11-10 (stable)
+
+- Same code as 2.4.2, with a new version number: the Moodle Plugins directory test run of 2.4.2 failed before it
+  started (no log files), and an uploaded version number cannot be used again.
+
 ## 2.4.2 – 2026-11-10 (stable)
 
 - **Accessibility (axe: no violations in the viewer, the trace table, the editor, the shortcuts and a quiz question):**
