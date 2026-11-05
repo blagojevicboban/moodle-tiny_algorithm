@@ -181,6 +181,8 @@ export class AlgorithmWorkspace {
      * @param {Object} program the edited program
      */
     save(program) {
+        // The editor also draws again during Run and Step: only a real change makes the test results old.
+        const changed = serialize(program) !== serialize(this.work);
         this.work = cloneProgram(program);
         try {
             if (this.isModified()) {
@@ -191,7 +193,7 @@ export class AlgorithmWorkspace {
         } catch (e) {
             // Storage can be unavailable (private window, quota); the copy then only lasts for this page.
         }
-        if (this.testsPanel) {
+        if (this.testsPanel && changed) {
             this.testsPanel.markStale();
         }
         this.updateModified();

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **Run and Step do not make the test results old:** a student who edits a copy of an exercise and steps through it
+  no longer sees "You changed the algorithm since this run"; only a real change of the algorithm does that
+  (`workspace.js`).
+
 ## 2.2.0 – 2026-11-05 (stable)
 
 - **The running block is marked in the code too:** during Run and Step the lines of the generated code that belong to
