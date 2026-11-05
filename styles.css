@@ -760,6 +760,29 @@ generated code on the right; stacked when the content area is narrow. */
     padding: .25rem 0;
 }
 
+/* The colours of the items do not depend on the theme (some themes paint a focused item dark with dark text). */
+.tiny_algorithm-filemenu .dropdown-item {
+    display: block;
+    width: 100%;
+    padding: .3rem 1rem;
+    border: 0;
+    text-align: left;
+    white-space: nowrap;
+    color: #1d2125;
+    background: transparent;
+}
+
+.tiny_algorithm-filemenu .dropdown-divider {
+    margin: .25rem 0;
+    border-top: 1px solid #dee2e6;
+}
+
+.tiny_algorithm-filemenu .dropdown-item:hover,
+.tiny_algorithm-filemenu .dropdown-item:focus {
+    color: #1d2125;
+    background: #e9ecef;
+}
+
 .tiny_algorithm-toolbar {
     position: relative;
 }

@@ -1238,6 +1238,10 @@ export class AlgorithmEditor {
             }
         }}, ...files, item('trace', () => this.showTrace()), item('shortcuts', () => openShortcuts(this.root)));
         this.btnFile.after(this.fileMenu);
+        // The toolbar is a flex row: an absolute child without a position would go to its start, so put it under the button.
+        const room = this.toolbar.clientWidth - this.fileMenu.offsetWidth - 4;
+        this.fileMenu.style.left = `${Math.max(0, Math.min(this.btnFile.offsetLeft, room))}px`;
+        this.fileMenu.style.top = `${this.btnFile.offsetTop + this.btnFile.offsetHeight + 2}px`;
         this.btnFile.setAttribute('aria-expanded', 'true');
         this.fileMenu.querySelector('button').focus();
         this.closeOnOutside = (ev) => {
