@@ -22,6 +22,7 @@ import assert from 'node:assert/strict';
 import {importFprg, exportFprg} from '../amd/src/flowgorithm.js';
 import {runSync} from '../amd/src/interpreter.js';
 import {renderFunction} from '../amd/src/render.js';
+import {createBlock as B} from '../amd/src/model.js';
 
 const FPRG = `<?xml version="1.0"?>
 <flowgorithm fileversion="3.0">
@@ -99,4 +100,89 @@ test('long and multi-line comments are wrapped into several lines', async() => {
     assert.ok(node.lines.length > 1);
     assert.ok(node.h > 40, 'tall comment box');
     assert.ok(node.w < 500, `comment box width ${node.w}`);
+});
+
+// A function as Flowgorithm itself saves it: the value is in the return variable, there is no Return block.
+const FACT = `<?xml version="1.0"?>
+<!DOCTYPE flowgorithm [ <!ENTITY x "y"> ]>
+<flowgorithm fileversion="4.2">
+    <attributes>
+        <attribute name="name" value="Fakt&#x161;"/>
+        <attribute name="authors" value="&#128512; Ana"/>
+    </attributes>
+    <function name="Main" type="None" variable="">
+        <parameters/>
+        <body>
+            <!-- A comment of the file, not a block. -->
+            <output expression="Fact(5)" newline="True"/>
+        </body>
+    </function>
+    <function name="Fact" type="Integer" variable="r">
+        <parameters>
+            <parameter name="n" type="Integer" array="False"/>
+        </parameters>
+        <body>
+            <declare name="r" type="Integer" array="False" size=""/>
+            <assign variable="r" expression="1"/>
+            <for variable="i" start="2" end="n" direction="inc" step="1">
+                <assign variable="r" expression="r * i"/>
+            </for>
+        </body>
+    </function>
+</flowgorithm>`;
+
+test('the return variable of a Flowgorithm function becomes a Return block and goes back on export', () => {
+    const {program, warnings} = importFprg(FACT);
+    assert.deepEqual(warnings, []);
+    assert.equal(program.name, 'Faktš');
+    assert.equal(runSync(program), '120\n');
+    const fact = program.functions[1];
+    assert.equal(fact.body[fact.body.length - 1].type, 'return');
+    const text = exportFprg(program);
+    assert.doesNotMatch(text, /<return/);
+    assert.match(text, /<function name="Fact" type="Integer" variable="r">/);
+    const again = importFprg(text).program;
+    assert.equal(runSync(again), '120\n');
+    assert.equal(again.functions[1].body.length, fact.body.length);
+});
+
+test('a function whose Return is not the last step is exported with a result variable and a warning', () => {
+    const {program} = importFprg(FACT);
+    const f = program.functions[1];
+    f.body = [B('if', {cond: 'n <= 1', then: [B('return', {expr: '1'})], 'else': []}),
+        B('return', {expr: 'n * Fact(n - 1)'})];
+    const warnings = [];
+    const text = exportFprg(program, warnings);
+    assert.match(text, /<function name="Fact" type="Integer" variable="Result">/);
+    assert.match(text, /<declare name="Result" type="Integer"/);
+    assert.match(text, /<assign variable="Result" expression="n \* Fact\(n - 1\)"\/>/);
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /Fact/);
+});
+
+test('functions Flowgorithm names differently are renamed, missing ones and Break are reported', () => {
+    const {program} = importFprg(FACT);
+    program.functions[0].body = [B('output', {expr: 'ToInt(2.5) + Sign(-1) + Pi() + Floor(2.5) + Round(1)'}),
+        B('while', {cond: 'true', body: [B('break')]})];
+    const warnings = [];
+    const text = exportFprg(program, warnings);
+    assert.match(text, /expression="ToInteger\(2\.5\) \+ Sgn\(-1\) \+ Pi \+ Floor\(2\.5\) \+ Round\(1\)"/);
+    assert.equal(warnings.length, 2);
+    assert.ok(warnings.some((w) => /Break/.test(w)));
+    assert.ok(warnings.some((w) => /Floor, Round/.test(w)));
+});
+
+test('the XML reader checks the document', () => {
+    const broken = (text, re) => assert.throws(() => importFprg(text), re);
+    broken('<flowgorithm><function name="Main"><body></function></flowgorithm>', /<function>/);
+    broken('<flowgorithm><function name="Main"><body/>', /<function>/);
+    broken('just text', /not a valid XML/);
+    broken('<flowgorithm><x a="&#xD800;"/></flowgorithm>', /not a valid XML/);
+    broken('<other/>', /not a Flowgorithm file/);
+    broken('<flowgorithm><attributes/></flowgorithm>', /no functions/);
+    broken(`${'<a>'.repeat(300)}${'</a>'.repeat(300)}`, /too large/);
+    broken(`<flowgorithm>${'<comment text="x"/>'.repeat(20001)}</flowgorithm>`, /too large/);
+    broken(`<flowgorithm><!--${'x'.repeat(3 * 1024 * 1024)}--></flowgorithm>`, /too large/);
+    const cdata = importFprg(FACT.replace('<parameters/>', '<parameters/><![CDATA[ <if expression="x"> ]]>'));
+    assert.equal(runSync(cdata.program), '120\n');
 });

@@ -987,7 +987,11 @@ export class AlgorithmEditor {
             this.log(this.t('fprgmatrix'), 'tiny_algorithm-error'); // Flowgorithm has no matrices.
             return;
         }
-        this.download(`${this.program.name || 'algorithm'}.fprg`, exportFprg(this.program), 'application/xml');
+        const warnings = [];
+        this.download(`${this.program.name || 'algorithm'}.fprg`, exportFprg(this.program, warnings), 'application/xml');
+        if (warnings.length) {
+            this.log(warnings.join('\n'), 'tiny_algorithm-info');
+        }
     }
 
     /**

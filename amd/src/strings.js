@@ -42,6 +42,13 @@ export const STR = {
         moveto: 'Move to…', copyto: 'Copy to…', placehint: 'Click the + sign where the block should go (Escape cancels).',
         imported: 'Flowgorithm file imported.', stopped: 'Stopped.',
         fprgmatrix: 'Flowgorithm files cannot hold matrices (arrays with two sizes), so the algorithm was not exported.',
+        fprginvalid: 'This is not a valid XML file.', fprgmismatch: 'The XML file is broken near the element <{name}>.',
+        fprgnotflowgorithm: 'This is not a Flowgorithm file.', fprgnofunctions: 'The Flowgorithm file has no functions.',
+        fprgtoolarge: 'The file is too large or too deeply nested.', fprgskipped: 'Unsupported element <{name}> was skipped.',
+        fprgreturn: 'Flowgorithm returns a value only at the end of a function: the Return blocks of {name} that are not ' +
+            'the last step became assignments, so the function goes on after them.',
+        fprgbreak: 'Flowgorithm has no Break and Continue blocks; they were left out.',
+        fprgbuiltin: 'Flowgorithm does not have these functions: {names}.',
         finished: 'Program finished.', error: 'Error',
         'f.name': 'Name', 'f.varType': 'Type', 'f.size': 'Array size (empty = single value)',
         'f.size2': 'Second size (matrix: columns; empty = array)', 'f.target': 'Variable',
