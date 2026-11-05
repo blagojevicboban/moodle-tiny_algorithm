@@ -2221,6 +2221,28 @@ export const languageLabels = Object.fromEntries([...Object.entries(LANGS), ...O
     .map(([k, l]) => [k, l.label]));
 // The name of pseudo-code is in the language of the user (read when the list is drawn).
 Object.defineProperty(languageLabels, 'pseudo', {enumerable: true, get: () => t('pseudocode')});
+/**
+ * The language the code panel shows first: the one the teacher chose for the diagram, else the last one this browser
+ * chose for a new diagram, else Python.
+ *
+ * @param {Object} program algorithm (its codeLang)
+ * @returns {string}
+ */
+export const defaultLanguage = (program) => {
+    if (program && languages.includes(program.codeLang)) {
+        return program.codeLang;
+    }
+    try {
+        const last = window.localStorage.getItem('tiny_algorithm_codelang');
+        if (languages.includes(last)) {
+            return last;
+        }
+    } catch (e) {
+        // No storage: Python.
+    }
+    return 'python';
+};
+
 export const extensionOf = (lang) => (lang === 'pseudo' ? 'txt' : (own(LANGS, lang) || TYPED[lang]).ext);
 
 /**

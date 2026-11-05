@@ -233,13 +233,14 @@ export const openEditor = async(editor) => {
     const separate = box('separatetemplate');
     separate.checked = Boolean(savedSolution);
 
-    const widget = new AlgorithmEditor(pane('solution'), {program: savedSolution || shown, lang});
+    const widget = new AlgorithmEditor(pane('solution'), {program: savedSolution || shown, lang, chooseLanguage: true});
     let template = null;
     let templateStart = null;
     const templateHost = root.querySelector('.tiny_algorithm-template');
     const ensureTemplate = () => {
         if (!template) {
-            template = new AlgorithmEditor(templateHost, {program: savedSolution ? shown : widget.getProgram(), lang});
+            template = new AlgorithmEditor(templateHost, {program: savedSolution ? shown : widget.getProgram(), lang,
+                chooseLanguage: true});
             templateStart = JSON.stringify(template.getProgram());
         }
         return template;

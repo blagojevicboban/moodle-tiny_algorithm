@@ -28,7 +28,7 @@ import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
 import {Watch} from './watch';
-import {generate, languages, languageLabels} from './codegen';
+import {defaultLanguage, generate, languages, languageLabels} from './codegen';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
 
 const el = (tag, attrs = {}, ...kids) => {
@@ -65,7 +65,7 @@ export class AlgorithmRunner {
         this.breakpoints = new Set();
         this.errorId = null;
         this.trace = [];
-        this.codeLang = 'python';
+        this.codeLang = defaultLanguage(program);
         this.build(host);
     }
 
@@ -108,7 +108,7 @@ export class AlgorithmRunner {
         // The algorithm as text, for screen readers and for printing.
         const description = el('details', {'class': 'tiny_algorithm-textdesc'}, el('summary', {}, this.t('textdescription')),
             el('pre', {}, generate('pseudo', this.program)));
-        this.root = el('div', {'class': 'tiny_algorithm-viewer'}, main, description, this.announcer);
+        this.root = el('div', {'class': 'tiny_algorithm-viewer'}, main, this.announcer);
         attachNotes(this.svgHost, this.root);
         if (this.showWatch) {
             this.root.classList.toggle('tiny_algorithm-hide-watch', AlgorithmRunner.watchHidden());
@@ -122,7 +122,7 @@ export class AlgorithmRunner {
                 onchange: () => {
                     this.codeLang = this.codeSelect.value;
                     this.renderCode();
-                }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
+                }}, languages.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
             this.codeToggle = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-code-toggle',
                 onclick: () => this.toggleCode()});
             this.bar.append(this.codeToggle);
@@ -145,6 +145,8 @@ export class AlgorithmRunner {
                 this.showBlock(null);
             }
         });
+        // After the code, so the code stays beside the diagram and the description goes under both.
+        this.root.append(description);
         host.classList.add('tiny_algorithm-viewer-host');
         host.replaceChildren(this.root);
         // Large diagrams start fitted to the available width.

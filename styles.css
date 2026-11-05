@@ -735,6 +735,9 @@ generated code on the right; stacked when the content area is narrow. */
 .tiny_algorithm-canvaswrap {
     position: relative;
     min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .tiny_algorithm-canvaswrap > .tiny_algorithm-zoom {
@@ -972,4 +975,23 @@ generated code on the right; stacked when the content area is narrow. */
 
 .tiny_algorithm-test-run {
     margin-left: auto;
+}
+
+/* A wide editor (full screen): the code in its own column, right of the diagram and the side panel. */
+.tiny_algorithm-wide .tiny_algorithm-main > .tiny_algorithm-pane {
+    flex: 0 0 34%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+}
+
+.tiny_algorithm-wide .tiny_algorithm-main > .tiny_algorithm-pane .tiny_algorithm-code {
+    flex: 1 1 auto;
+    max-height: none;
+}
+
+/* The text description goes under the diagram (and the code), over the whole width. */
+.tiny_algorithm-viewer > .tiny_algorithm-textdesc {
+    grid-column: 1 / -1;
 }

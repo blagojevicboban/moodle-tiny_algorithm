@@ -32,7 +32,7 @@ import {openTrace} from './trace';
 import {attachNotes} from './notes';
 import {markRun} from './runmarks';
 import {checkExpr} from './expr';
-import {isMatrix, languages, languageLabels, extensionOf} from './codegen';
+import {defaultLanguage, isMatrix, languages, languageLabels, extensionOf} from './codegen';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
 import {importFprg, exportFprg} from './flowgorithm';
 import {errorText, t as tr} from './strings';
@@ -80,6 +80,8 @@ let clipboard = null;
 
 // Distance (px) the pointer must move before pressing a block becomes dragging it.
 const DRAG_START = 6;
+// Width (px) from which the code has its own column.
+const WIDE = 1400;
 // Time (ms) a finger rests on a block before its menu opens.
 const LONG_PRESS = 600;
 
@@ -92,9 +94,13 @@ export class AlgorithmEditor {
      * @param {Function|null} [options.onChange] called with the algorithm after each drawing
      * @param {boolean} [options.showCode] show the generated code (a quiz question may hide it)
      * @param {boolean} [options.fileTools] show import, export and the image buttons (a quiz question may hide them)
+     * @param {boolean} [options.chooseLanguage] the language chosen in the code panel becomes the diagram's default
+     *     (the teacher's editors; a student's choice does not change the answer)
      */
-    constructor(container, {program = null, lang = null, onChange = null, showCode = true, fileTools = true} = {}) {
+    constructor(container, {program = null, lang = null, onChange = null, showCode = true, fileTools = true,
+            chooseLanguage = false} = {}) {
         this.lang = lang;
+        this.chooseLanguage = chooseLanguage;
         this.showCode = showCode;
         this.fileTools = fileTools;
         this.onChange = onChange;
@@ -107,7 +113,7 @@ export class AlgorithmEditor {
         this.running = null;
         this.breakpoints = new Set();
         this.trace = [];
-        this.codeLang = 'python';
+        this.codeLang = defaultLanguage(this.program);
         this.build(container);
         this.refresh();
     }
@@ -151,7 +157,7 @@ export class AlgorithmEditor {
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnStep, this.btnStop,
             el('span', {'class': 'tiny_algorithm-speedbox'}, el('span', {'aria-hidden': 'true'}, this.t('slow')), this.speed,
                 el('span', {'aria-hidden': 'true'}, this.t('fast'))),
-            el('span', {'class': 'tiny_algorithm-grow'}), this.btnFile, this.fileInput);
+            el('span', {'class': 'tiny_algorithm-sep'}), this.btnFile, this.fileInput);
         this.canvas = el('div', {'class': 'tiny_algorithm-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
             onkeydown: (e) => this.onKey(e), oncopy: (e) => this.onCopy(e, false), oncut: (e) => this.onCopy(e, true),
             onpaste: (e) => this.onPaste(e), onpointerdown: (e) => this.onPointerDown(e),
@@ -171,10 +177,9 @@ export class AlgorithmEditor {
         this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log'});
         this.codeEl = el('pre', {'class': 'tiny_algorithm-code', tabindex: '0', title: this.t('codehint'),
             onclick: (e) => this.selectFromCode(blockAt(e)), onkeydown: (e) => this.onCodeKey(e)});
-        this.codeSelect = el('select', {'class': 'custom-select custom-select-sm', onchange: () => {
-            this.codeLang = this.codeSelect.value;
-            this.renderCode();
-        }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
+        this.codeSelect = el('select', {'class': 'custom-select custom-select-sm', 'aria-label': this.t('code'),
+            onchange: () => this.setLanguage(this.codeSelect.value)},
+        languages.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
         this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeText || ''));
         this.dlBtn = btn('download', () => this.exportCode());
         this.tabConsole = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('console'), ' ', this.statusEl),
@@ -193,9 +198,14 @@ export class AlgorithmEditor {
         this.tabCode.dataset.sidepane = 'code';
         this.side = el('div', {'class': 'tiny_algorithm-side', 'data-sidetab': 'console'}, this.props, this.tabBar, this.tabConsole,
             this.tabWatch, this.showCode ? this.tabCode : []);
+        this.main = el('div', {'class': 'tiny_algorithm-main'}, this.canvasWrap, this.side);
         this.root = el('div', {'class': 'tiny_algorithm-editor', onkeydown: (e) => this.onRunKey(e)}, this.toolbar,
-            this.emptyBar(), el('div', {'class': 'tiny_algorithm-main'}, this.canvasWrap, this.side), this.announcer);
+            this.emptyBar(), this.main, this.announcer);
         container.append(this.root);
+        // A wide editor (full screen) shows the code in its own column, right of the diagram.
+        if (this.showCode && typeof ResizeObserver === 'function') {
+            new ResizeObserver(() => this.placeCode()).observe(this.root);
+        }
         this.palette = null;
     }
 
@@ -282,6 +292,27 @@ export class AlgorithmEditor {
         if (this.onChange) {
             this.onChange(this.program);
         }
+    }
+
+    /**
+     * Show the code in another language; in the teacher's editors it becomes the default of the diagram.
+     *
+     * @param {string} lang language
+     */
+    setLanguage(lang) {
+        this.codeLang = lang;
+        if (this.chooseLanguage) {
+            this.program.codeLang = lang;
+            try {
+                window.localStorage.setItem('tiny_algorithm_codelang', lang);
+            } catch (e) {
+                // Without storage new diagrams start with Python.
+            }
+            if (this.onChange) {
+                this.onChange(this.program);
+            }
+        }
+        this.renderCode();
     }
 
     renderCode() {
@@ -599,8 +630,8 @@ export class AlgorithmEditor {
     openPalette(slot, e, item) {
         const rect = this.canvas.getBoundingClientRect();
         const at = item ? item.getBoundingClientRect() : null;
-        const x = (at ? at.right : e.clientX || rect.left + 20) - rect.left + this.canvas.scrollLeft;
-        const y = (at ? at.top : e.clientY || rect.top + 20) - rect.top + this.canvas.scrollTop;
+        const x = at ? at.right : e.clientX || rect.left + 20;
+        const y = at ? at.top : e.clientY || rect.top + 20;
         const paste = clipboard && blocksFromText(clipboard) ? [el('button', {
             type: 'button', role: 'menuitem', 'class': 'btn btn-sm btn-light tiny_algorithm-paste',
             onclick: (ev) => {
@@ -609,7 +640,7 @@ export class AlgorithmEditor {
                 this.insertBlocks(blocksFromText(clipboard), slot.list, slot.index);
             },
         }, this.t('paste'))] : [];
-        this.palette = el('div', {'class': 'tiny_algorithm-palette', role: 'menu', style: `left:${x + 6}px;top:${y + 6}px`,
+        this.palette = el('div', {'class': 'tiny_algorithm-palette', role: 'menu',
             onkeydown: (ev) => this.onPaletteKey(ev, item)}, ...paste,
             PALETTE.filter((type) => slot.inLoop || !LOOP_ONLY.includes(type)).map((type) => el('button', {
                 type: 'button', role: 'menuitem', 'class': 'btn btn-sm btn-light',
@@ -629,7 +660,7 @@ export class AlgorithmEditor {
                     }
                 },
             }, this.t(`b.${type}`))));
-        this.canvas.append(this.palette);
+        this.placeMenu(x, y);
         const first = this.palette.querySelector('button');
         if (first) {
             first.focus();
@@ -700,20 +731,37 @@ export class AlgorithmEditor {
             this.refocus = true;
             this.deleteSelected();
         }]);
-        const rect = this.canvas.getBoundingClientRect();
         const at = keyboard && target() ? target().getBoundingClientRect() : null;
-        const x = (at ? at.right : e.clientX) - rect.left + this.canvas.scrollLeft;
-        const y = (at ? at.top : e.clientY) - rect.top + this.canvas.scrollTop;
+        const x = at ? at.right : e.clientX;
+        const y = at ? at.top : e.clientY;
         this.palette = el('div', {'class': 'tiny_algorithm-palette tiny_algorithm-context', role: 'menu',
-            style: `left:${x + 2}px;top:${y + 2}px`, onkeydown: (ev) => this.onPaletteKey(ev, target())},
+            onkeydown: (ev) => this.onPaletteKey(ev, target())},
         actions.map(([key, run]) => el('button', {type: 'button', role: 'menuitem', 'class': 'btn btn-sm btn-light',
             onclick: (ev) => {
                 ev.stopPropagation();
                 this.closePalette();
                 run();
             }}, this.t(key))));
-        this.canvas.append(this.palette);
+        this.placeMenu(x, y);
         this.palette.querySelector('button').focus();
+    }
+
+    /**
+     * Put the open menu (blocks or the menu of a block) at a point of the screen, inside the editor: it is not cut off by
+     * the scrolling diagram, and it moves left or up when there is no room.
+     *
+     * @param {number} x client x
+     * @param {number} y client y
+     */
+    placeMenu(x, y) {
+        const box = this.root.getBoundingClientRect();
+        this.root.append(this.palette);
+        const w = this.palette.offsetWidth;
+        const h = this.palette.offsetHeight;
+        const left = Math.max(4, Math.min(x - box.left + 6, box.width - w - 4));
+        const top = Math.max(4, Math.min(y - box.top + 6, box.height - h - 4));
+        this.palette.style.left = `${left}px`;
+        this.palette.style.top = `${top}px`;
     }
 
     /**
@@ -1202,6 +1250,17 @@ export class AlgorithmEditor {
             this.btnFile.setAttribute('aria-expanded', 'false');
             document.removeEventListener('click', this.closeOnOutside);
         }
+    }
+
+    /** The code beside the diagram when the editor is wide, under the console and the variables when it is not. */
+    placeCode() {
+        const wide = this.root.clientWidth >= WIDE;
+        if (wide && this.tabCode.parentElement !== this.main) {
+            this.main.append(this.tabCode);
+        } else if (!wide && this.tabCode.parentElement !== this.side) {
+            this.side.append(this.tabCode);
+        }
+        this.root.classList.toggle('tiny_algorithm-wide', wide);
     }
 
     /**

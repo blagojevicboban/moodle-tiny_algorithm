@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.4.1 – 2026-11-10 (stable)
+
+- **Default code language:** the language chosen in the code panel of the insert dialog (or of the question form)
+  becomes the language every reader sees first; new diagrams start with the teacher's last choice. A student's choice
+  in an attempt does not change the answer. The language list also shows the language really shown (it showed
+  Pseudo-code above Python code).
+- **Wide editor (full screen):** the code has its own column right of the diagram; the diagram uses the whole width
+  again; the File button stays next to the other buttons.
+- **Menus are not cut off:** the block menu and the menu of a block open inside the editor, not inside the scrolling
+  diagram, and move left or up when there is no room.
+- **Viewer:** the Text description goes under the diagram and the code.
+- **Fix:** a click in the side panel of the insert dialog switched its tabs (the panel used the dialog's attributes).
+- Checked with the Boost and Moove themes.
+
 ## 2.4.0 – 2026-11-10 (stable)
 
 Interpreter (the same in qtype_algorithm's PHP interpreter, checked by the parity fixtures):

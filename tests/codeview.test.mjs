@@ -62,3 +62,10 @@ test('the arrow keys go from block to block through the code lines', () => {
     assert.equal(nextBlock(pre, null, -1), after.id);
     assert.equal(nextBlock(pre, after.id, 1), null);
 });
+
+test('the code panel starts with the language chosen for the diagram, else Python', async() => {
+    const {defaultLanguage} = await import('../amd/src/codegen.js');
+    assert.equal(defaultLanguage({codeLang: 'c', functions: []}), 'c');
+    assert.equal(defaultLanguage({codeLang: 'cobol', functions: []}), 'python');
+    assert.equal(defaultLanguage(null), 'python');
+});
