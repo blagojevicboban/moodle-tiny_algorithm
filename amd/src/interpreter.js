@@ -231,6 +231,9 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
     let written = 0;
     let lastEnv = Object.create(null);
     let topArgs = [];
+    // Calls running now, as the variables panel shows them: Main(), Fact(5), ...
+    const stack = [];
+    const argText = (v) => (Array.isArray(v) ? '[…]' : fmt(v));
     // Arrays written in the call of a function test ([1, 2]); their elements get the type of the parameter.
     const literals = new WeakSet();
     const random = seed === null ? Math.random : seededRandom(seed);
@@ -410,7 +413,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
         if (++steps > maxSteps) {
             throw new AlgorithmError('steplimit');
         }
-        return {event: 'step', id, vars: snapshot(env)};
+        return {event: 'step', id, vars: snapshot(env), stack: stack.slice()};
     };
 
     /**
@@ -651,6 +654,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
             env[p.name.toLowerCase()] = {name: p.name, type: p.type, value, dims};
         });
         depth++;
+        stack.push(`${fn.name}(${args.map(argText).join(', ')})`);
         let r;
         try {
             r = yield* runList(fn.body, env);
@@ -662,6 +666,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
             throw e;
         } finally {
             depth--;
+            stack.pop();
         }
         lastEnv = env; // The last function to finish is the main one.
         return r ? r[1] : undefined;

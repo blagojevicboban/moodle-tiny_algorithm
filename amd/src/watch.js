@@ -26,6 +26,8 @@ import {t as tr} from './strings';
 const MAX_ITEMS = 12;
 // A matrix is shown as a small table of at most this many rows and columns.
 const MAX_CELLS = 8;
+// A deeper call stack shows its first two and its last calls.
+const MAX_STACK = 8;
 
 const isMatrix = (value) => Array.isArray(value) && value.length > 0 && Array.isArray(value[0]);
 
@@ -56,7 +58,6 @@ export class Watch {
         this.previous = new Map();
         this.root = document.createElement('div');
         this.root.className = 'tiny_algorithm-watch';
-        this.root.setAttribute('aria-live', 'polite');
         this.clear();
     }
 
@@ -73,12 +74,13 @@ export class Watch {
      * Show the given variables.
      *
      * @param {Array<{name: string, type: string, value: *}>} vars snapshot sent by the interpreter
+     * @param {string[]} [stack] calls running now, the current one last
      */
-    update(vars) {
+    update(vars, stack = []) {
         if (!Array.isArray(vars)) {
             return;
         }
-        if (!vars.length) {
+        if (!vars.length && !(stack && stack.length > 1)) {
             this.clear();
             return;
         }
@@ -108,7 +110,37 @@ export class Watch {
         }
         table.append(body);
         this.previous = next;
-        this.root.replaceChildren(table);
+        this.root.replaceChildren(...this.stackTrail(stack), table);
+    }
+
+    /**
+     * The calls running now (Main › Fact(5) › Fact(4)), shown when a function was called; a deep stack keeps its start
+     * and its end.
+     *
+     * @param {string[]} stack calls, the current one last
+     * @returns {HTMLElement[]}
+     */
+    stackTrail(stack) {
+        if (!Array.isArray(stack) || stack.length < 2) {
+            return [];
+        }
+        const shown = stack.length > MAX_STACK ? [...stack.slice(0, 2), '…', ...stack.slice(-(MAX_STACK - 3))] : stack;
+        const trail = document.createElement('div');
+        trail.className = 'tiny_algorithm-stack';
+        trail.setAttribute('aria-label', tr('callstack', this.lang));
+        shown.forEach((call, i) => {
+            if (i) {
+                const sep = document.createElement('span');
+                sep.className = 'tiny_algorithm-stack-sep';
+                sep.textContent = '›';
+                sep.setAttribute('aria-hidden', 'true');
+                trail.append(sep);
+            }
+            const item = document.createElement(i === shown.length - 1 ? 'strong' : 'span');
+            item.textContent = call;
+            trail.append(item);
+        });
+        return [trail];
     }
 
     /**

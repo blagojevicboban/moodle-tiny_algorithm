@@ -20,7 +20,8 @@
  * @copyright  2026 Boban Blagojević
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-import {execute} from './interpreter';
+import {runSession} from './session';
+import {markRun} from './runmarks';
 import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
@@ -59,6 +60,9 @@ export class AlgorithmRunner {
         this.showWatch = showWatch;
         this.running = null;
         this.selected = null;
+        this.breakpoints = new Set();
+        this.errorId = null;
+        this.trace = [];
         this.codeLang = 'python';
         this.build(host);
     }
@@ -77,8 +81,11 @@ export class AlgorithmRunner {
             type: 'range', min: 0, max: 1000, value: 600, 'class': 'tiny_algorithm-speed', 'aria-label': this.t('speed'),
         });
         this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log', 'aria-live': 'polite'});
+        this.statusEl = el('span', {'class': 'tiny_algorithm-status', role: 'status', hidden: true});
+        this.announcer = el('div', {'class': 'sr-only visually-hidden', 'aria-live': 'polite'});
+        this.btnRun = btn('run', () => this.onRun());
         this.bar = el('div', {'class': 'tiny_algorithm-view-bar'},
-            btn('run', () => this.onRun()), btn('step', () => this.onStep()), btn('reset', () => this.reset()), this.speed,
+            this.btnRun, btn('step', () => this.onStep()), btn('reset', () => this.reset()), this.speed, this.statusEl,
             this.zoom.controls((key) => this.t(key)));
         this.watch = new Watch(this.lang);
         const mainParts = [this.svgHost, this.bar, this.consoleEl];
@@ -90,7 +97,7 @@ export class AlgorithmRunner {
                 this.watch.root));
         }
         const main = el('div', {'class': 'tiny_algorithm-view-main'}, ...mainParts);
-        this.root = el('div', {'class': 'tiny_algorithm-viewer'}, main);
+        this.root = el('div', {'class': 'tiny_algorithm-viewer'}, main, this.announcer);
         if (this.showWatch) {
             this.root.classList.toggle('tiny_algorithm-hide-watch', AlgorithmRunner.watchHidden());
             this.updateWatchToggle();
@@ -167,11 +174,16 @@ export class AlgorithmRunner {
      * @param {MouseEvent} e
      */
     onDiagramClick(e) {
+        const node = e.target instanceof Element ? e.target.closest('.tiny_algorithm-node[data-id]') : null;
+        const id = node && !['start', 'end'].includes(node.dataset.id) ? node.dataset.id : null;
+        if (e.altKey && id) {
+            // Alt + click sets or removes a breakpoint.
+            this.toggleBreakpoint(id);
+            return;
+        }
         if (this.running || !this.codeShown()) {
             return;
         }
-        const node = e.target instanceof Element ? e.target.closest('.tiny_algorithm-node[data-id]') : null;
-        const id = node && !['start', 'end'].includes(node.dataset.id) ? node.dataset.id : null;
         this.showBlock(id === this.selected ? null : id);
     }
 
@@ -216,6 +228,35 @@ export class AlgorithmRunner {
             return;
         }
         markCode(this.codeEl, this.selected, SELECTED, false);
+        markRun(null, this.codeEl, this.breakpoints, this.errorId);
+    }
+
+    /**
+     * Set or remove a breakpoint: Run stops before the block and goes on with Step or Run.
+     *
+     * @param {string} id block id
+     */
+    toggleBreakpoint(id) {
+        if (this.breakpoints.has(id)) {
+            this.breakpoints.delete(id);
+        } else {
+            this.breakpoints.add(id);
+        }
+        markRun(this.svgHost, this.codeEl, this.breakpoints, this.errorId);
+        this.announcer.textContent = this.t(this.breakpoints.has(id) ? 'breakpointset' : 'breakpointremoved');
+    }
+
+    /**
+     * Show the state of the run next to the buttons.
+     *
+     * @param {string} state running, paused, done, stopped or error
+     * @param {number} step steps so far
+     */
+    showStatus(state, step) {
+        this.statusEl.hidden = state === 'running' && !step;
+        this.statusEl.className = `tiny_algorithm-status tiny_algorithm-status-${state}`;
+        this.statusEl.textContent = this.t(`status${state}`, {step});
+        this.btnRun.textContent = this.t(state === 'paused' ? 'resume' : 'run');
     }
 
     /**
@@ -289,6 +330,10 @@ export class AlgorithmRunner {
         this.consoleEl.replaceChildren();
         this.watch.clear();
         this.highlight(null);
+        this.errorId = null;
+        this.statusEl.hidden = true;
+        this.btnRun.textContent = this.t('run');
+        markRun(this.svgHost, this.codeEl, this.breakpoints, null);
     }
 
     log(text, cls = '') {
@@ -328,20 +373,7 @@ export class AlgorithmRunner {
         }
     }
 
-    waitNext(run) {
-        return new Promise((resolve) => {
-            run.wake = resolve;
-            if (!run.stepMode) {
-                run.timer = setTimeout(resolve, Number(this.speed.max) - Number(this.speed.value));
-            }
-        }).then(() => {
-            clearTimeout(run.timer);
-            run.wake = null;
-            return null;
-        });
-    }
-
-    askInput(run, ev) {
+    askInput(run, ev, hint) {
         return new Promise((resolve) => {
             const row = this.log(`${ev.name} (${ev.type}) ? `);
             const input = el('input', {type: 'text', 'class': 'form-control form-control-sm tiny_algorithm-input',
@@ -356,8 +388,14 @@ export class AlgorithmRunner {
                     }
                 }});
             row.append(input);
+            if (hint) {
+                const note = el('span', {'class': 'tiny_algorithm-inputhint', id: `tiny_algorithm-h${Date.now()}`}, hint);
+                row.append(note);
+                input.setAttribute('aria-invalid', 'true');
+                input.setAttribute('aria-describedby', note.id);
+            }
             input.focus();
-            run.wake = () => resolve('');
+            run.wake = () => resolve(null);
         });
     }
 
@@ -365,44 +403,43 @@ export class AlgorithmRunner {
         const run = {stepMode, stopped: false, clear: false, wake: null, timer: null};
         this.showBlock(null, false);
         this.running = run;
+        this.errorId = null;
+        markRun(this.svgHost, this.codeEl, this.breakpoints, null);
         this.consoleEl.replaceChildren();
         this.watch.clear();
+        const ui = {
+            program: this.program,
+            breakpoints: this.breakpoints,
+            delay: () => Number(this.speed.max) - Number(this.speed.value),
+            highlight: (id) => this.highlight(id),
+            branch: (ev) => showBranch(this.svgHost, ev),
+            watch: (vars, stack) => this.watch.update(vars, stack),
+            output: (text) => this.write(text),
+            info: (text) => this.log(text, 'tiny_algorithm-info'),
+            error: (text, id) => {
+                this.log(`${this.t('error')}: ${text}`, 'tiny_algorithm-error');
+                this.errorId = id;
+            },
+            ask: (ev, hint) => this.askInput(run, ev, hint),
+            status: (state, step) => this.showStatus(state, step),
+            announce: (text) => {
+                this.announcer.textContent = text;
+            },
+        };
         try {
-            const gen = execute(this.program);
-            let res = gen.next();
-            while (!res.done && !run.stopped) {
-                const ev = res.value;
-                if (ev.event === 'step') {
-                    this.highlight(ev.id);
-                    this.watch.update(ev.vars);
-                    await this.waitNext(run);
-                } else if (ev.event === 'branch') {
-                    showBranch(this.svgHost, ev);
-                } else if (ev.event === 'done') {
-                    this.watch.update(ev.vars);
-                } else if (ev.event === 'output') {
-                    this.write(ev.text);
-                } else if (ev.event === 'input') {
-                    const v = await this.askInput(run, ev);
-                    if (run.stopped) {
-                        break;
-                    }
-                    res = gen.next(v);
-                    continue;
-                }
-                res = gen.next();
-            }
-            if (!run.clear) {
-                this.log(run.stopped ? this.t('stopped') : this.t('finished'), 'tiny_algorithm-info');
-            }
-        } catch (err) {
-            this.log(`${this.t('error')}: ${errorText(err)}`, 'tiny_algorithm-error');
+            this.trace = await runSession(ui, run);
+            this.traceCut = Boolean(run.traceCut);
         } finally {
             this.running = null;
             this.highlight(null);
+            markRun(this.svgHost, this.codeEl, this.breakpoints, this.errorId);
+            if (this.errorId) {
+                revealNode(this.svgHost, this.errorId);
+            }
             if (run.clear) {
                 this.consoleEl.replaceChildren();
                 this.watch.clear();
+                this.statusEl.hidden = true;
             }
         }
     }

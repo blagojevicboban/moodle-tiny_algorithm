@@ -26,7 +26,8 @@ import {
     renameFunction, walk,
 } from './model';
 import {renderFunction, renderProgram, showBranch} from './render';
-import {execute} from './interpreter';
+import {runSession} from './session';
+import {markRun} from './runmarks';
 import {checkExpr} from './expr';
 import {isMatrix, languages, languageLabels, extensionOf} from './codegen';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
@@ -99,6 +100,8 @@ export class AlgorithmEditor {
         this.redoStack = [];
         this.slots = [];
         this.running = null;
+        this.breakpoints = new Set();
+        this.trace = [];
         this.codeLang = 'python';
         this.build(container);
         this.refresh();
@@ -131,11 +134,14 @@ export class AlgorithmEditor {
         this.btnRun = btn('run', () => this.start(false));
         this.btnStep = btn('step', () => this.start(true));
         this.btnStop = btn('stop', () => this.stop());
+        this.statusEl = el('span', {'class': 'tiny_algorithm-status', role: 'status', hidden: true});
+        // What a screen reader hears while stepping (the panels change too often to be read).
+        this.announcer = el('div', {'class': 'sr-only visually-hidden', 'aria-live': 'polite'});
 
         this.toolbar = el('div', {'class': 'tiny_algorithm-toolbar'},
             this.fnSelect, btn('addfn', () => this.addFunction()), btn('delfn', () => this.removeFunction()),
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnUndo, this.btnRedo,
-            el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnStep, this.btnStop, this.speed,
+            el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnStep, this.btnStop, this.speed, this.statusEl,
             el('span', {'class': 'tiny_algorithm-sep'}), el('span', {'class': 'tiny_algorithm-zoom-slot'}),
             this.fileTools ? [el('span', {'class': 'tiny_algorithm-sep'}), btn('import', () => this.fileInput.click()),
                 btn('export', () => this.exportFile()),
@@ -171,8 +177,8 @@ export class AlgorithmEditor {
         this.tabWatch = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('variables')), this.watch.root);
         this.side = el('div', {'class': 'tiny_algorithm-side'}, this.props, this.tabConsole, this.tabWatch,
             this.showCode ? this.tabCode : []);
-        this.root = el('div', {'class': 'tiny_algorithm-editor'}, this.toolbar,
-            el('div', {'class': 'tiny_algorithm-main'}, this.canvas, this.side));
+        this.root = el('div', {'class': 'tiny_algorithm-editor', onkeydown: (e) => this.onRunKey(e)}, this.toolbar,
+            el('div', {'class': 'tiny_algorithm-main'}, this.canvas, this.side), this.announcer);
         container.append(this.root);
         this.palette = null;
     }
@@ -180,6 +186,8 @@ export class AlgorithmEditor {
     // ---- State / history --------------------------------------------------------------------------------------------------
 
     commit(mutator) {
+        // A change of the algorithm removes the mark of the last error.
+        this.errorId = null;
         this.undoStack.push(JSON.stringify(this.program));
         if (this.undoStack.length > 100) {
             this.undoStack.shift();
@@ -244,11 +252,14 @@ export class AlgorithmEditor {
         this.setupFocus();
         this.btnUndo.disabled = !this.undoStack.length;
         this.btnRedo.disabled = !this.redoStack.length;
-        this.btnRun.disabled = Boolean(this.running);
+        this.btnRun.textContent = this.t(this.running && this.running.stepMode ? 'resume' : 'run');
+        this.btnRun.title = this.btnRun.textContent;
         this.btnStop.disabled = !this.running;
+        markRun(this.canvas, this.codeEl, this.breakpoints, this.errorId);
         this.renderProps();
         this.lockProps();
         this.renderCode();
+        markRun(this.canvas, this.codeEl, this.breakpoints, this.errorId);
         if (this.onChange) {
             this.onChange(this.program);
         }
@@ -628,6 +639,7 @@ export class AlgorithmEditor {
             ['duplicate', () => this.duplicate()],
             ['moveto', () => this.startPlacing(id, false)],
             ['copyto', () => this.startPlacing(id, true)],
+            [this.breakpoints.has(id) ? 'breakpointoff' : 'breakpoint', () => this.toggleBreakpoint(id)],
         ];
         if (clipboard && blocksFromText(clipboard)) {
             actions.push(['paste', () => {
@@ -1062,20 +1074,45 @@ export class AlgorithmEditor {
         }
     }
 
-    waitNext(run) {
-        return new Promise((resolve) => {
-            run.wake = resolve;
-            if (!run.stepMode) {
-                run.timer = setTimeout(resolve, Number(this.speed.max) - Number(this.speed.value));
-            }
-        }).then(() => {
-            clearTimeout(run.timer);
-            run.wake = null;
-            return null;
-        });
+    /**
+     * Keys of the whole editor: F5 runs or continues, F10 steps, F9 sets or removes the breakpoint of the selected block.
+     *
+     * @param {KeyboardEvent} e
+     */
+    onRunKey(e) {
+        if (e.key === 'F5' || e.key === 'F10') {
+            e.preventDefault();
+            this.start(e.key === 'F10');
+        } else if (e.key === 'F9' && this.selected) {
+            e.preventDefault();
+            this.toggleBreakpoint(this.selected);
+        }
     }
 
-    askInput(run, ev) {
+    /**
+     * Set or remove a breakpoint: Run stops before the block and continues with Step or Continue.
+     *
+     * @param {string} id block id
+     */
+    toggleBreakpoint(id) {
+        if (this.breakpoints.has(id)) {
+            this.breakpoints.delete(id);
+        } else {
+            this.breakpoints.add(id);
+        }
+        markRun(this.canvas, this.codeEl, this.breakpoints, this.errorId);
+        this.announcer.textContent = this.t(this.breakpoints.has(id) ? 'breakpointset' : 'breakpointremoved');
+    }
+
+    /**
+     * Ask for an input value in the console; a hint says what was wrong with the previous one.
+     *
+     * @param {Object} run the run
+     * @param {Object} ev input event
+     * @param {string} hint
+     * @returns {Promise<?string>}
+     */
+    askInput(run, ev, hint) {
         return new Promise((resolve) => {
             const input = el('input', {type: 'text', 'class': 'form-control form-control-sm tiny_algorithm-input',
                 'aria-label': `${ev.name} (${ev.type})`, onkeydown: (e) => {
@@ -1085,60 +1122,99 @@ export class AlgorithmEditor {
                         input.disabled = true;
                         row.append(` ${v}`);
                         input.remove();
+                        run.wake = null;
                         resolve(v);
                     }
                 }});
             const row = this.log(`${ev.name} (${ev.type}) ? `);
             row.append(input);
+            if (hint) {
+                const note = el('span', {'class': 'tiny_algorithm-inputhint', id: `tiny_algorithm-h${Date.now()}`}, hint);
+                row.append(note);
+                input.setAttribute('aria-invalid', 'true');
+                input.setAttribute('aria-describedby', note.id);
+            }
             input.focus();
-            run.wake = () => resolve('');
+            run.wake = () => resolve(null);
         });
+    }
+
+    /**
+     * Show the state of the run next to the buttons.
+     *
+     * @param {string} state running, paused, done, stopped or error
+     * @param {number} step steps so far
+     */
+    showStatus(state, step) {
+        this.statusEl.hidden = state === 'running' && !step;
+        this.statusEl.className = `tiny_algorithm-status tiny_algorithm-status-${state}`;
+        this.statusEl.textContent = this.t(`status${state}`, {step});
+        this.btnRun.textContent = this.t(state === 'paused' ? 'resume' : 'run');
+        this.btnRun.title = this.btnRun.textContent;
     }
 
     async start(stepMode) {
         if (this.running) {
-            // Already paused in step mode: advance one step.
-            if (this.running.stepMode && this.running.wake) {
+            // Paused or running: Step goes one step on, Run (Continue) runs on to the end or the next breakpoint.
+            this.running.stepMode = stepMode;
+            if (this.running.wake) {
                 this.running.wake();
             }
             return;
         }
         this.closePalette();
-        const run = {stepMode, stopped: false, wake: null};
+        const run = {stepMode, stopped: false, wake: null, timer: null};
         this.running = run;
+        this.errorId = null;
         this.consoleEl.replaceChildren();
         this.watch.clear();
         this.refresh();
+        const ui = {
+            program: this.program,
+            breakpoints: this.breakpoints,
+            delay: () => Number(this.speed.max) - Number(this.speed.value),
+            highlight: (id) => this.highlight(id),
+            branch: (ev) => showBranch(this.canvas, ev),
+            watch: (vars, stack) => this.watch.update(vars, stack),
+            output: (text) => this.flushOutput(text),
+            info: (text) => this.log(text, 'tiny_algorithm-info'),
+            error: (text, id) => this.showError(text, id),
+            ask: (ev, hint) => this.askInput(run, ev, hint),
+            status: (state, step) => this.showStatus(state, step),
+            announce: (text) => {
+                this.announcer.textContent = text;
+            },
+        };
         try {
-            const gen = execute(this.program);
-            let res = gen.next();
-            while (!res.done && !run.stopped) {
-                const ev = res.value;
-                if (ev.event === 'step') {
-                    this.highlight(ev.id);
-                    this.watch.update(ev.vars);
-                    await this.waitNext(run);
-                } else if (ev.event === 'branch') {
-                    showBranch(this.canvas, ev);
-                } else if (ev.event === 'done') {
-                    this.watch.update(ev.vars);
-                } else if (ev.event === 'output') {
-                    this.flushOutput(ev.text);
-                } else if (ev.event === 'input') {
-                    const v = await this.askInput(run, ev);
-                    res = gen.next(v);
-                    continue;
-                }
-                res = gen.next();
-            }
-            this.log(run.stopped ? this.t('stopped') : this.t('finished'), 'tiny_algorithm-info');
-        } catch (err) {
-            this.log(`${this.t('error')}: ${errorText(err)}`, 'tiny_algorithm-error');
+            this.trace = await runSession(ui, run);
+            this.traceCut = Boolean(run.traceCut);
         } finally {
             this.running = null;
             this.highlight(null);
             this.refresh();
         }
+    }
+
+    /**
+     * An error stopped the algorithm: the message, a link to the block, the block and its code lines in red.
+     *
+     * @param {string} text message
+     * @param {?string} id block that was running
+     */
+    showError(text, id) {
+        const line = this.log(`${this.t('error')}: ${text}`, 'tiny_algorithm-error');
+        this.errorId = id;
+        if (!id) {
+            return;
+        }
+        const fn = this.program.functions.findIndex((f) => findBlock({functions: [f]}, id));
+        line.append(' ', el('button', {type: 'button', 'class': 'btn btn-link btn-sm tiny_algorithm-showblock',
+            onclick: () => this.selectFromCode(id, true)}, this.t('showblock')));
+        if (fn >= 0 && fn !== this.fnIndex) {
+            this.fnIndex = fn;
+        }
+        // Drawn by the refresh at the end of the run; also show it in the diagram now.
+        setTimeout(() => revealNode(this.canvas, id), 0);
     }
 
     flushOutput(text) {

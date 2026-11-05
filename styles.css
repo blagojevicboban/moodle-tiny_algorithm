@@ -649,3 +649,72 @@ generated code on the right; stacked when the content area is narrow. */
     flex-wrap: wrap;
     gap: .25rem 0;
 }
+
+/* State of a run next to the buttons. */
+.tiny_algorithm-status {
+    font-size: .85rem;
+    padding: .1rem .55rem;
+    border-radius: 999px;
+    background: #fed7aa;
+    color: #7c2d12;
+    white-space: nowrap;
+}
+
+.tiny_algorithm-status-done {
+    background: #dcfce7;
+    color: #14532d;
+}
+
+.tiny_algorithm-status-error {
+    background: #fee2e2;
+    color: #7f1d1d;
+}
+
+.tiny_algorithm-status-stopped {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+/* Breakpoints: a red dot on the block and before its code lines. */
+.tiny_algorithm-bpdot {
+    fill: #dc2626;
+    stroke: #fff;
+    stroke-width: 1.5;
+}
+
+.tiny_algorithm-codeline-bp {
+    box-shadow: inset 4px 0 #dc2626;
+}
+
+/* The block where an error stopped the algorithm. */
+.tiny_algorithm-node.tiny_algorithm-errorblock > :first-child {
+    fill: #fee2e2;
+    stroke: #dc2626;
+    stroke-width: 3.5;
+}
+
+.tiny_algorithm-codeline-error {
+    background: #fee2e2;
+    box-shadow: inset 3px 0 #dc2626;
+}
+
+/* The hint under an input value that does not fit the type. */
+.tiny_algorithm-inputhint {
+    display: block;
+    color: #fca5a5;
+    font-size: .8rem;
+}
+
+/* The calls running now, above the variables. */
+.tiny_algorithm-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    font-size: .8rem;
+    color: #4b5563;
+    margin-bottom: .3rem;
+}
+
+.tiny_algorithm-stack-sep {
+    color: #9ca3af;
+}
