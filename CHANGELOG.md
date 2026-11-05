@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.2.1 – 2026-11-05 (stable)
 
 - **Run and Step do not make the test results old:** a student who edits a copy of an exercise and steps through it
   no longer sees "You changed the algorithm since this run"; only a real change of the algorithm does that
