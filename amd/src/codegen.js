@@ -81,9 +81,32 @@ const RESERVED = {
         'floor ceil ln exp sin cos tan arcsin arccos arctan log10 sign pi lowercase trim tryStrToFloat break continue ' +
         'sysutils math class as is try except finally raise on property out threadvar resourcestring initialization ' +
         'finalization library exports export generic specialize dispose new',
+    go: 'break default func interface select case defer go map struct chan else goto package switch const fallthrough ' +
+        'if range type continue for import return var true false nil iota int float64 string bool byte rune error len ' +
+        'cap make new append copy delete panic recover print println close complex real imag main fmt math strconv ' +
+        'strings bufio os rand reader readLine readInt readReal fmtReal sgn toInt parseReal isNumeric k_',
+    rust: 'as break const continue crate else enum extern false fn for if impl in let loop match mod move mut pub ref ' +
+        'return self Self static struct super trait true type unsafe use where while async await dyn abstract become box ' +
+        'do final macro override priv typeof unsized virtual yield try union i64 f64 String bool Vec vec io std main ' +
+        'fmt_real read_line rand_below format println print',
+    kotlin: 'as break class continue do else false for fun if in interface is null object package return super this ' +
+        'throw true try typealias typeof val var when while by catch constructor delegate dynamic field file finally get ' +
+        'import init param property receiver set setparam where Int Double String Boolean Math IntArray DoubleArray ' +
+        'BooleanArray Array println print readln fmt main java kotlin',
+    vb: 'addhandler addressof alias and andalso as boolean byref byte byval call case catch cbool cbyte cchar cdate cdbl ' +
+        'cdec char cint class clng cobj const continue csbyte cshort csng cstr ctype cuint culng cushort date decimal ' +
+        'declare default delegate dim directcast do double each else elseif end endif enum erase error event exit false ' +
+        'finally for friend function get gettype getxmlnamespace global gosub goto handles if implements imports in ' +
+        'inherits integer interface is isnot let lib like long loop me mod module mustinherit mustoverride mybase ' +
+        'myclass namespace narrowing new next not nothing notinheritable notoverridable object of on operator option ' +
+        'optional or orelse overloads overridable overrides paramarray partial private property protected public ' +
+        'raiseevent readonly redim rem removehandler resume return sbyte select set shadows shared short single static ' +
+        'step stop string structure sub synclock then throw to true try trycast typeof uinteger ulong ushort using ' +
+        'variant wend when while widening with withevents writeonly xor console math rnd fmt boolstr program main fix ' +
+        'len chrw ascw array cultureinfo numberstyles fill_r fill_c vblf vbtab',
 };
 const RESERVED_SETS = Object.fromEntries(Object.entries(RESERVED).map(([lang, words]) => [lang,
-    new Set(words.split(' ').map((w) => (lang === 'pascal' ? w.toLowerCase() : w)))]));
+    new Set(words.split(' ').map((w) => (lang === 'pascal' || lang === 'vb' ? w.toLowerCase() : w)))]));
 
 // Wrap generated code in parentheses unless it is a plain name.
 const atom = (code) => (/^[\w.]+$/.test(code) ? code : `(${code})`);
@@ -472,7 +495,10 @@ export const generate = (lang, program) => generateLines(lang, program).text;
  * @returns {{text: string, owners: Array}} source code, and per line the id of its block or null
  */
 export const generateLines = (lang, program) => {
-    const L = LANGS[lang];
+    if (Object.hasOwn(TYPED, lang)) {
+        return generateTyped(lang, program);
+    }
+    const L = own(LANGS, lang);
     if (!L) {
         throw new Error(`Unsupported language ${lang}`);
     }
@@ -1212,9 +1238,893 @@ export const generateLines = (lang, program) => {
     return {text, owners: lineOwners.slice(0, text.split('\n').length - 1)};
 };
 
-export const languages = Object.keys(LANGS);
-export const languageLabels = Object.fromEntries(Object.entries(LANGS).map(([k, l]) => [k, l.label]));
-export const extensionOf = (lang) => LANGS[lang].ext;
+// ---- Visual Basic .NET, Go, Rust and Kotlin ----------------------------------------------------------------------------
+// These languages are stricter about numbers (Go, Rust and Kotlin do not mix whole and real numbers on their own, Visual
+// Basic rounds when it stores a real number in an Integer), so their generator knows the type of every expression and
+// converts where the interpreter does: a Real stored in an Integer loses its fraction, an Integer meets a Real as a Real.
+
+/**
+ * A Visual Basic string literal (no backslash escapes: a line break is vbLf, a tab vbTab).
+ *
+ * @param {string} v text
+ * @returns {string}
+ */
+const vbString = (v) => {
+    const pieces = String(v).split(/(\n|\t)/).filter((x) => x !== '');
+    if (!pieces.length) {
+        return '""';
+    }
+    return pieces.map((x) => ({'\n': 'vbLf', '\t': 'vbTab'}[x] || `"${x.replace(/"/g, '""')}"`)).join(' & ');
+};
+
+const realLiteral = (v) => (/[.eE]/.test(String(v)) ? String(v) : `${v}.0`);
+
+/**
+ * Code that needs no parentheses around it: a name, a number, or a call or a parenthesised group that ends the code.
+ *
+ * @param {string} code
+ * @returns {string}
+ */
+const tight = (code) => {
+    if (/^[\w.:]+$/.test(code)) {
+        return code;
+    }
+    const open = code.search(/\(/);
+    if (open >= 0 && /^[\w.:]*$/.test(code.slice(0, open)) && code.endsWith(')')) {
+        let depth = 0;
+        for (let i = open; i < code.length; i++) {
+            depth += {'(': 1, ')': -1}[code[i]] || 0;
+            if (depth === 0) {
+                return i === code.length - 1 ? code : `(${code})`;
+            }
+        }
+    }
+    return `(${code})`;
+};
+
+const TYPED = {
+    vb: {
+        label: 'Visual Basic', ext: 'vb',
+        types: {Integer: 'Integer', Real: 'Double', String: 'String', Boolean: 'Boolean'},
+        defaults: {Integer: '0', Real: '0.0', String: '""', Boolean: 'False'},
+        str: vbString, bool: (v) => (v ? 'True' : 'False'), and: 'AndAlso', or: 'OrElse', not: 'Not ',
+        ops: {'%': 'Mod', '==': '=', '!=': '<>'},
+        toReal: (c) => c, toInt: (c) => `CInt(Fix(${c}))`,
+        pow: (l, r) => `${l} ^ ${r}`, comment: "'",
+    },
+    go: {
+        label: 'Go', ext: 'go', strict: true,
+        types: {Integer: 'int', Real: 'float64', String: 'string', Boolean: 'bool'},
+        defaults: {Integer: '0', Real: '0.0', String: '""', Boolean: 'false'},
+        str: (v) => JSON.stringify(v), bool: (v) => (v ? 'true' : 'false'), and: '&&', or: '||', not: '!',
+        toReal: (c) => `float64(${c})`,
+        // Go does not convert a constant with a fraction to int: math.Trunc makes it a value first.
+        toInt: (c) => (/^[\d.\s()+\-*/]+$/.test(c) ? `int(math.Trunc(${c}))` : `int(${c})`),
+        pow: (l, r) => `math.Pow(${l}, ${r})`, comment: '//',
+    },
+    rust: {
+        label: 'Rust', ext: 'rs', strict: true, realLiteral: true, semi: ';',
+        types: {Integer: 'i64', Real: 'f64', String: 'String', Boolean: 'bool'},
+        defaults: {Integer: '0', Real: '0.0', String: 'String::new()', Boolean: 'false'},
+        str: (v) => `${JSON.stringify(v)}.to_string()`, bool: (v) => (v ? 'true' : 'false'), and: '&&', or: '||', not: '!',
+        toReal: (c) => `(${c} as f64)`, toInt: (c) => `(${c} as i64)`,
+        pow: (l, r) => `${l.replace(/^(\(?-?)([\d.]+)(\)?)$/, '$1$2_f64$3')}.powf(${r})`, comment: '//',
+    },
+    kotlin: {
+        label: 'Kotlin', ext: 'kt', strict: true, realLiteral: true,
+        types: {Integer: 'Int', Real: 'Double', String: 'String', Boolean: 'Boolean'},
+        defaults: {Integer: '0', Real: '0.0', String: '""', Boolean: 'false'},
+        str: (v) => JSON.stringify(v).replace(/\$/g, '\\$'), bool: (v) => (v ? 'true' : 'false'), and: '&&', or: '||',
+        not: '!', toReal: (c) => `${c}.toDouble()`, toInt: (c) => `${c}.toInt()`,
+        pow: (l, r) => `Math.pow(${l}, ${r})`, comment: '//',
+    },
+};
+
+const KOTLIN_ARRAYS = {Integer: 'IntArray', Real: 'DoubleArray', Boolean: 'BooleanArray', String: 'Array<String>'};
+
+/**
+ * Built-in functions: their code, from the arguments ({code, type}), an argument as a Real and as an Integer.
+ *
+ * @param {string} lang language
+ * @param {string} l lower case name
+ * @param {Array} a arguments {code, type}
+ * @param {Function} real argument i as a real number
+ * @param {Function} whole argument i as a whole number
+ * @param {Object} needs helpers the code needs
+ * @returns {string|null}
+ */
+// eslint-disable-next-line complexity
+const typedBuiltin = (lang, l, a, real, whole, needs) => {
+    const c = (i) => (a[i] ? a[i].code : '');
+    const math = {sqrt: 'Sqrt', sin: 'Sin', cos: 'Cos', tan: 'Tan', exp: 'Exp', log: 'Log', log10: 'Log10', abs: 'Abs',
+        arcsin: 'Asin', arccos: 'Acos', arctan: 'Atan'};
+    if (lang === 'go') {
+        if (Object.hasOwn(math, l) || ['floor', 'ceiling', 'round', 'pi'].includes(l)) {
+            needs.goMath = true;
+        }
+        if (['toint', 'toreal', 'tofixed', 'isnumeric'].includes(l)) {
+            needs.goStrconv = true;
+        }
+        if (l === 'random') {
+            needs.goRand = true;
+        }
+        if (l === 'sign') {
+            needs.goSign = true;
+        }
+        return Object.hasOwn(math, l) ? `math.${math[l]}(${real(0)})` : {
+            floor: `int(math.Floor(${real(0)}))`, ceiling: `int(math.Ceil(${real(0)}))`, round: `int(math.Floor(${real(0)} + 0.5))`,
+            'int': `int(${real(0)})`, sign: `sgn(${real(0)})`, random: `rand.Intn(${whole(0)})`, len: `len([]rune(${c(0)}))`,
+            toint: `toInt(${c(0)})`, toreal: `parseReal(${c(0)})`, tofixed: `strconv.FormatFloat(${real(0)}, 'f', ${whole(1)}, 64)`,
+            isnumeric: `isNumeric(${c(0)})`,
+            'char': a.length > 1 ? `string([]rune(${c(0)})[${whole(1)}])` : `string(rune(${whole(0)}))`,
+            tochar: `string(rune(${whole(0)}))`, tocode: `int([]rune(${c(0)})[0])`, pi: 'math.Pi',
+        }[l] ?? null;
+    }
+    if (lang === 'rust') {
+        const m = {sqrt: 'sqrt', sin: 'sin', cos: 'cos', tan: 'tan', exp: 'exp', log: 'ln', log10: 'log10', abs: 'abs',
+            arcsin: 'asin', arccos: 'acos', arctan: 'atan'};
+        // A method of a number literal needs its type (1.0_f64.atan()).
+        const lit = (i) => real(i).replace(/^(\(?-?)([\d.]+)(\)?)$/, (x, open, num, close) => `${open}${num}_f64${close}`);
+        return Object.hasOwn(m, l) ? `${lit(0)}.${m[l]}()` : {
+            floor: `(${lit(0)}.floor() as i64)`, ceiling: `(${lit(0)}.ceil() as i64)`,
+            round: `((${real(0)} + 0.5_f64).floor() as i64)`,
+            'int': `(${real(0)} as i64)`, sign: `(if ${real(0)} > 0.0 { 1 } else if ${real(0)} < 0.0 { -1 } else { 0 })`,
+            random: `rand_below(${whole(0)})`, len: `(${c(0)}.chars().count() as i64)`,
+            toint: `${c(0)}.trim().parse::<i64>().unwrap()`, toreal: `${c(0)}.trim().parse::<f64>().unwrap()`,
+            tofixed: `format!("{:.*}", (${whole(1)}) as usize, ${real(0)})`, isnumeric: `${c(0)}.trim().parse::<f64>().is_ok()`,
+            'char': a.length > 1 ? `${c(0)}.chars().nth((${whole(1)}) as usize).unwrap().to_string()` :
+                `char::from_u32((${whole(0)}) as u32).unwrap().to_string()`,
+            tochar: `char::from_u32((${whole(0)}) as u32).unwrap().to_string()`, tocode: `(${c(0)}.chars().next().unwrap() as i64)`,
+            pi: 'std::f64::consts::PI',
+        }[l] ?? null;
+    }
+    if (lang === 'kotlin') {
+        const m = {...math, sqrt: 'sqrt', sin: 'sin', cos: 'cos', tan: 'tan', exp: 'exp', log: 'log', log10: 'log10',
+            abs: 'abs', arcsin: 'asin', arccos: 'acos', arctan: 'atan'};
+        return Object.hasOwn(m, l) ? `Math.${m[l]}(${real(0)})` : {
+            floor: `Math.floor(${real(0)}).toInt()`, ceiling: `Math.ceil(${real(0)}).toInt()`,
+            round: `Math.floor(${real(0)} + 0.5).toInt()`, 'int': `${real(0)}.toInt()`, sign: `Math.signum(${real(0)}).toInt()`,
+            random: `kotlin.random.Random.nextInt(${whole(0)})`, len: `${atom(c(0))}.length`, toint: `${atom(c(0))}.trim().toInt()`,
+            toreal: `${atom(c(0))}.trim().toDouble()`,
+            tofixed: `String.format(java.util.Locale.ROOT, "%." + (${whole(1)}) + "f", ${real(0)})`,
+            isnumeric: `(${atom(c(0))}.trim().toDoubleOrNull() != null)`,
+            'char': a.length > 1 ? `${atom(c(0))}[${whole(1)}].toString()` : `(${whole(0)}).toChar().toString()`,
+            tochar: `(${whole(0)}).toChar().toString()`, tocode: `${atom(c(0))}[0].code`, pi: 'Math.PI',
+        }[l] ?? null;
+    }
+    if (l === 'random') {
+        needs.vbRandom = true;
+    }
+    return Object.hasOwn(math, l) ? `Math.${math[l]}(${c(0)})` : {
+        floor: `CInt(Math.Floor(${c(0)}))`, ceiling: `CInt(Math.Ceiling(${c(0)}))`, round: `CInt(Math.Floor(${c(0)} + 0.5))`,
+        'int': `CInt(Fix(${c(0)}))`, sign: `Math.Sign(${c(0)})`, random: `rnd.Next(${c(0)})`, len: `Len(${c(0)})`,
+        toint: `Integer.Parse(${c(0)})`, toreal: `Double.Parse(${c(0)}, CultureInfo.InvariantCulture)`,
+        tofixed: `CDbl(${c(0)}).ToString("F" & (${c(1)}), CultureInfo.InvariantCulture)`,
+        isnumeric: `Double.TryParse(${c(0)}, NumberStyles.Float, CultureInfo.InvariantCulture, Nothing)`,
+        'char': a.length > 1 ? `${atom(c(0))}.Chars(${c(1)}).ToString()` : `ChrW(${c(0)}).ToString()`,
+        tochar: `ChrW(${c(0)}).ToString()`, tocode: `AscW(${atom(c(0))}.Chars(0))`, pi: 'Math.PI',
+    }[l] ?? null;
+};
+
+/**
+ * Generate a program in Visual Basic .NET, Go, Rust or Kotlin.
+ *
+ * @param {string} lang vb, go, rust or kotlin
+ * @param {Object} program the algorithm
+ * @returns {{text: string, owners: Array}}
+ */
+const generateTyped = (lang, program) => {
+    const L = TYPED[lang];
+    const vb = lang === 'vb';
+    const semi = L.semi || '';
+    const need = {};
+    const fns = Object.assign(Object.create(null), Object.fromEntries(program.functions.map((f) => [f.name.toLowerCase(), f])));
+    let syms = Object.create(null);
+
+    // Names: as declared, and with "_" when they are words of the language.
+    const reserved = RESERVED_SETS[lang];
+    const used = new Set();
+    program.functions.forEach((f) => {
+        used.add(f.name.toLowerCase());
+        f.params.forEach((p) => used.add(p.name.toLowerCase()));
+        allBlocks(f.body).forEach((b) => {
+            if (b.type === 'declare') {
+                String(b.name).split(',').forEach((x) => used.add(x.trim().toLowerCase()));
+            } else if (b.type === 'for') {
+                used.add(String(b.variable || '').trim().toLowerCase());
+            }
+        });
+    });
+    const renamed = new Map();
+    const safe = (name) => {
+        const key = vb ? name.toLowerCase() : name;
+        if (!reserved.has(key)) {
+            return name;
+        }
+        if (!renamed.has(key)) {
+            let s = `${name}_`;
+            while (reserved.has(vb ? s.toLowerCase() : s) || used.has(s.toLowerCase())) {
+                s += '_';
+            }
+            used.add(s.toLowerCase());
+            renamed.set(key, s);
+        }
+        return renamed.get(key);
+    };
+    const fnName = (f) => safe(f.name);
+    let canon = Object.create(null);
+    const nameOf = (name) => own(canon, String(name).toLowerCase()) ||
+        (String(name).toLowerCase() === 'pi' ? String(name) : safe(String(name)));
+    const fixNames = (n) => {
+        if (n.k === 'var' || n.k === 'idx') {
+            n.name = nameOf(n.name);
+        } else if (n.k === 'call' && own(fns, n.name.toLowerCase())) {
+            n.fn = fns[n.name.toLowerCase()];
+            n.name = fnName(n.fn);
+        } else if (n.k === 'call' && Object.hasOwn(ALIASES, n.name.toLowerCase())) {
+            n.name = ALIASES[n.name.toLowerCase()];
+        }
+        [n.e, n.l, n.r, n.index, n.index2, ...(n.args || [])].forEach((c) => c && fixNames(c));
+        return n;
+    };
+    const parse = (src) => fixNames(parseExpr(src));
+
+    // ---- Expressions: every code knows its type.
+    const conv = (e, to) => {
+        if (e.type === to) {
+            return e.code;
+        }
+        if (e.type === 'Integer' && to === 'Real') {
+            return /^\d+$/.test(e.code) && lang !== 'vb' ? `${e.code}.0` : L.toReal(tight(e.code));
+        }
+        if (e.type === 'Real' && to === 'Integer') {
+            if (lang === 'go') {
+                need.goMath = true;
+            }
+            return L.toInt(tight(e.code));
+        }
+        return e.code;
+    };
+    const numeric = (t) => t === 'Integer' || t === 'Real';
+    const index = (e) => {
+        const code = conv(e, 'Integer');
+        return lang === 'rust' ? `(${code}) as usize` : code;
+    };
+    let lvalue = false;
+    const sym = (name) => own(syms, name);
+
+    // eslint-disable-next-line complexity
+    const node = (n) => {
+        switch (n.k) {
+            case 'num':
+                return n.int ? {code: String(n.v), type: 'Integer'} :
+                    {code: L.realLiteral ? realLiteral(n.v) : String(n.v), type: 'Real'};
+            case 'str': return {code: L.str(n.v), type: 'String'};
+            case 'bool': return {code: L.bool(n.v), type: 'Boolean'};
+            case 'var': {
+                const s = sym(n.name);
+                if (!s && n.name.toLowerCase() === 'pi') {
+                    return {code: typedBuiltin(lang, 'pi', [], () => '', () => '', need), type: 'Real'};
+                }
+                const type = s ? s.type : 'Integer';
+                return {code: lang === 'rust' && type === 'String' && !lvalue && !(s && s.array) ? `${n.name}.clone()` : n.name,
+                    type};
+            }
+            case 'idx': {
+                const s = sym(n.name);
+                const type = s ? s.type : 'Integer';
+                const target = lvalue;
+                lvalue = false;
+                const i = index(walk(n.index));
+                const j = n.index2 ? index(walk(n.index2)) : null;
+                lvalue = target;
+                let code;
+                if (vb) {
+                    code = j === null ? `${n.name}(${i})` : `${n.name}(${i}, ${j})`;
+                } else {
+                    code = j === null ? `${n.name}[${i}]` : `${n.name}[${i}][${j}]`;
+                }
+                return {code: lang === 'rust' && type === 'String' && !lvalue ? `${code}.clone()` : code, type};
+            }
+            case 'un': {
+                const e = walk(n.e, 8);
+                if (n.op === '!') {
+                    return {code: `${L.not}${e.code}`, type: 'Boolean'};
+                }
+                return {code: n.op === '-' ? `-${e.code}` : e.code, type: e.type};
+            }
+            case 'call': return callNode(n);
+            case 'bin': return binNode(n);
+            default: return {code: '', type: 'Integer'};
+        }
+    };
+    const walk = (n, ctx = 0) => {
+        const r = node(n);
+        return precOf(n) < ctx ? {code: `(${r.code})`, type: r.type} : r;
+    };
+    const toText = (parts) => {
+        if (lang === 'rust') {
+            if (parts.length === 1 && parts[0].type === 'String') {
+                return parts[0].code;
+            }
+            return `format!("${'{}'.repeat(parts.length)}", ` +
+                `${parts.map((p) => (p.type === 'Real' ? `fmt_real(${p.code})` : p.code)).join(', ')})`;
+        }
+        if (lang === 'go') {
+            return parts.map((p) => {
+                if (p.type !== 'String') {
+                    need.goStrconv = true;
+                }
+                return {String: p.code, Integer: `strconv.Itoa(${p.code})`, Real: `fmtReal(${p.code})`,
+                    Boolean: `strconv.FormatBool(${p.code})`}[p.type];
+            }).join(' + ');
+        }
+        if (lang === 'kotlin') {
+            return parts.map((p, i) => {
+                const code = p.type === 'Real' ? `fmt(${p.code})` : p.code;
+                return i === 0 && p.type !== 'String' && p.type !== 'Real' ? `"" + ${tight(code)}` : code;
+            }).join(' + ');
+        }
+        return parts.map((p) => ({Real: `Fmt(${p.code})`, Boolean: `BoolStr(${p.code})`, Integer: `CStr(${p.code})`}[p.type] ||
+            p.code)).join(' & ');
+    };
+    // eslint-disable-next-line complexity
+    const binNode = (n) => {
+        const p = PREC[n.op] ?? 4;
+        if (n.op === '&' || (n.op === '+' && typeOf(n, syms, fns) === 'String')) {
+            return {code: toText(concatParts(n, syms, fns).map((q) => walk(q, 4.5))), type: 'String'};
+        }
+        if (n.op === '&&' || n.op === '||') {
+            return {code: `${walk(n.l, p).code} ${n.op === '&&' ? L.and : L.or} ${walk(n.r, p + 0.5).code}`, type: 'Boolean'};
+        }
+        const l = walk(n.l, n.op === '^' ? 8 : p + (CMP.includes(n.op) ? 0.5 : 0));
+        const r = walk(n.r, n.op === '^' ? 8 : p + 0.5);
+        if (n.op === '^') {
+            return {code: L.pow(tight(conv(l, 'Real')), conv(r, 'Real')), type: 'Real'};
+        }
+        if (n.op === '/') {
+            const code = vb ? `${l.code} / ${r.code}` : `${tight(conv(l, 'Real'))} / ${tight(conv(r, 'Real'))}`;
+            return {code, type: 'Real'};
+        }
+        const mixed = numeric(l.type) && numeric(r.type) && l.type !== r.type;
+        const t = mixed || l.type === 'Real' || r.type === 'Real' ? 'Real' : l.type;
+        const lc = L.strict && mixed ? conv(l, 'Real') : l.code;
+        const rc = L.strict && mixed ? conv(r, 'Real') : r.code;
+        if (n.op === '%' && lang === 'go' && t === 'Real') {
+            need.goMath = true;
+            return {code: `math.Mod(${conv(l, 'Real')}, ${conv(r, 'Real')})`, type: 'Real'};
+        }
+        if (n.op === '%' && vb) {
+            return {code: `(${lc} Mod ${rc})`, type: t};
+        }
+        const op = (L.ops && own(L.ops, n.op)) || n.op;
+        return {code: `${lc} ${op} ${rc}`, type: CMP.includes(n.op) ? 'Boolean' : t};
+    };
+    const arrayLength = (name) => {
+        const s = sym(name);
+        if (lang === 'go') {
+            return `len(${name})`;
+        }
+        if (lang === 'rust') {
+            return `(${name}.len() as i64)`;
+        }
+        if (lang === 'kotlin') {
+            return `${name}.size`;
+        }
+        return s.matrix ? `${name}.GetLength(0)` : `${name}.Length`;
+    };
+    const callNode = (n) => {
+        const l = n.name.toLowerCase();
+        if (n.fn) {
+            const args = n.args.map((a, i) => {
+                const p = n.fn.params[i];
+                if (p && p.array && a.k === 'var') {
+                    const s = sym(a.name);
+                    return lang === 'rust' && !(s && s.param) ? `&mut ${a.name}` : a.name;
+                }
+                return p ? conv(walk(a), p.type) : walk(a).code;
+            });
+            return {code: `${n.name}(${args.join(', ')})`, type: n.fn.returnType || 'Integer'};
+        }
+        const a0 = n.args[0];
+        if (l === 'len' && a0 && a0.k === 'var' && sym(a0.name) && sym(a0.name).array) {
+            return {code: arrayLength(a0.name), type: 'Integer'};
+        }
+        const args = n.args.map((a) => walk(a));
+        if ((l === 'toint' || l === 'toreal') && args[0] && args[0].type !== 'String') {
+            return {code: conv(args[0], l === 'toint' ? 'Integer' : 'Real'), type: l === 'toint' ? 'Integer' : 'Real'};
+        }
+        if (l === 'tostring') {
+            return {code: toText([args[0]]), type: 'String'};
+        }
+        // Missing arguments give empty code: the table of built-in functions builds every entry.
+        const real = (i) => (args[i] ? tight(conv(args[i], 'Real')) : '');
+        const whole = (i) => (args[i] ? conv(args[i], 'Integer') : '');
+        const code = typedBuiltin(lang, l, args, real, whole, need);
+        if (code === null) {
+            return {code: `${n.name}(${args.map((a) => a.code).join(', ')})`, type: 'Real'};
+        }
+        return {code, type: own(BUILTIN_TYPES, l) || 'Real'};
+    };
+    const ex = (src, to = null) => {
+        const e = walk(parse(src));
+        return to ? conv(e, to) : e.code;
+    };
+    const target = (src) => {
+        lvalue = true;
+        try {
+            const n = parse(src);
+            return {code: walk(n).code, type: n.k === 'var' || n.k === 'idx' ? (sym(n.name) || {type: 'Integer'}).type : 'Integer'};
+        } finally {
+            lvalue = false;
+        }
+    };
+
+    // ---- Statements.
+    const out = [];
+    const owners = [];
+    let owner = null;
+    const emit = (ind, line) => {
+        out.push('    '.repeat(ind) + line);
+        owners.push(owner);
+    };
+
+    const printStmt = (b, ind) => {
+        const text = toText([walk(parse(b.expr))]);
+        const nl = b.newline !== false;
+        if (lang === 'go') {
+            need.goFmt = true;
+            emit(ind, `fmt.Print${nl ? 'ln' : ''}(${text})`);
+        } else if (lang === 'rust') {
+            emit(ind, nl ? `println!("{}", ${text});` : `print!("{}", ${text});`);
+            if (!nl) {
+                emit(ind, 'io::stdout().flush().unwrap();');
+            }
+        } else if (lang === 'kotlin') {
+            emit(ind, `print${nl ? 'ln' : ''}(${text})`);
+        } else {
+            emit(ind, `Console.Write${nl ? 'Line' : ''}(${text})`);
+        }
+    };
+    const READ = {
+        go: {Integer: 'readInt()', Real: 'readReal()', String: 'readLine()',
+            Boolean: 'strings.EqualFold(strings.TrimSpace(readLine()), "true")'},
+        rust: {Integer: 'read_line().trim().parse::<i64>().unwrap()', Real: 'read_line().trim().parse::<f64>().unwrap()',
+            String: 'read_line()', Boolean: 'read_line().trim().eq_ignore_ascii_case("true")'},
+        kotlin: {Integer: 'readln().trim().toInt()', Real: 'readln().trim().toDouble()', String: 'readln()',
+            Boolean: 'readln().trim().equals("true", ignoreCase = true)'},
+        vb: {Integer: 'Integer.Parse(Console.ReadLine().Trim())',
+            Real: 'Double.Parse(Console.ReadLine().Trim(), CultureInfo.InvariantCulture)', String: 'Console.ReadLine()',
+            Boolean: 'Console.ReadLine().Trim().ToLower() = "true"'},
+    };
+    const inputStmt = (b, ind) => {
+        const t = target(b.target);
+        if (lang === 'go') {
+            need.goInput = true;
+            need.goStrconv = true;
+        }
+        emit(ind, `${t.code} = ${READ[lang][t.type] || READ[lang].String}${semi}`);
+    };
+    const assignStmt = (b, ind) => {
+        const t = target(b.target);
+        emit(ind, `${t.code} = ${ex(b.expr, t.type)}${semi}`);
+    };
+
+    const declare = (b, ind) => String(b.name).split(',').map((x) => x.trim()).filter(Boolean)
+        .forEach((name) => declareOne({...b, name: nameOf(name)}, ind));
+    const declareOne = (b, ind) => {
+        const size = String(b.size || '').trim() ? ex(b.size, 'Integer') : null;
+        const size2 = size !== null && isMatrix(b) ? ex(b.size2, 'Integer') : null;
+        syms[b.name] = {type: b.varType, array: size !== null, matrix: size2 !== null};
+        const tn = L.types[b.varType];
+        const dv = L.defaults[b.varType];
+        if (lang === 'go') {
+            if (size === null) {
+                emit(ind, `var ${b.name} ${tn} = ${dv}`);
+            } else if (size2 === null) {
+                emit(ind, `var ${b.name} []${tn} = make([]${tn}, ${size})`);
+            } else {
+                emit(ind, `var ${b.name} [][]${tn} = make([][]${tn}, ${size})`);
+                emit(ind, `for k_ := range ${b.name} {`);
+                emit(ind + 1, `${b.name}[k_] = make([]${tn}, ${size2})`);
+                emit(ind, '}');
+            }
+            emit(ind, `_ = ${b.name}`);
+        } else if (lang === 'rust') {
+            if (size === null) {
+                emit(ind, `let mut ${b.name}: ${tn} = ${dv};`);
+            } else if (size2 === null) {
+                emit(ind, `let mut ${b.name}: Vec<${tn}> = vec![${dv}; (${size}) as usize];`);
+            } else {
+                emit(ind, `let mut ${b.name}: Vec<Vec<${tn}>> = vec![vec![${dv}; (${size2}) as usize]; (${size}) as usize];`);
+            }
+        } else if (lang === 'kotlin') {
+            const arr = KOTLIN_ARRAYS[b.varType];
+            const make = (n) => (b.varType === 'String' ? `Array(${n}) { "" }` : `${arr}(${n})`);
+            if (size === null) {
+                emit(ind, `var ${b.name}: ${tn} = ${dv}`);
+            } else if (size2 === null) {
+                emit(ind, `var ${b.name}: ${arr} = ${make(size)}`);
+            } else {
+                emit(ind, `var ${b.name}: Array<${arr}> = Array(${size}) { ${make(size2)} }`);
+            }
+        } else if (size === null) {
+            emit(ind, `Dim ${b.name} As ${tn} = ${dv}`);
+        } else {
+            const last = (n) => (/^\d+$/.test(n) ? String(Number(n) - 1) : `${atom(n)} - 1`);
+            emit(ind, `Dim ${b.name}(${last(size)}${size2 === null ? '' : `, ${last(size2)}`}) As ${tn}`);
+            if (b.varType === 'String' && size2 === null) {
+                emit(ind, `Array.Fill(${b.name}, "")`);
+            } else if (b.varType === 'String') {
+                emit(ind, `For fill_r As Integer = 0 To ${b.name}.GetLength(0) - 1`);
+                emit(ind + 1, `For fill_c As Integer = 0 To ${b.name}.GetLength(1) - 1`);
+                emit(ind + 2, `${b.name}(fill_r, fill_c) = ""`);
+                emit(ind + 1, 'Next');
+                emit(ind, 'Next');
+            }
+        }
+    };
+
+    // Loops being written, innermost last: their kind (Visual Basic names it in Exit and Continue) and what a Continue
+    // must do first (the condition of a do-while in Go and Rust, the step of a counting loop in Rust and Kotlin).
+    const loops = [];
+    const inLoop = (kind, before, write) => {
+        loops.push({kind, before});
+        try {
+            write();
+        } finally {
+            loops.pop();
+        }
+    };
+    const block = (list, ind) => list.forEach((b) => stmt(b, ind));
+    const cond = (src) => ex(src, 'Boolean');
+    const ifStmt = (b, ind) => {
+        const c = cond(b.cond);
+        emit(ind, vb ? `If ${c} Then` : {go: `if ${c} {`, rust: `if ${c} {`}[lang] || `if (${c}) {`);
+        block(b.then, ind + 1);
+        if (b.else.length) {
+            emit(ind, vb ? 'Else' : '} else {');
+            block(b.else, ind + 1);
+        }
+        emit(ind, vb ? 'End If' : '}');
+    };
+    const whileStmt = (b, ind) => {
+        const c = cond(b.cond);
+        emit(ind, {vb: `While ${c}`, go: `for ${c} {`, rust: `while ${c} {`}[lang] || `while (${c}) {`);
+        inLoop('While', [], () => block(b.body, ind + 1));
+        emit(ind, vb ? 'End While' : '}');
+    };
+    const doStmt = (b, ind) => {
+        const c = cond(b.cond);
+        if (vb || lang === 'kotlin') {
+            emit(ind, vb ? 'Do' : 'do {');
+            inLoop('Do', [], () => block(b.body, ind + 1));
+            emit(ind, vb ? `Loop While ${c}` : `} while (${c})`);
+            return;
+        }
+        const check = lang === 'go' ? `if !(${c}) { break }` : `if !(${c}) { break; }`;
+        emit(ind, lang === 'go' ? 'for {' : 'loop {');
+        inLoop('Do', [check], () => block(b.body, ind + 1));
+        emit(ind + 1, check);
+        emit(ind, '}');
+    };
+    const forStmt = (b, ind) => {
+        const v = nameOf(b.variable);
+        const type = (sym(v) || {type: 'Integer'}).type;
+        const step = String(b.step || '1').trim() || '1';
+        const neg = /^-/.test(step);
+        const [start, end, by] = [ex(b.start, type), ex(b.end, type), ex(step, type)];
+        if (vb) {
+            emit(ind, `For ${v} = ${start} To ${end}${step === '1' ? '' : ` Step ${by}`}`);
+            inLoop('For', [], () => block(b.body, ind + 1));
+            emit(ind, 'Next');
+            return;
+        }
+        if (lang === 'go') {
+            emit(ind, `for ${v} = ${start}; ${v} ${neg ? '>=' : '<='} ${end}; ${v} += ${by} {`);
+            inLoop('For', [], () => block(b.body, ind + 1));
+            emit(ind, '}');
+            return;
+        }
+        // Rust and Kotlin count with a while loop, so the step may be any expression.
+        const next = `${v} += ${by}${semi}`;
+        emit(ind, `${v} = ${start}${semi}`);
+        emit(ind, lang === 'rust' ? `while ${v} ${neg ? '>=' : '<='} ${end} {` : `while (${v} ${neg ? '>=' : '<='} ${end}) {`);
+        inLoop('For', [next], () => block(b.body, ind + 1));
+        emit(ind + 1, next);
+        emit(ind, '}');
+    };
+    let fnReturn = null;
+    // eslint-disable-next-line complexity
+    const stmtCode = (b, ind) => {
+        switch (b.type) {
+            case 'declare': declare(b, ind); break;
+            case 'assign': assignStmt(b, ind); break;
+            case 'input': inputStmt(b, ind); break;
+            case 'output': printStmt(b, ind); break;
+            case 'call': emit(ind, `${ex(b.expr)}${semi}`); break;
+            case 'return': {
+                const value = String(b.expr || '').trim() && fnReturn ? ` ${ex(b.expr, fnReturn)}` : '';
+                emit(ind, `${vb ? 'Return' : 'return'}${value}${semi}`);
+                break;
+            }
+            case 'comment':
+                String(b.text).split('\n').forEach((line) => emit(ind, `${L.comment} ${line}`));
+                break;
+            case 'if': ifStmt(b, ind); break;
+            case 'while': whileStmt(b, ind); break;
+            case 'dowhile': doStmt(b, ind); break;
+            case 'for': forStmt(b, ind); break;
+            case 'break': {
+                const loop = loops[loops.length - 1];
+                emit(ind, vb ? `Exit ${loop ? loop.kind : 'For'}` : `break${semi}`);
+                break;
+            }
+            case 'continue': {
+                const loop = loops[loops.length - 1];
+                (loop ? loop.before : []).forEach((line) => emit(ind, line));
+                emit(ind, vb ? `Continue ${loop ? loop.kind : 'For'}` : `continue${semi}`);
+                break;
+            }
+            default: break;
+        }
+    };
+    const stmt = (b, ind) => {
+        const outer = owner;
+        owner = b.id || null;
+        stmtCode(b, ind);
+        owner = outer;
+    };
+
+    // ---- Functions.
+    const paramCode = (p) => {
+        const name = safe(p.name);
+        const tn = L.types[p.type];
+        if (lang === 'go') {
+            return `${name} ${p.matrix ? '[][]' : ''}${p.array && !p.matrix ? '[]' : ''}${tn}`;
+        }
+        if (lang === 'rust') {
+            if (!p.array) {
+                return `mut ${name}: ${tn}`;
+            }
+            return `${name}: &mut ${p.matrix ? `Vec<Vec<${tn}>>` : `Vec<${tn}>`}`;
+        }
+        if (lang === 'kotlin') {
+            const arr = KOTLIN_ARRAYS[p.type];
+            if (p.matrix) {
+                return `${name}: Array<${arr}>`;
+            }
+            return `${name}: ${p.array ? arr : tn}`;
+        }
+        let brackets = p.array ? '()' : '';
+        if (p.matrix) {
+            brackets = '(,)';
+        }
+        return `${name}${brackets} As ${tn}`;
+    };
+    const mainName = fns.main ? 'main' : program.functions[0].name.toLowerCase();
+    const base = vb ? 1 : 0;
+    const funcs = [...program.functions].sort((a, b) => (a.name.toLowerCase() === 'main') - (b.name.toLowerCase() === 'main'));
+    funcs.forEach((f) => {
+        const isMain = f.name.toLowerCase() === mainName;
+        syms = Object.create(null);
+        canon = Object.create(null);
+        f.params.forEach((p) => {
+            canon[p.name.toLowerCase()] = own(canon, p.name.toLowerCase()) || safe(p.name);
+            syms[safe(p.name)] = {type: p.type, array: Boolean(p.array), matrix: Boolean(p.matrix), param: true};
+        });
+        const loopVars = [];
+        allBlocks(f.body).forEach((b) => {
+            if (b.type === 'declare') {
+                String(b.name).split(',').map((x) => x.trim()).filter(Boolean).forEach((name) => {
+                    canon[name.toLowerCase()] = own(canon, name.toLowerCase()) || safe(name);
+                });
+            } else if (b.type === 'for' && String(b.variable || '').trim()) {
+                const name = String(b.variable).trim();
+                if (!own(canon, name.toLowerCase())) {
+                    canon[name.toLowerCase()] = safe(name);
+                    loopVars.push(canon[name.toLowerCase()]);
+                }
+            }
+        });
+        fnReturn = isMain ? null : f.returnType || null;
+        const name = isMain ? {vb: 'Main'}[lang] || 'main' : fnName(f);
+        const params = isMain ? '' : f.params.map(paramCode).join(', ');
+        const ret = fnReturn ? L.types[fnReturn] : '';
+        if (vb) {
+            emit(base, fnReturn ? `Function ${name}(${params}) As ${ret}` : `Sub ${name}(${params})`);
+        } else {
+            const after = ret ? {go: ` ${ret}`, rust: ` -> ${ret}`, kotlin: `: ${ret}`}[lang] : '';
+            emit(base, `${{go: 'func', rust: 'fn', kotlin: 'fun'}[lang]} ${name}(${params})${after} {`);
+        }
+        const ind = base + 1;
+        if (vb && isMain) {
+            emit(ind, 'CultureInfo.CurrentCulture = CultureInfo.InvariantCulture');
+        }
+        if (lang === 'kotlin') {
+            // Parameters cannot be changed in Kotlin; the algorithm may change them.
+            f.params.filter((p) => !p.array).forEach((p) => emit(ind, `var ${safe(p.name)} = ${safe(p.name)}`));
+        }
+        // Counters of For loops that are not declared: whole numbers of the function.
+        loopVars.forEach((v) => {
+            syms[v] = {type: 'Integer'};
+            emit(ind, {go: `var ${v} int`, rust: `let mut ${v}: i64 = 0;`, kotlin: `var ${v}: Int = 0`}[lang] ||
+                `Dim ${v} As Integer`);
+            if (lang === 'go') {
+                emit(ind, `_ = ${v}`);
+            }
+        });
+        block(f.body, ind);
+        if (fnReturn && !vb) {
+            emit(ind, `return ${L.defaults[fnReturn]}${semi}`);
+        }
+        const end = fnReturn ? 'End Function' : 'End Sub';
+        emit(base, vb ? end : '}');
+        emit(0, '');
+    });
+    const body = out.splice(0);
+    const bodyOwners = owners.splice(0);
+
+    // ---- Start and end of the program.
+    const helperLines = {
+        go: () => {
+            const imports = ['fmt'].filter(() => need.goFmt);
+            if (need.goInput) {
+                imports.push('bufio', 'os');
+            }
+            if (need.goMath || need.goStrconv) {
+                imports.push('math');
+            }
+            if (need.goStrconv) {
+                imports.push('strconv', 'strings');
+            }
+            if (need.goRand) {
+                imports.push('math/rand');
+            }
+            emit(0, 'package main');
+            emit(0, '');
+            if (imports.length) {
+                emit(0, 'import (');
+                [...new Set(imports)].sort().forEach((i) => emit(1, `"${i}"`));
+                emit(0, ')');
+                emit(0, '');
+            }
+            if (need.goStrconv) {
+                emit(0, '// A real number as the algorithm writes it: 7 for a whole number, otherwise rounded to 10 decimals.');
+                emit(0, 'func fmtReal(v float64) string {');
+                emit(1, 'if v == math.Trunc(v) && math.Abs(v) < 1e15 {');
+                emit(2, 'return strconv.FormatInt(int64(v), 10)');
+                emit(1, '}');
+                emit(1, "return strconv.FormatFloat(math.Round(v*1e10)/1e10, 'f', -1, 64)");
+                emit(0, '}');
+                emit(0, '');
+                emit(0, 'func toInt(s string) int {');
+                emit(1, 'v, _ := strconv.Atoi(strings.TrimSpace(s))');
+                emit(1, 'return v');
+                emit(0, '}');
+                emit(0, '');
+                emit(0, 'func parseReal(s string) float64 {');
+                emit(1, 'v, _ := strconv.ParseFloat(strings.TrimSpace(s), 64)');
+                emit(1, 'return v');
+                emit(0, '}');
+                emit(0, '');
+                emit(0, 'func isNumeric(s string) bool {');
+                emit(1, '_, err := strconv.ParseFloat(strings.TrimSpace(s), 64)');
+                emit(1, 'return err == nil');
+                emit(0, '}');
+                emit(0, '');
+            }
+            if (need.goSign) {
+                emit(0, 'func sgn(v float64) int {');
+                emit(1, 'if v > 0 {');
+                emit(2, 'return 1');
+                emit(1, '} else if v < 0 {');
+                emit(2, 'return -1');
+                emit(1, '}');
+                emit(1, 'return 0');
+                emit(0, '}');
+                emit(0, '');
+            }
+            if (need.goInput) {
+                emit(0, 'var reader = bufio.NewReader(os.Stdin)');
+                emit(0, '');
+                emit(0, 'func readLine() string {');
+                emit(1, "s, _ := reader.ReadString('\\n')");
+                emit(1, 'return strings.TrimRight(s, "\\r\\n")');
+                emit(0, '}');
+                emit(0, '');
+                emit(0, 'func readInt() int {');
+                emit(1, 'return toInt(readLine())');
+                emit(0, '}');
+                emit(0, '');
+                emit(0, 'func readReal() float64 {');
+                emit(1, 'return parseReal(readLine())');
+                emit(0, '}');
+                emit(0, '');
+            }
+        },
+        rust: () => {
+            emit(0, '#![allow(unused_variables, unused_mut, unused_assignments, unused_parens, non_snake_case, ' +
+                'unreachable_code, dead_code, unused_imports)]');
+            emit(0, 'use std::io::{self, Write};');
+            emit(0, '');
+            emit(0, '/// A real number as the algorithm writes it: 7 for a whole number, otherwise rounded to 10 decimals.');
+            emit(0, 'fn fmt_real(v: f64) -> String {');
+            emit(1, 'if v == v.trunc() && v.abs() < 1e15 {');
+            emit(2, 'return format!("{}", v as i64);');
+            emit(1, '}');
+            emit(1, 'format!("{}", (v * 1e10).round() / 1e10)');
+            emit(0, '}');
+            emit(0, '');
+            emit(0, 'fn read_line() -> String {');
+            emit(1, 'let mut s = String::new();');
+            emit(1, 'io::stdin().read_line(&mut s).unwrap();');
+            emit(1, "s.trim_end_matches(&['\\r', '\\n'][..]).to_string()");
+            emit(0, '}');
+            emit(0, '');
+            emit(0, 'fn rand_below(n: i64) -> i64 {');
+            emit(1, 'use std::sync::atomic::{AtomicU64, Ordering};');
+            emit(1, 'static STATE: AtomicU64 = AtomicU64::new(0);');
+            emit(1, 'let mut s = STATE.load(Ordering::Relaxed);');
+            emit(1, 'if s == 0 {');
+            emit(2, 's = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos() as u64 | 1;');
+            emit(1, '}');
+            emit(1, 's ^= s << 13;');
+            emit(1, 's ^= s >> 7;');
+            emit(1, 's ^= s << 17;');
+            emit(1, 'STATE.store(s, Ordering::Relaxed);');
+            emit(1, '(s % (n as u64)) as i64');
+            emit(0, '}');
+            emit(0, '');
+        },
+        kotlin: () => {
+            emit(0, '// A real number as the algorithm writes it: 7 for a whole number, otherwise rounded to 10 decimals.');
+            emit(0, 'fun fmt(v: Double): String {');
+            emit(1, 'if (v == Math.rint(v) && Math.abs(v) < 1e15) {');
+            emit(2, 'return v.toLong().toString()');
+            emit(1, '}');
+            emit(1, 'return java.math.BigDecimal.valueOf(Math.round(v * 1e10) / 1e10).stripTrailingZeros().toPlainString()');
+            emit(0, '}');
+            emit(0, '');
+        },
+        vb: () => {
+            emit(0, 'Imports System');
+            emit(0, 'Imports System.Globalization');
+            emit(0, '');
+            emit(0, 'Module Program');
+            if (need.vbRandom) {
+                emit(1, 'Private rnd As New Random()');
+                emit(1, '');
+            }
+            emit(1, "' A real number as the algorithm writes it: 7 for a whole number, otherwise rounded to 10 decimals.");
+            emit(1, 'Function Fmt(v As Double) As String');
+            emit(2, 'If v = Math.Truncate(v) AndAlso Math.Abs(v) < 1E+15 Then');
+            emit(3, 'Return CLng(v).ToString()');
+            emit(2, 'End If');
+            emit(2, 'Return (Math.Round(v * 1E+10, MidpointRounding.AwayFromZero) / 1E+10).ToString(CultureInfo.InvariantCulture)');
+            emit(1, 'End Function');
+            emit(1, '');
+            emit(1, 'Function BoolStr(v As Boolean) As String');
+            emit(2, 'Return If(v, "true", "false")');
+            emit(1, 'End Function');
+            emit(1, '');
+        },
+    };
+    helperLines[lang]();
+    out.push(...body);
+    owners.push(...bodyOwners);
+    if (vb) {
+        emit(0, 'End Module');
+    }
+    const lineOwners = out.flatMap((piece, i) => piece.split('\n').map(() => owners[i]));
+    const text = out.join('\n').replace(/\n*$/, '\n');
+    return {text, owners: lineOwners.slice(0, text.split('\n').length - 1)};
+};
+
+export const languages = [...Object.keys(LANGS), ...Object.keys(TYPED)];
+export const languageLabels = Object.fromEntries([...Object.entries(LANGS), ...Object.entries(TYPED)]
+    .map(([k, l]) => [k, l.label]));
+export const extensionOf = (lang) => (own(LANGS, lang) || TYPED[lang]).ext;
 
 /**
  * Is a Declare block a matrix (it has two sizes)?

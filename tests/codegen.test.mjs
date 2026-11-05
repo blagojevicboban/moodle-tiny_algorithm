@@ -422,15 +422,15 @@ test('every line of the code knows the block it comes from', async() => {
     const loop = B('for', {variable: 'i', start: '1', end: '3', step: '1', body: [out]});
     const cond = B('if', {cond: 'i > 0', then: [B('output', {expr: '"pos"'})], else: []});
     p.functions[0].body = [B('declare', {name: 'i'}), loop, cond];
-    for (const lang of ['python', 'c', 'cpp', 'java', 'csharp', 'javascript', 'pascal']) {
+    for (const lang of languages) {
         const {text, owners} = generateLines(lang, p);
         const lines = text.replace(/\n$/, '').split('\n');
         assert.equal(owners.length, lines.length, lang);
         assert.equal(text, generate(lang, p), lang);
         const of = (id) => lines.filter((l, i) => owners[i] === id).join('\n');
-        assert.match(of(loop.id), /for/i, lang);
+        assert.match(of(loop.id), /for|while/i, lang);
         assert.match(of(out.id), /\bi\b/, lang);
-        assert.doesNotMatch(of(out.id), /for/i, lang);
+        assert.doesNotMatch(of(out.id), /\bfor\b/i, lang);
         assert.match(of(cond.id), /if/i, lang);
         assert.doesNotMatch(of(cond.id), /pos/, lang);
     }
@@ -579,4 +579,18 @@ for (const lang of languages.filter((l) => l !== 'pseudo')) {
             }
             assert.equal(out.replace(/\r\n/g, '\n'), runSync(extras(), extrasInput.split('\n').filter(Boolean)));
         });
+}
+
+for (const lang of ['vb', 'go', 'rust', 'kotlin']) {
+    test(`${lang} output matches the interpreter`, {timeout: 900000}, (t) => {
+        for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput],
+            [mixedCase(), ''], [matrixParam(), '3\n']]) {
+            const out = runAny(lang, program, input);
+            if (out === null) {
+                t.skip(`no ${lang} compiler`);
+                return;
+            }
+            assert.equal(out.replace(/\r\n/g, '\n'), runSync(program, input.split('\n').filter(Boolean)));
+        }
+    });
 }

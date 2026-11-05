@@ -23,7 +23,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createProgram, createBlock as B, findBlock} from '../amd/src/model.js';
-import {generateLines} from '../amd/src/codegen.js';
+import {generateLines, languages} from '../amd/src/codegen.js';
 import {nextBlock} from '../amd/src/codeview.js';
 
 const program = () => {
@@ -42,7 +42,7 @@ const panel = (owners) => ({
 
 test('every block of the code lines is a block of the program, in every language', () => {
     const {p} = program();
-    for (const lang of ['python', 'c', 'cpp', 'java', 'csharp', 'javascript', 'pascal']) {
+    for (const lang of languages) {
         const {owners} = generateLines(lang, p);
         for (const id of owners.filter(Boolean)) {
             assert.ok(findBlock(p, id), `${lang}: ${id}`);

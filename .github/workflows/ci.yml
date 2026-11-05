@@ -4,8 +4,8 @@ on: [push, pull_request]
 
 jobs:
   node-tests:
-    # Unit tests of the editor, interpreter and code generators; the generated C#, C++, JavaScript, Pascal and Python
-    # programs are compiled, run and compared with the interpreter.
+    # Unit tests of the editor, interpreter and code generators; the generated program of every language
+    # are compiled, run and compared with the interpreter.
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -18,6 +18,19 @@ jobs:
       - name: Free Pascal
         # Only the compiler and its units: the fpc package also pulls in about 100 MB of IDE libraries.
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fp-compiler
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Kotlin
+        run: |
+          curl -sSL -o /tmp/kotlin.zip https://github.com/JetBrains/kotlin/releases/download/v2.4.21/kotlin-compiler-2.4.21.zip
+          unzip -q /tmp/kotlin.zip -d "$HOME"
+          echo "$HOME/kotlinc/bin" >> "$GITHUB_PATH"
       - name: Node tests
         run: node --import ./tests/register.mjs --test "tests/*.test.mjs"
 
