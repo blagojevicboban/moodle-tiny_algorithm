@@ -27,6 +27,8 @@ import {
 } from './model';
 import {renderFunction, renderProgram, showBranch} from './render';
 import {runSession} from './session';
+import {openShortcuts, showToast} from './dialog';
+import {openTrace} from './trace';
 import {markRun} from './runmarks';
 import {checkExpr} from './expr';
 import {isMatrix, languages, languageLabels, extensionOf} from './codegen';
@@ -138,15 +140,15 @@ export class AlgorithmEditor {
         // What a screen reader hears while stepping (the panels change too often to be read).
         this.announcer = el('div', {'class': 'sr-only visually-hidden', 'aria-live': 'polite'});
 
+        this.btnFile = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-btn tiny_algorithm-filebtn',
+            'aria-haspopup': 'menu', 'aria-expanded': 'false', onclick: (e) => this.toggleFileMenu(e)}, `${this.t('file')} ▾`);
         this.toolbar = el('div', {'class': 'tiny_algorithm-toolbar'},
             this.fnSelect, btn('addfn', () => this.addFunction()), btn('delfn', () => this.removeFunction()),
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnUndo, this.btnRedo,
-            el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnStep, this.btnStop, this.speed, this.statusEl,
-            el('span', {'class': 'tiny_algorithm-sep'}), el('span', {'class': 'tiny_algorithm-zoom-slot'}),
-            this.fileTools ? [el('span', {'class': 'tiny_algorithm-sep'}), btn('import', () => this.fileInput.click()),
-                btn('export', () => this.exportFile()),
-                btn('exportsvg', () => this.exportImage('svg')), btn('exportpng', () => this.exportImage('png')),
-                this.fileInput] : []);
+            el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnStep, this.btnStop,
+            el('span', {'class': 'tiny_algorithm-speedbox'}, el('span', {'aria-hidden': 'true'}, this.t('slow')), this.speed,
+                el('span', {'aria-hidden': 'true'}, this.t('fast'))),
+            el('span', {'class': 'tiny_algorithm-grow'}), this.btnFile, this.fileInput);
         this.canvas = el('div', {'class': 'tiny_algorithm-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
             onkeydown: (e) => this.onKey(e), oncopy: (e) => this.onCopy(e, false), oncut: (e) => this.onCopy(e, true),
             onpaste: (e) => this.onPaste(e), onpointerdown: (e) => this.onPointerDown(e),
@@ -159,7 +161,8 @@ export class AlgorithmEditor {
                 e.preventDefault();
             }
         }, {passive: false});
-        this.toolbar.querySelector('.tiny_algorithm-zoom-slot').replaceWith(this.zoom.controls((key) => this.t(key)));
+        // The zoom stays in the corner of the diagram, so the toolbar fits in one row.
+        this.canvasWrap = el('div', {'class': 'tiny_algorithm-canvaswrap'}, this.canvas, this.zoom.controls((key) => this.t(key)));
         this.props = el('div', {'class': 'tiny_algorithm-props'});
         this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log'});
         this.codeEl = el('pre', {'class': 'tiny_algorithm-code', tabindex: '0', title: this.t('codehint'),
@@ -170,7 +173,8 @@ export class AlgorithmEditor {
         }}, languages.map((l) => el('option', {value: l}, languageLabels[l])));
         this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeText || ''));
         this.dlBtn = btn('download', () => this.exportCode());
-        this.tabConsole = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('console')), this.consoleEl);
+        this.tabConsole = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('console'), ' ', this.statusEl),
+            this.consoleEl);
         this.tabCode = el('div', {'class': 'tiny_algorithm-pane'},
             el('h6', {}, this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn), this.codeEl);
         this.watch = new Watch(this.lang);
@@ -178,7 +182,7 @@ export class AlgorithmEditor {
         this.side = el('div', {'class': 'tiny_algorithm-side'}, this.props, this.tabConsole, this.tabWatch,
             this.showCode ? this.tabCode : []);
         this.root = el('div', {'class': 'tiny_algorithm-editor', onkeydown: (e) => this.onRunKey(e)}, this.toolbar,
-            el('div', {'class': 'tiny_algorithm-main'}, this.canvas, this.side), this.announcer);
+            this.emptyBar(), el('div', {'class': 'tiny_algorithm-main'}, this.canvasWrap, this.side), this.announcer);
         container.append(this.root);
         this.palette = null;
     }
@@ -260,6 +264,9 @@ export class AlgorithmEditor {
         this.lockProps();
         this.renderCode();
         markRun(this.canvas, this.codeEl, this.breakpoints, this.errorId);
+        if (this.emptyHint) {
+            this.emptyHint.hidden = this.program.functions.some((f) => f.body.length);
+        }
         if (this.onChange) {
             this.onChange(this.program);
         }
@@ -382,7 +389,8 @@ export class AlgorithmEditor {
                     this.fn.returnType = v.trim() || null;
                 })),
                 el('p', {'class': 'text-muted small'}, this.t('hint')),
-                el('p', {'class': 'text-muted small'}, this.t('keyhint')));
+                el('p', {'class': 'text-muted small'}, el('button', {type: 'button', 'class': 'btn btn-link btn-sm p-0',
+                    onclick: () => openShortcuts(this.root)}, `${this.t('shortcuts')} (?)`)));
             return;
         }
         const b = found.block;
@@ -763,6 +771,7 @@ export class AlgorithmEditor {
                 f.list.splice(f.index, 1);
                 this.selected = null;
             });
+            showToast(this.root, this.t('deleted'), {label: this.t('undo'), run: () => this.undo()});
         }
     }
 
@@ -1086,7 +1095,101 @@ export class AlgorithmEditor {
         } else if (e.key === 'F9' && this.selected) {
             e.preventDefault();
             this.toggleBreakpoint(this.selected);
+        } else if (e.key === '?' && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) {
+            e.preventDefault();
+            openShortcuts(this.root);
         }
+    }
+
+    /**
+     * The File menu: import, export, pictures (when the question allows them), the trace table and the shortcuts.
+     *
+     * @param {Event} e click
+     */
+    toggleFileMenu(e) {
+        e.stopPropagation();
+        if (this.fileMenu) {
+            this.closeFileMenu();
+            return;
+        }
+        const item = (key, run) => el('button', {type: 'button', role: 'menuitem', 'class': 'dropdown-item', onclick: () => {
+            this.closeFileMenu();
+            run();
+        }}, this.t(key));
+        const files = this.fileTools ? [item('import', () => this.fileInput.click()), item('export', () => this.exportFile()),
+            item('exportsvg', () => this.exportImage('svg')), item('exportpng', () => this.exportImage('png')),
+            el('hr', {'class': 'dropdown-divider'})] : [];
+        this.fileMenu = el('div', {'class': 'tiny_algorithm-filemenu', role: 'menu', onkeydown: (ev) => {
+            const items = [...this.fileMenu.querySelectorAll('[role="menuitem"]')];
+            const at = items.indexOf(document.activeElement);
+            if (ev.key === 'Escape') {
+                ev.stopPropagation();
+                this.closeFileMenu();
+                this.btnFile.focus();
+            } else if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+                ev.preventDefault();
+                items[(at + (ev.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+            }
+        }}, ...files, item('trace', () => this.showTrace()), item('shortcuts', () => openShortcuts(this.root)));
+        this.btnFile.after(this.fileMenu);
+        this.btnFile.setAttribute('aria-expanded', 'true');
+        this.fileMenu.querySelector('button').focus();
+        this.closeOnOutside = (ev) => {
+            if (this.fileMenu && !this.fileMenu.contains(ev.target)) {
+                this.closeFileMenu();
+            }
+        };
+        document.addEventListener('click', this.closeOnOutside);
+    }
+
+    closeFileMenu() {
+        if (this.fileMenu) {
+            this.fileMenu.remove();
+            this.fileMenu = null;
+            this.btnFile.setAttribute('aria-expanded', 'false');
+            document.removeEventListener('click', this.closeOnOutside);
+        }
+    }
+
+    /** The trace table of the last run; a row selects its block. */
+    showTrace() {
+        openTrace(this.root, this.trace, {cut: this.traceCut,
+            select: (id) => this.selectFromCode(id, false),
+            download: this.fileTools ? (name, text, type) => this.download(name, text, type) : null});
+    }
+
+    /**
+     * A bar above an empty diagram that says where to start; once closed it stays closed (in this browser).
+     *
+     * @returns {HTMLElement}
+     */
+    emptyBar() {
+        let closed = false;
+        try {
+            closed = window.localStorage.getItem('tiny_algorithm_emptyhint') === '1';
+        } catch (e) {
+            closed = false;
+        }
+        this.emptyHint = el('div', {'class': 'tiny_algorithm-emptybar', hidden: true},
+            el('span', {}, this.t('emptyhint'), ' ', el('button', {type: 'button', 'class': 'btn btn-link btn-sm p-0',
+                onclick: () => openShortcuts(this.root)}, `${this.t('shortcuts')} (?)`)),
+            el('button', {type: 'button', 'class': 'btn btn-link btn-sm tiny_algorithm-emptybar-close',
+                'aria-label': this.t('close'),
+                title: this.t('close'), onclick: () => {
+                    this.emptyHint.remove();
+                    this.emptyHint = null;
+                    try {
+                        window.localStorage.setItem('tiny_algorithm_emptyhint', '1');
+                    } catch (e) {
+                        // Without storage the bar comes back next time.
+                    }
+                }}, '×'));
+        if (closed) {
+            this.emptyHint.remove();
+            this.emptyHint = null;
+            return [];
+        }
+        return this.emptyHint;
     }
 
     /**
@@ -1148,7 +1251,7 @@ export class AlgorithmEditor {
     showStatus(state, step) {
         this.statusEl.hidden = state === 'running' && !step;
         this.statusEl.className = `tiny_algorithm-status tiny_algorithm-status-${state}`;
-        this.statusEl.textContent = this.t(`status${state}`, {step});
+        this.statusEl.textContent = tr(`status${state}`, {step});
         this.btnRun.textContent = this.t(state === 'paused' ? 'resume' : 'run');
         this.btnRun.title = this.btnRun.textContent;
     }

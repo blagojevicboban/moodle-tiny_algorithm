@@ -146,6 +146,7 @@ export const runSession = async(ui, run) => {
                 onBranch(ev);
             } else if (ev.event === 'done') {
                 ui.watch(ev.vars, []);
+                trace.after = ev.vars;
             } else if (ev.event === 'output') {
                 onOutput(ev);
             } else if (ev.event === 'input') {

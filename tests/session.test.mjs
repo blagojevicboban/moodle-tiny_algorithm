@@ -88,3 +88,18 @@ test('the call stack is sent with every step and an error names the block that w
     assert.match(log.error.text, /Division by zero/);
     assert.equal(log.status.at(-1)[0], 'error');
 });
+
+test('the trace table shows the values after each step, and as CSV', async() => {
+    const {traceRows, traceCsv} = await import('../amd/src/trace.js');
+    const p = createProgram();
+    p.functions[0].body = [B('declare', {name: 'n'}), B('input', {target: 'n'}), B('output', {expr: 'n * 2'})];
+    const {ui, run, done} = fake(p, ['5']);
+    const trace = await runSession(ui, run);
+    done();
+    const {head, rows} = traceRows(trace);
+    assert.deepEqual(head, ['#', 'Block', 'n', 'Output']);
+    assert.deepEqual(rows.map((r) => r.cells), [['1', 'Integer n', '0', ''], ['2', 'Input n ← 5', '5', ''],
+        ['3', 'Output n * 2', '5', '10']]);
+    assert.deepEqual(rows[1].changed, [false, false, true, false]);
+    assert.equal(traceCsv(trace), '#,Block,n,Output\n1,Integer n,0,\n2,Input n ← 5,5,\n3,Output n * 2,5,10\n');
+});

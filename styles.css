@@ -24,7 +24,7 @@
 }
 
 .tiny_algorithm-toolbar .tiny_algorithm-speed {
-    width: 90px;
+    width: 64px;
 }
 
 .tiny_algorithm-main {
@@ -717,4 +717,192 @@ generated code on the right; stacked when the content area is narrow. */
 
 .tiny_algorithm-stack-sep {
     color: #9ca3af;
+}
+
+/* The toolbar fits in one row: the zoom is in the corner of the diagram, the file actions in the File menu. */
+.tiny_algorithm-grow {
+    flex: 1 1 auto;
+}
+
+.tiny_algorithm-speedbox {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    font-size: .75rem;
+    color: #4b5563;
+}
+
+.tiny_algorithm-canvaswrap {
+    position: relative;
+    min-width: 0;
+}
+
+.tiny_algorithm-canvaswrap > .tiny_algorithm-zoom {
+    position: absolute;
+    bottom: 18px;
+    right: 18px;
+    display: flex;
+    gap: 2px;
+    opacity: .9;
+}
+
+.tiny_algorithm-filemenu {
+    position: absolute;
+    z-index: 20;
+    min-width: 12rem;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .12);
+    padding: .25rem 0;
+}
+
+.tiny_algorithm-toolbar {
+    position: relative;
+}
+
+/* A bar above an empty diagram. */
+.tiny_algorithm-emptybar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .5rem;
+    background: #dbeafe;
+    color: #1e3a8a;
+    font-size: .875rem;
+    padding: .25rem .6rem;
+    border-radius: .25rem;
+    margin-bottom: .4rem;
+}
+
+/* Dialogs (trace table, shortcuts) inside the widget, so full screen keeps them. */
+.tiny_algorithm-editor,
+.tiny_algorithm-viewer {
+    position: relative;
+}
+
+.tiny_algorithm-dialog-back {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    background: rgba(17, 24, 39, .35);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.tiny_algorithm-dialog {
+    background: #fff;
+    border-radius: .4rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+    max-width: 900px;
+    width: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.tiny_algorithm-dialog-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
+    padding: .5rem .75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.tiny_algorithm-dialog-actions {
+    display: flex;
+    gap: .35rem;
+    align-items: center;
+}
+
+.tiny_algorithm-dialog-close {
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 0 .25rem;
+}
+
+.tiny_algorithm-dialog-body {
+    padding: .6rem .75rem;
+    overflow: auto;
+}
+
+.tiny_algorithm-trace-wrap {
+    max-height: 60vh;
+    overflow: auto;
+    border: 1px solid #e5e7eb;
+}
+
+.tiny_algorithm-trace {
+    border-collapse: collapse;
+    font-family: SFMono-Regular, Consolas, monospace;
+    font-size: .8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.tiny_algorithm-trace th,
+.tiny_algorithm-trace td {
+    padding: .15rem .5rem;
+    border-bottom: 1px solid #f0f2f4;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.tiny_algorithm-trace thead th {
+    position: sticky;
+    top: 0;
+    background: #eef2f7;
+}
+
+.tiny_algorithm-trace tbody tr {
+    cursor: pointer;
+}
+
+.tiny_algorithm-trace tbody tr:hover,
+.tiny_algorithm-trace tbody tr:focus {
+    background: #dbeafe;
+}
+
+.tiny_algorithm-trace .tiny_algorithm-changed {
+    background: #fef08a;
+}
+
+.tiny_algorithm-trace-note {
+    font-size: .8rem;
+    color: #4b5563;
+    margin: .4rem 0 0;
+}
+
+.tiny_algorithm-shortcuts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .3rem 1rem;
+    margin: 0 0 .5rem;
+}
+
+.tiny_algorithm-shortcuts dd {
+    margin: 0;
+}
+
+/* A short message at the bottom of the widget (Block deleted · Undo). */
+.tiny_algorithm-toast {
+    position: absolute;
+    left: 50%;
+    bottom: 1rem;
+    transform: translateX(-50%);
+    z-index: 25;
+    background: #1f2937;
+    color: #fff;
+    padding: .4rem .8rem;
+    border-radius: .35rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+    display: flex;
+    gap: .75rem;
+    align-items: center;
+}
+
+.tiny_algorithm-toast .btn-link {
+    color: #93c5fd;
 }

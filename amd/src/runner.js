@@ -21,6 +21,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import {runSession} from './session';
+import {openTrace} from './trace';
 import {markRun} from './runmarks';
 import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
@@ -85,7 +86,11 @@ export class AlgorithmRunner {
         this.announcer = el('div', {'class': 'sr-only visually-hidden', 'aria-live': 'polite'});
         this.btnRun = btn('run', () => this.onRun());
         this.bar = el('div', {'class': 'tiny_algorithm-view-bar'},
-            this.btnRun, btn('step', () => this.onStep()), btn('reset', () => this.reset()), this.speed, this.statusEl,
+            this.btnRun, btn('step', () => this.onStep()), btn('reset', () => this.reset()),
+            el('span', {'class': 'tiny_algorithm-speedbox'}, el('span', {'aria-hidden': 'true'}, this.t('slow')), this.speed,
+                el('span', {'aria-hidden': 'true'}, this.t('fast'))),
+            btn('trace', () => openTrace(this.root, this.trace, {cut: this.traceCut, select: (id) => this.showBlock(id)})),
+            this.statusEl,
             this.zoom.controls((key) => this.t(key)));
         this.watch = new Watch(this.lang);
         const mainParts = [this.svgHost, this.bar, this.consoleEl];
@@ -255,7 +260,7 @@ export class AlgorithmRunner {
     showStatus(state, step) {
         this.statusEl.hidden = state === 'running' && !step;
         this.statusEl.className = `tiny_algorithm-status tiny_algorithm-status-${state}`;
-        this.statusEl.textContent = this.t(`status${state}`, {step});
+        this.statusEl.textContent = tr(`status${state}`, {step});
         this.btnRun.textContent = this.t(state === 'paused' ? 'resume' : 'run');
     }
 
