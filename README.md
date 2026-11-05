@@ -27,7 +27,7 @@ without leaving the editor.
 | 🔍 **Variable Watch** | Current value of every variable while stepping, changed values highlighted, long arrays shortened |
 | 🔎 **Zoom** | **−**, **+**, **100%**, **Fit** buttons or **Ctrl + mouse wheel** |
 | 📂 **Flowgorithm Files** | Import and export real `.fprg` files; unsupported elements are reported, not silently dropped |
-| 💻 **Code Generation** | Python, C, C++, Java, C#, JavaScript and Pascal, every name written as declared; during Run and Step the lines of the current block are highlighted; the tests compile and run the generated programs and compare them with the interpreter |
+| 💻 **Code Generation** | Python, C, C++, Java, C#, JavaScript and Pascal, every name written as declared; during Run and Step the lines of the current block are highlighted, and a click on a line selects its block in the diagram; the tests compile and run the generated programs and compare them with the interpreter |
 | ➡️ **Arrows** | Every connection that enters a block, goes back to a loop condition or joins another line ends in an arrow |
 | 🖼️ **Editable Images** | The diagram is a normal SVG image that stores its model - double-click it to edit again; **Save as SVG** or **Save as PNG** downloads it for handouts and slides |
 | 💬 **Forums and Assignments** | Where Moodle cleans the HTML (forum posts, assignment text, glossary…) the diagram is saved as an image file of the text, so it stays visible, editable and interactive |

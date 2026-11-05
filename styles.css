@@ -119,7 +119,21 @@
     font-weight: bold;
 }
 
-/* One line of the generated code; the lines of the running block are marked like the block. */
+/* A line of the generated code can be clicked to find its block; the selected block's lines are blue like the block. */
+.tiny_algorithm-codeline[data-block] {
+    cursor: pointer;
+}
+
+.tiny_algorithm-codeline[data-block]:hover {
+    background: #eff6ff;
+}
+
+.tiny_algorithm-codeline-selected {
+    background: #dbeafe;
+    box-shadow: inset 3px 0 #2563eb;
+}
+
+/* The lines of the running block are marked like the block (after the selected lines, so this mark wins). */
 .tiny_algorithm-codeline-current {
     background: #fed7aa;
     box-shadow: inset 3px 0 #c2410c;

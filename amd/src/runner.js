@@ -26,7 +26,7 @@ import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
 import {Watch} from './watch';
 import {languages, languageLabels} from './codegen';
-import {markCode, showCode} from './codeview';
+import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
 
 const el = (tag, attrs = {}, ...kids) => {
     const e = document.createElement(tag);
@@ -58,6 +58,7 @@ export class AlgorithmRunner {
         this.showCode = showCode;
         this.showWatch = showWatch;
         this.running = null;
+        this.selected = null;
         this.codeLang = 'python';
         this.build(host);
     }
@@ -94,7 +95,8 @@ export class AlgorithmRunner {
             this.updateWatchToggle();
         }
         if (this.showCode) {
-            this.codeEl = el('pre', {'class': 'tiny_algorithm-code', tabindex: '0'});
+            this.codeEl = el('pre', {'class': 'tiny_algorithm-code', tabindex: '0', title: this.t('codehint'),
+                onclick: (e) => this.showBlock(blockAt(e), false), onkeydown: (e) => this.onCodeKey(e)});
             this.codeSelect = el('select', {
                 'class': 'custom-select custom-select-sm tiny_algorithm-codelang', 'aria-label': this.t('code'),
                 onchange: () => {
@@ -182,6 +184,48 @@ export class AlgorithmRunner {
         } catch (err) {
             this.codeText = `// ${errorText(err)}`;
             this.codeEl.textContent = this.codeText;
+            return;
+        }
+        markCode(this.codeEl, this.selected, SELECTED, false);
+    }
+
+    /**
+     * Mark a block of the diagram and its code lines (a code line was clicked); null removes the mark.
+     *
+     * @param {?string} id block id
+     * @param {boolean} scrollCode scroll the code panel to the block's first line
+     */
+    showBlock(id, scrollCode = true) {
+        if (this.running) {
+            return;
+        }
+        this.selected = id;
+        this.svgHost.querySelectorAll('.tiny_algorithm-node').forEach((n) => {
+            n.classList.toggle('tiny_algorithm-selected', Boolean(id) && n.dataset.id === id);
+        });
+        if (this.codeEl) {
+            markCode(this.codeEl, id, SELECTED, scrollCode);
+        }
+        if (id) {
+            revealNode(this.svgHost, id);
+        }
+    }
+
+    /**
+     * Arrows go through the blocks line by line, Escape removes the mark.
+     *
+     * @param {KeyboardEvent} e
+     */
+    onCodeKey(e) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            const id = nextBlock(this.codeEl, this.selected, e.key === 'ArrowDown' ? 1 : -1);
+            if (id) {
+                e.preventDefault();
+                this.showBlock(id);
+            }
+        } else if (e.key === 'Escape' && this.selected) {
+            e.stopPropagation();
+            this.showBlock(null);
         }
     }
 
@@ -293,6 +337,7 @@ export class AlgorithmRunner {
 
     async start(stepMode) {
         const run = {stepMode, stopped: false, clear: false, wake: null, timer: null};
+        this.showBlock(null, false);
         this.running = run;
         this.consoleEl.replaceChildren();
         this.watch.clear();

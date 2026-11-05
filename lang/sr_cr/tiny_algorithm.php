@@ -65,6 +65,7 @@ $string['ui_b_output'] = 'Испис';
 $string['ui_b_return'] = 'Повратак';
 $string['ui_b_while'] = 'Док';
 $string['ui_code'] = 'Код';
+$string['ui_codehint'] = 'Кликните линију кода да бисте нашли њен блок у дијаграму; стрелице иду од блока до блока.';
 $string['ui_console'] = 'Конзола';
 $string['ui_copy'] = 'Копирај';
 $string['ui_copyto'] = 'Копирај на…';

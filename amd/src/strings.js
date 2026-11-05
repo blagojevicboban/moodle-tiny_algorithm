@@ -30,7 +30,9 @@ export const STR = {
         stop: 'Stop', addfn: '+ Function', delfn: '− Function',
         'import': 'Import .fprg', 'export': 'Export .fprg', exportsvg: 'Save as SVG', exportpng: 'Save as PNG',
         copy: 'Copy', download: 'Download', speed: 'Speed',
-        console: 'Console', code: 'Code', 'function': 'Function', name: 'Name',
+        console: 'Console', code: 'Code',
+        codehint: 'Click a line of the code to find its block in the diagram; the arrow keys go from block to block.',
+        'function': 'Function', name: 'Name',
         params: 'Parameters (a: Integer, b: Real[], m: Integer[,])',
         returns: 'Return type', hint: 'Click a + to insert a block, click a block to edit it.',
         keyhint: 'Keyboard: the arrow keys move between the blocks and the + signs, Enter edits or inserts, ' +

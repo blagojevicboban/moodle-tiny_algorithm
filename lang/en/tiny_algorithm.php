@@ -65,6 +65,7 @@ $string['ui_b_output'] = 'Output';
 $string['ui_b_return'] = 'Return';
 $string['ui_b_while'] = 'While';
 $string['ui_code'] = 'Code';
+$string['ui_codehint'] = 'Click a line of the code to find its block in the diagram; the arrow keys go from block to block.';
 $string['ui_console'] = 'Console';
 $string['ui_copy'] = 'Copy';
 $string['ui_copyto'] = 'Copy to…';

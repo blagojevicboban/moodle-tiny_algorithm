@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.3.0 – 2026-11-06 (stable)
+
+- **A click on the code finds the block:** clicking a line of the generated code selects the block it comes from
+  and scrolls the diagram to it (it also switches to the function of the block). The lines of the selected block are
+  marked blue in the code, so a click on a block shows its code too. In the code panel the arrow keys go from block
+  to block and Enter moves the focus to the block in the diagram. In the viewer of filter_algorithm and quiz
+  questions the click marks the block without editing it, Escape removes the mark. While a program runs the clicks
+  do nothing and the orange mark of the running block stays. (`blockAt`, `nextBlock` and `revealNode` in
+  `codeview.js`; new `tests/codeview.test.mjs`.)
+
 ## 2.2.1 – 2026-11-05 (stable)
 
 - **Run and Step do not make the test results old:** a student who edits a copy of an exercise and steps through it

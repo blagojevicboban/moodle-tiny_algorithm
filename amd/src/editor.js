@@ -29,7 +29,7 @@ import {renderFunction, renderProgram, showBranch} from './render';
 import {execute} from './interpreter';
 import {checkExpr} from './expr';
 import {isMatrix, languages, languageLabels, extensionOf} from './codegen';
-import {markCode, showCode} from './codeview';
+import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
 import {importFprg, exportFprg} from './flowgorithm';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
@@ -140,7 +140,8 @@ export class AlgorithmEditor {
         this.toolbar.querySelector('.tiny_algorithm-zoom-slot').replaceWith(this.zoom.controls((key) => this.t(key)));
         this.props = el('div', {'class': 'tiny_algorithm-props'});
         this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log'});
-        this.codeEl = el('pre', {'class': 'tiny_algorithm-code'});
+        this.codeEl = el('pre', {'class': 'tiny_algorithm-code', tabindex: '0', title: this.t('codehint'),
+            onclick: (e) => this.selectFromCode(blockAt(e)), onkeydown: (e) => this.onCodeKey(e)});
         this.codeSelect = el('select', {'class': 'custom-select custom-select-sm', onchange: () => {
             this.codeLang = this.codeSelect.value;
             this.renderCode();
@@ -242,6 +243,52 @@ export class AlgorithmEditor {
         } catch (e) {
             this.codeText = `// ${errorText(e)}`;
             this.codeEl.textContent = this.codeText;
+            return;
+        }
+        // A line clicked in the code stays where it is.
+        markCode(this.codeEl, this.selected, SELECTED, !this.fromCode);
+    }
+
+    /**
+     * Select the block a line of the code comes from and show it in the diagram (also in another function).
+     *
+     * @param {?string} id block id, null does nothing
+     * @param {boolean} focus move the keyboard focus to the block
+     */
+    selectFromCode(id, focus = false) {
+        if (!id || this.running) {
+            return;
+        }
+        const fn = this.program.functions.findIndex((f) => findBlock({functions: [f]}, id));
+        if (fn < 0) {
+            return;
+        }
+        this.closePalette();
+        this.fnIndex = fn;
+        this.selected = id;
+        this.focusTarget = `n${id}`;
+        this.refocus = focus;
+        this.fromCode = true;
+        try {
+            this.refresh();
+        } finally {
+            this.fromCode = false;
+        }
+        revealNode(this.canvas, id);
+    }
+
+    /**
+     * Keys of the code panel: arrows go through the blocks line by line, Enter goes to the block in the diagram.
+     *
+     * @param {KeyboardEvent} e
+     */
+    onCodeKey(e) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            this.selectFromCode(nextBlock(this.codeEl, this.selected, e.key === 'ArrowDown' ? 1 : -1));
+        } else if (e.key === 'Enter' && this.selected) {
+            e.preventDefault();
+            this.selectFromCode(this.selected, true);
         }
     }
 
