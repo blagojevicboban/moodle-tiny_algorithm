@@ -32,6 +32,20 @@ const COLORS = {
     },
 };
 
+/**
+ * The mark of a block with a comment: a small speech bubble in its top right corner.
+ *
+ * @param {Object} it shape
+ * @returns {string}
+ */
+const noteIcon = (it) => {
+    const x = it.x + it.w - 8;
+    const y = it.y - 6;
+    return `<g class="tiny_algorithm-noteicon"><rect x="${x}" y="${y}" width="16" height="12" rx="3" fill="#fef9c3" ` +
+        `stroke="#a16207"/><path d="M${x + 4},${y + 12} l2,4 l3,-4" fill="#fef9c3" stroke="#a16207"/>` +
+        `<text x="${x + 8}" y="${y + 9}" text-anchor="middle" font-size="9" fill="#a16207">…</text></g>`;
+};
+
 const shapeSvg = (it, editable = false) => {
     const {x, y, w, h} = it;
     const fill = COLORS.fill[it.shape] || '#fff';
@@ -67,7 +81,10 @@ const shapeSvg = (it, editable = false) => {
     const focus = editable && !['start', 'end'].includes(it.type) ?
         ` tabindex="-1" role="button" aria-label="${esc(`${tr(`b.${it.type}`)}: ${it.text}`)}"` : '';
     const cls = it.faded ? 'tiny_algorithm-node tiny_algorithm-unreachable' : 'tiny_algorithm-node';
-    return `<g class="${cls}" data-id="${esc(it.id)}"${focus}>${body}${text}</g>`;
+    // The comment: a tooltip in the editor and the viewer; a title in a saved picture.
+    const note = it.note ? ` data-note="${esc(it.note)}"` : '';
+    const title = it.note && !editable ? `<title>${esc(it.note)}</title>` : '';
+    return `<g class="${cls}" data-id="${esc(it.id)}"${focus}${note}>${title}${body}${text}${it.note ? noteIcon(it) : ''}</g>`;
 };
 
 const ARROW_L = 7; // Arrowhead length.

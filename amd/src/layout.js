@@ -198,7 +198,7 @@ const tagBranch = (out, from, to, key) => out.slice(from, to).forEach((it) => {
 
 const shape = (out, b, cx, y, s, ctx = {}) => out.push({
     t: 'shape', shape: shapeOf(b), x: cx - s.w / 2, y, w: s.w, h: s.h, text: labelOf(b), lines: linesOf(b), id: b.id, type: b.type,
-    faded: Boolean(ctx.faded),
+    faded: Boolean(ctx.faded), note: typeof b.note === 'string' ? b.note.trim() : '',
 });
 
 // The last line gets an arrow only when a block follows the list (endArrow); otherwise it runs into another line.

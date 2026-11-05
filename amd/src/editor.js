@@ -22,13 +22,14 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import {
-    blocksFromText, blocksToText, canMoveBlock, cloneProgram, copyBlock, createBlock, createProgram, findBlock, moveBlock,
+    MAX_NOTE, blocksFromText, blocksToText, canMoveBlock, cloneProgram, copyBlock, createBlock, createProgram, findBlock, moveBlock,
     renameFunction, walk,
 } from './model';
 import {renderFunction, renderProgram, showBranch} from './render';
 import {runSession} from './session';
 import {openShortcuts, showToast} from './dialog';
 import {openTrace} from './trace';
+import {attachNotes} from './notes';
 import {markRun} from './runmarks';
 import {checkExpr} from './expr';
 import {isMatrix, languages, languageLabels, extensionOf} from './codegen';
@@ -163,6 +164,7 @@ export class AlgorithmEditor {
         }, {passive: false});
         // The zoom stays in the corner of the diagram, so the toolbar fits in one row.
         this.canvasWrap = el('div', {'class': 'tiny_algorithm-canvaswrap'}, this.canvas, this.zoom.controls((key) => this.t(key)));
+        attachNotes(this.canvas, this.canvasWrap);
         this.props = el('div', {'class': 'tiny_algorithm-props'});
         this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log'});
         this.codeEl = el('pre', {'class': 'tiny_algorithm-code', tabindex: '0', title: this.t('codehint'),
@@ -400,10 +402,32 @@ export class AlgorithmEditor {
         })));
         const act = (label, fn, cls = 'btn-secondary') =>
             el('button', {type: 'button', 'class': `btn btn-sm ${cls}`, onclick: fn}, label);
-        this.props.replaceChildren(el('h6', {}, this.t(`b.${b.type}`)), ...rows, el('div', {'class': 'tiny_algorithm-actions'},
+        this.props.replaceChildren(el('h6', {}, this.t(`b.${b.type}`)), ...rows, this.noteField(b),
+            el('div', {'class': 'tiny_algorithm-actions'},
             act(this.t('up'), () => this.move(-1)), act(this.t('down'), () => this.move(1)),
             act(this.t('duplicate'), () => this.duplicate()),
             act(this.t('delete'), () => this.deleteSelected(), 'btn-outline-danger')));
+    }
+
+    /**
+     * The comment of a block: shown as a tooltip on the block and as a comment in the code.
+     *
+     * @param {Object} b block
+     * @returns {HTMLElement}
+     */
+    noteField(b) {
+        const id = `tiny_algorithm-note-${b.id}`;
+        const area = el('textarea', {id, 'class': 'form-control form-control-sm tiny_algorithm-notefield', rows: '2',
+            maxlength: String(MAX_NOTE), onchange: () => this.commit(() => {
+                const text = area.value.trim();
+                if (text) {
+                    b.note = text;
+                } else {
+                    delete b.note;
+                }
+            })});
+        area.value = b.note || '';
+        return el('div', {'class': 'form-group tiny_algorithm-field'}, el('label', {'for': id}, this.t('note')), area);
     }
 
     /** While the algorithm runs, its blocks cannot be changed. */
@@ -648,6 +672,12 @@ export class AlgorithmEditor {
             ['moveto', () => this.startPlacing(id, false)],
             ['copyto', () => this.startPlacing(id, true)],
             [this.breakpoints.has(id) ? 'breakpointoff' : 'breakpoint', () => this.toggleBreakpoint(id)],
+            ['addnote', () => {
+                const area = this.props.querySelector('.tiny_algorithm-notefield');
+                if (area) {
+                    area.focus();
+                }
+            }],
         ];
         if (clipboard && blocksFromText(clipboard)) {
             actions.push(['paste', () => {

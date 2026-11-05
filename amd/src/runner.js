@@ -22,12 +22,13 @@
  */
 import {runSession} from './session';
 import {openTrace} from './trace';
+import {attachNotes} from './notes';
 import {markRun} from './runmarks';
 import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
 import {Watch} from './watch';
-import {languages, languageLabels} from './codegen';
+import {generate, languages, languageLabels} from './codegen';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
 
 const el = (tag, attrs = {}, ...kids) => {
@@ -102,7 +103,13 @@ export class AlgorithmRunner {
                 this.watch.root));
         }
         const main = el('div', {'class': 'tiny_algorithm-view-main'}, ...mainParts);
-        this.root = el('div', {'class': 'tiny_algorithm-viewer'}, main, this.announcer);
+        // The comments are tooltips here; the titles stay for the saved picture.
+        this.svgHost.querySelectorAll('title').forEach((n) => n.remove());
+        // The algorithm as text, for screen readers and for printing.
+        const description = el('details', {'class': 'tiny_algorithm-textdesc'}, el('summary', {}, this.t('textdescription')),
+            el('pre', {}, generate('pseudo', this.program)));
+        this.root = el('div', {'class': 'tiny_algorithm-viewer'}, main, description, this.announcer);
+        attachNotes(this.svgHost, this.root);
         if (this.showWatch) {
             this.root.classList.toggle('tiny_algorithm-hide-watch', AlgorithmRunner.watchHidden());
             this.updateWatchToggle();

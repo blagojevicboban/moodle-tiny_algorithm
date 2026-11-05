@@ -906,3 +906,39 @@ generated code on the right; stacked when the content area is narrow. */
 .tiny_algorithm-toast .btn-link {
     color: #93c5fd;
 }
+
+/* The comment of a block. */
+.tiny_algorithm-tooltip {
+    position: absolute;
+    z-index: 15;
+    max-width: 280px;
+    background: #1f2937;
+    color: #fff;
+    font-size: .8rem;
+    padding: .35rem .6rem;
+    border-radius: .3rem;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .2);
+    white-space: pre-wrap;
+    pointer-events: none;
+}
+
+.tiny_algorithm-noteicon {
+    cursor: help;
+}
+
+.tiny_algorithm-textdesc {
+    margin-top: .5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: .25rem;
+    padding: .3rem .6rem;
+}
+
+.tiny_algorithm-textdesc summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.tiny_algorithm-textdesc pre {
+    margin: .4rem 0 .2rem;
+    white-space: pre-wrap;
+}

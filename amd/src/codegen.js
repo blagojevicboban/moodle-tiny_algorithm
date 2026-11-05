@@ -21,6 +21,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import {parseExpr} from './expr';
+import {t} from './strings';
+import {labelOf} from './layout';
 
 const BUILTIN_TYPES = {
     abs: 'Real', sqrt: 'Real', sin: 'Real', cos: 'Real', tan: 'Real', log: 'Real', exp: 'Real', pi: 'Real',
@@ -471,6 +473,15 @@ const DEFAULTS = {
 };
 
 /**
+ * The comment of a block (its note) as lines of a code comment.
+ *
+ * @param {Object} b block
+ * @returns {string[]}
+ */
+const noteLines = (b) => (typeof b.note === 'string' && b.note.trim() ?
+    b.note.trim().split(/\r?\n/).map((line) => line.trim()) : []);
+
+/**
  * Every statement of a list and of the lists nested in it.
  *
  * @param {Array} list statements
@@ -495,6 +506,9 @@ export const generate = (lang, program) => generateLines(lang, program).text;
  * @returns {{text: string, owners: Array}} source code, and per line the id of its block or null
  */
 export const generateLines = (lang, program) => {
+    if (lang === 'pseudo') {
+        return generatePseudo(program);
+    }
     if (Object.hasOwn(TYPED, lang)) {
         return generateTyped(lang, program);
     }
@@ -878,6 +892,7 @@ export const generateLines = (lang, program) => {
     const stmt = (b, ind) => {
         const outer = owner;
         owner = b.id || null;
+        noteLines(b).forEach((line) => emit(ind, `${lang === 'python' ? '#' : '//'} ${line}`));
         stmtCode(b, ind);
         owner = outer;
     };
@@ -1872,6 +1887,7 @@ const generateTyped = (lang, program) => {
     const stmt = (b, ind) => {
         const outer = owner;
         owner = b.id || null;
+        noteLines(b).forEach((line) => emit(ind, `${L.comment} ${line}`));
         stmtCode(b, ind);
         owner = outer;
     };
@@ -2121,10 +2137,91 @@ const generateTyped = (lang, program) => {
     return {text, owners: lineOwners.slice(0, text.split('\n').length - 1)};
 };
 
-export const languages = [...Object.keys(LANGS), ...Object.keys(TYPED)];
+// ---- Pseudo-code ------------------------------------------------------------------------------------------------------
+// Keywords in the language of the user (pc_* strings), expressions as the algorithm writes them, ← for assignment.
+
+/**
+ * The algorithm as pseudo-code.
+ *
+ * @param {Object} program the algorithm
+ * @returns {{text: string, owners: Array}}
+ */
+const generatePseudo = (program) => {
+    const kw = (key) => t(`pc${key}`);
+    const out = [];
+    const owners = [];
+    let owner = null;
+    const emit = (ind, line) => {
+        out.push('  '.repeat(ind) + line);
+        owners.push(owner);
+    };
+    const list = (blocks, ind) => blocks.forEach((b) => {
+        const outer = owner;
+        owner = b.id || null;
+        noteLines(b).forEach((line) => emit(ind, `// ${line}`));
+        block(b, ind);
+        owner = outer;
+    });
+    const step = (b) => (String(b.step || '1').trim() === '1' ? '' : ` ${kw('step')} ${b.step}`);
+    const SIMPLE = {
+        declare: (b) => `${kw('declare')} ${labelOf(b)}`, assign: (b) => `${b.target} ← ${b.expr}`,
+        input: (b) => `${kw('input')} ${b.target}`, output: (b) => `${kw('output')} ${b.expr}`,
+        call: (b) => `${kw('call')} ${b.expr}`, 'return': (b) => `${kw('return')} ${b.expr || ''}`.trim(),
+        'break': () => kw('break'), 'continue': () => kw('continue'),
+    };
+    const block = (b, ind) => {
+        if (Object.hasOwn(SIMPLE, b.type)) {
+            emit(ind, SIMPLE[b.type](b));
+        } else if (b.type === 'comment') {
+            String(b.text).split(/\r?\n/).forEach((line) => emit(ind, `// ${line}`));
+        } else if (b.type === 'if') {
+            emit(ind, `${kw('if')} ${b.cond} ${kw('then')}`);
+            list(b.then, ind + 1);
+            if (b.else.length) {
+                emit(ind, kw('else'));
+                list(b.else, ind + 1);
+            }
+            emit(ind, kw('endif'));
+        } else if (b.type === 'while') {
+            emit(ind, `${kw('while')} ${b.cond}`);
+            list(b.body, ind + 1);
+            emit(ind, kw('endwhile'));
+        } else if (b.type === 'dowhile') {
+            emit(ind, kw('repeat'));
+            list(b.body, ind + 1);
+            emit(ind, `${kw('while')} ${b.cond}`);
+        } else if (b.type === 'for') {
+            emit(ind, `${kw('for')} ${b.variable} ${kw('from')} ${b.start} ${kw('to')} ${b.end}${step(b)}`);
+            list(b.body, ind + 1);
+            emit(ind, kw('endfor'));
+        }
+    };
+    program.functions.forEach((f, i) => {
+        if (i) {
+            emit(0, '');
+        }
+        const brackets = (p) => {
+            if (p.matrix) {
+                return '[,]';
+            }
+            return p.array ? '[]' : '';
+        };
+        const params = f.params.map((p) => `${p.name}: ${p.type}${brackets(p)}`).join(', ');
+        emit(0, `${kw('function')} ${f.name}(${params})${f.returnType ? `: ${f.returnType}` : ''}`);
+        list(f.body, 1);
+        emit(0, kw('endfunction'));
+    });
+    const text = `${out.join('\n')}\n`;
+    return {text, owners};
+};
+
+// Pseudo-code first, then the programming languages.
+export const languages = ['pseudo', ...Object.keys(LANGS), ...Object.keys(TYPED)];
 export const languageLabels = Object.fromEntries([...Object.entries(LANGS), ...Object.entries(TYPED)]
     .map(([k, l]) => [k, l.label]));
-export const extensionOf = (lang) => (own(LANGS, lang) || TYPED[lang]).ext;
+// The name of pseudo-code is in the language of the user (read when the list is drawn).
+Object.defineProperty(languageLabels, 'pseudo', {enumerable: true, get: () => t('pseudocode')});
+export const extensionOf = (lang) => (lang === 'pseudo' ? 'txt' : (own(LANGS, lang) || TYPED[lang]).ext);
 
 /**
  * Is a Declare block a matrix (it has two sizes)?

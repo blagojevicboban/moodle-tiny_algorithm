@@ -32,6 +32,9 @@ export const VAR_TYPES = ['Integer', 'Real', 'String', 'Boolean'];
 export const BLOCK_TYPES = ['declare', 'assign', 'input', 'output', 'if', 'while', 'for', 'dowhile', 'call', 'return', 'break',
     'continue', 'comment'];
 
+/** Longest comment of a block. */
+export const MAX_NOTE = 500;
+
 const defaults = {
     declare: () => ({name: 'x', varType: 'Integer', size: '', size2: ''}),
     assign: () => ({target: 'x', expr: '0'}),
@@ -127,6 +130,10 @@ export const copyBlock = (raw) => {
         } else if (typeof raw[key] === typeof block[key]) {
             block[key] = raw[key];
         }
+    }
+    // Any block may have a comment (a note shown as a tooltip).
+    if (typeof raw.note === 'string' && raw.note.trim()) {
+        block.note = raw.note.slice(0, MAX_NOTE);
     }
     return block;
 };
