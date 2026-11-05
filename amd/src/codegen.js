@@ -24,10 +24,66 @@ import {parseExpr} from './expr';
 
 const BUILTIN_TYPES = {
     abs: 'Real', sqrt: 'Real', sin: 'Real', cos: 'Real', tan: 'Real', log: 'Real', exp: 'Real', pi: 'Real',
-    floor: 'Integer', ceiling: 'Integer', round: 'Integer', 'int': 'Integer', sign: 'Integer', random: 'Integer', len: 'Integer',
-    toint: 'Integer', toreal: 'Real', tostring: 'String', 'char': 'String', isnumeric: 'Boolean',
-    tochar: 'String', tocode: 'Integer',
+    arcsin: 'Real', arccos: 'Real', arctan: 'Real', log10: 'Real',
+    floor: 'Integer', ceiling: 'Integer', round: 'Integer', 'int': 'Integer', sign: 'Integer', sgn: 'Integer',
+    random: 'Integer', len: 'Integer', size: 'Integer',
+    toint: 'Integer', tointeger: 'Integer', toreal: 'Real', tostring: 'String', tofixed: 'String', 'char': 'String',
+    isnumeric: 'Boolean', tochar: 'String', tocode: 'Integer',
 };
+
+// Other names for the same function (Flowgorithm's and ours).
+const ALIASES = {tointeger: 'toint', sgn: 'sign', size: 'len'};
+
+/**
+ * A value of a table of names that has it as its own key (not one of Object's, like constructor).
+ *
+ * @param {Object} table
+ * @param {string} key
+ * @returns {*}
+ */
+const own = (table, key) => (Object.hasOwn(table, key) ? table[key] : undefined);
+
+/**
+ * Words a name may not be in a language (its keywords) and names the generated code uses itself; a name of the
+ * algorithm that is one of them gets "_" added. Pascal and Visual Basic ignore the case of names.
+ */
+const RESERVED = {
+    python: 'False None True and as assert async await break class continue def del elif else except finally for from ' +
+        'global if import in is lambda nonlocal not or pass raise return try while with yield print input range math ' +
+        'random int float str len abs round chr ord format',
+    c: 'auto break case char const continue default do double else enum extern float for goto if inline int long ' +
+        'register restrict return short signed sizeof static struct switch typedef union unsigned void volatile while ' +
+        'printf scanf strcpy strcmp strlen snprintf memset tmp char_str rand_below to_fixed rand pow sqrt fabs sin cos ' +
+        'tan log log10 exp floor ceil round asin acos atan bool true false',
+    cpp: 'auto break case char const continue default do double else enum extern float for goto if inline int long ' +
+        'register return short signed sizeof static struct switch typedef union unsigned void volatile while bool true ' +
+        'false class new delete namespace using template typename this private public protected virtual friend operator ' +
+        'throw try catch nullptr and or not xor string vector cout cin endl str rand_below to_fixed std getline ws ' +
+        'boolalpha stoi stod pow sqrt abs sin cos tan log log10 exp floor ceil round asin acos atan rand',
+    java: 'abstract assert boolean break byte case catch char class const continue default do double else enum extends ' +
+        'final finally float for goto if implements import instanceof int interface long native new package private ' +
+        'protected public return short static strictfp super switch synchronized this throw throws transient try void ' +
+        'volatile while true false null var record yield in rnd fmt Math String System Integer Double Main args',
+    csharp: 'abstract as base bool break byte case catch char checked class const continue decimal default delegate do ' +
+        'double else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface ' +
+        'internal is lock long namespace new null object operator out override params private protected public readonly ' +
+        'ref return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ' +
+        'ulong unchecked unsafe ushort using virtual void volatile while var rnd Console Math Convert CultureInfo Program',
+    javascript: 'break case catch class const continue debugger default delete do else export extends false finally for ' +
+        'function if import in instanceof new null return super switch this throw true try typeof var void while with ' +
+        'yield let static enum await implements package protected interface private public arguments eval undefined ' +
+        'NaN Infinity lines nextLine input console process Math String parseInt parseFloat require isNaN',
+    pascal: 'and array begin case const div do downto else end file for function goto if in label mod nil not of or ' +
+        'packed procedure program record repeat set then to type until var while with absolute asm inline interface ' +
+        'implementation unit uses string shl shr xor result exit self object constructor destructor inherited operator ' +
+        'true false integer real boolean double writeln write readln read length copy chr ord sqrt abs power random ' +
+        'setlength main dummy readboolean inttostr floattostr booltostr strtoint strtofloat floattostrf trunc round ' +
+        'floor ceil ln exp sin cos tan arcsin arccos arctan log10 sign pi lowercase trim tryStrToFloat break continue ' +
+        'sysutils math class as is try except finally raise on property out threadvar resourcestring initialization ' +
+        'finalization library exports export generic specialize dispose new',
+};
+const RESERVED_SETS = Object.fromEntries(Object.entries(RESERVED).map(([lang, words]) => [lang,
+    new Set(words.split(' ').map((w) => (lang === 'pascal' ? w.toLowerCase() : w)))]));
 
 // Wrap generated code in parentheses unless it is a plain name.
 const atom = (code) => (/^[\w.]+$/.test(code) ? code : `(${code})`);
@@ -65,12 +121,16 @@ const typeOf = (n, syms, fns) => {
         case 'num': return n.int ? 'Integer' : 'Real';
         case 'str': return 'String';
         case 'bool': return 'Boolean';
-        case 'var': return syms[n.name] ? syms[n.name].type : 'Integer';
-        case 'idx': return syms[n.name] ? syms[n.name].type : 'Integer';
+        case 'var':
+            if (!own(syms, n.name) && n.name.toLowerCase() === 'pi') {
+                return 'Real';
+            }
+            return own(syms, n.name) ? syms[n.name].type : 'Integer';
+        case 'idx': return own(syms, n.name) ? syms[n.name].type : 'Integer';
         case 'un': return n.op === '!' ? 'Boolean' : typeOf(n.e, syms, fns);
         case 'call': {
-            const f = fns[n.name.toLowerCase()];
-            return f ? f.returnType || 'Integer' : BUILTIN_TYPES[n.name.toLowerCase()] || 'Real';
+            const f = own(fns, n.name.toLowerCase());
+            return f ? f.returnType || 'Integer' : own(BUILTIN_TYPES, n.name.toLowerCase()) || 'Real';
         }
         case 'bin': {
             if (n.op === '&') {
@@ -127,8 +187,15 @@ const LANGS = {
         call: (name, args) => {
             const m = {sqrt: 'math.sqrt', abs: 'abs', sin: 'math.sin', cos: 'math.cos', tan: 'math.tan', log: 'math.log',
                 exp: 'math.exp', floor: 'math.floor', ceiling: 'math.ceil', round: 'round', 'int': 'int', len: 'len',
-                random: 'random.randrange', toint: 'int', toreal: 'float', tostring: 'str', pi: 'math.pi'};
+                random: 'random.randrange', toint: 'int', toreal: 'float', tostring: 'str', pi: 'math.pi',
+                arcsin: 'math.asin', arccos: 'math.acos', arctan: 'math.atan', log10: 'math.log10'};
             const l = name.toLowerCase();
+            if (l === 'sign') {
+                return `((${args[0]}) > 0) - ((${args[0]}) < 0)`;
+            }
+            if (l === 'tofixed') {
+                return `format(${args[0]}, "." + str(${args[1]}) + "f")`;
+            }
             const ch = charCall(l, args, {at: (t, i) => `${t}[${i}]`, fromCode: (n) => `chr(${n})`, code: (t) => `ord(${t})`});
             if (ch) {
                 return ch;
@@ -136,7 +203,7 @@ const LANGS = {
             if (l === 'pi') {
                 return 'math.pi';
             }
-            return `${m[l] || name}(${args.join(', ')})`;
+            return `${own(m, l) || name}(${args.join(', ')})`;
         },
     },
     c: {
@@ -147,15 +214,26 @@ const LANGS = {
         eq: (l, r, op, t) => (t === 'String' ? `strcmp(${l}, ${r}) ${op} 0` : `${l} ${op} ${r}`),
         call: (name, args) => {
             const m = {sqrt: 'sqrt', abs: 'fabs', sin: 'sin', cos: 'cos', tan: 'tan', log: 'log', exp: 'exp', floor: 'floor',
-                ceiling: 'ceil', round: 'round', 'int': '(int)', len: 'strlen', random: 'rand_below', toint: '(int)',
-                toreal: '(double)'};
+                ceiling: 'ceil', round: 'round', 'int': '(int)', len: 'strlen', random: 'rand_below', toint: 'atoi',
+                toreal: 'atof', arcsin: 'asin', arccos: 'acos', arctan: 'atan', log10: 'log10'};
             const l = name.toLowerCase();
+            if (l === 'sign') {
+                return `((${args[0]}) > 0) - ((${args[0]}) < 0)`;
+            }
+            if (l === 'tofixed') {
+                needs.toFixed = true;
+                return `to_fixed(${args[0]}, ${args[1]})`;
+            }
             const ch = charCall(l, args, {at: (t, i) => `char_str(${t}[${i}])`, fromCode: (n) => `char_str(${n})`,
                 code: (t) => `(int) (unsigned char) ${t}[0]`});
             if (ch) {
                 return ch;
             }
-            return l === 'pi' ? 'M_PI' : `${m[l] || name}(${args.join(', ')})`;
+            if (l === 'pi') {
+                needs.pi = true;
+                return 'M_PI';
+            }
+            return `${own(m, l) || name}(${args.join(', ')})`;
         },
     },
     cpp: {
@@ -173,10 +251,18 @@ const LANGS = {
         eq: (l, r, op) => `${l} ${op} ${r}`,
         call: (name, args, types) => {
             const m = {sqrt: 'sqrt', abs: 'abs', sin: 'sin', cos: 'cos', tan: 'tan', log: 'log', exp: 'exp', floor: 'floor',
-                ceiling: 'ceil', round: 'round', 'int': '(int)', toint: 'stoi', toreal: 'stod'};
+                ceiling: 'ceil', round: 'round', 'int': '(int)', toint: 'stoi', toreal: 'stod', arcsin: 'asin', arccos: 'acos',
+                arctan: 'atan', log10: 'log10'};
             const l = name.toLowerCase();
+            if (l === 'sign') {
+                return `((${args[0]}) > 0) - ((${args[0]}) < 0)`;
+            }
+            if (l === 'tofixed') {
+                needs.toFixed = true;
+                return `to_fixed(${args[0]}, ${args[1]})`;
+            }
             if (l === 'len') {
-                return `(int) ${atom(args[0])}.length()`;
+                return `(int) string(${args[0]}).length()`;
             }
             if (l === 'random') {
                 needs.random = true;
@@ -191,7 +277,11 @@ const LANGS = {
             if (ch) {
                 return ch;
             }
-            return l === 'pi' ? 'M_PI' : `${m[l] || name}(${args.join(', ')})`;
+            if (l === 'pi') {
+                needs.pi = true;
+                return 'M_PI';
+            }
+            return `${own(m, l) || name}(${args.join(', ')})`;
         },
     },
     java: {
@@ -210,8 +300,15 @@ const LANGS = {
         call: (name, args) => {
             const m = {sqrt: 'Math.sqrt', abs: 'Math.abs', sin: 'Math.sin', cos: 'Math.cos', tan: 'Math.tan', log: 'Math.log',
                 exp: 'Math.exp', floor: 'Math.floor', ceiling: 'Math.ceil', round: 'Math.round', 'int': '(int)',
-                random: 'rnd.nextInt', toint: 'Integer.parseInt', toreal: 'Double.parseDouble', tostring: 'String.valueOf'};
+                random: 'rnd.nextInt', toint: 'Integer.parseInt', toreal: 'Double.parseDouble', tostring: 'String.valueOf',
+                arcsin: 'Math.asin', arccos: 'Math.acos', arctan: 'Math.atan', log10: 'Math.log10'};
             const l = name.toLowerCase();
+            if (l === 'sign') {
+                return `(int) Math.signum(${args[0]})`;
+            }
+            if (l === 'tofixed') {
+                return `String.format(java.util.Locale.ROOT, "%." + (${args[1]}) + "f", (double) (${args[0]}))`;
+            }
             if (l === 'len') {
                 return `${atom(args[0])}.length()`;
             }
@@ -220,7 +317,7 @@ const LANGS = {
             if (ch) {
                 return ch;
             }
-            return l === 'pi' ? 'Math.PI' : `${m[l] || name}(${args.join(', ')})`;
+            return l === 'pi' ? 'Math.PI' : `${own(m, l) || name}(${args.join(', ')})`;
         },
     },
     csharp: {
@@ -234,9 +331,13 @@ const LANGS = {
         call: (name, args) => {
             const m = {sqrt: 'Math.Sqrt', abs: 'Math.Abs', sin: 'Math.Sin', cos: 'Math.Cos', tan: 'Math.Tan', log: 'Math.Log',
                 exp: 'Math.Exp', floor: 'Math.Floor', ceiling: 'Math.Ceiling', round: 'Math.Round',
-                'int': '(int)', sign: 'Math.Sign',
+                'int': '(int)', sign: 'Math.Sign', arcsin: 'Math.Asin', arccos: 'Math.Acos', arctan: 'Math.Atan',
+                log10: 'Math.Log10',
                 random: 'rnd.Next', toint: 'Convert.ToInt32', toreal: 'Convert.ToDouble', tostring: 'Convert.ToString'};
             const l = name.toLowerCase();
+            if (l === 'tofixed') {
+                return `((double) (${args[0]})).ToString("F" + (${args[1]}), CultureInfo.InvariantCulture)`;
+            }
             if (l === 'len') {
                 return `${atom(args[0])}.Length`;
             }
@@ -248,7 +349,7 @@ const LANGS = {
             if (l === 'isnumeric') {
                 return `double.TryParse(${args[0]}, out _)`;
             }
-            return l === 'pi' ? 'Math.PI' : `${m[l] || name}(${args.join(', ')})`;
+            return l === 'pi' ? 'Math.PI' : `${own(m, l) || name}(${args.join(', ')})`;
         },
     },
     javascript: {
@@ -261,8 +362,12 @@ const LANGS = {
         call: (name, args) => {
             const m = {sqrt: 'Math.sqrt', abs: 'Math.abs', sin: 'Math.sin', cos: 'Math.cos', tan: 'Math.tan', log: 'Math.log',
                 exp: 'Math.exp', floor: 'Math.floor', ceiling: 'Math.ceil', round: 'Math.round', 'int': 'Math.trunc',
-                sign: 'Math.sign', toint: 'parseInt', toreal: 'parseFloat', tostring: 'String'};
+                sign: 'Math.sign', toint: 'parseInt', toreal: 'parseFloat', tostring: 'String', arcsin: 'Math.asin',
+                arccos: 'Math.acos', arctan: 'Math.atan', log10: 'Math.log10'};
             const l = name.toLowerCase();
+            if (l === 'tofixed') {
+                return `${atom(args[0])}.toFixed(${args[1]})`;
+            }
             if (l === 'len') {
                 return `${atom(args[0])}.length`;
             }
@@ -277,7 +382,7 @@ const LANGS = {
             if (ch) {
                 return ch;
             }
-            return l === 'pi' ? 'Math.PI' : `${m[l] || name}(${args.join(', ')})`;
+            return l === 'pi' ? 'Math.PI' : `${own(m, l) || name}(${args.join(', ')})`;
         },
     },
     pascal: {
@@ -293,8 +398,11 @@ const LANGS = {
         call: (name, args, types) => {
             const m = {sqrt: 'Sqrt', abs: 'Abs', sin: 'Sin', cos: 'Cos', tan: 'Tan', log: 'Ln', exp: 'Exp', floor: 'Floor',
                 ceiling: 'Ceil', round: 'Round', 'int': 'Trunc', sign: 'Sign', random: 'Random', len: 'Length',
-                toint: 'StrToInt', toreal: 'StrToFloat'};
+                toint: 'StrToInt', toreal: 'StrToFloat', arcsin: 'ArcSin', arccos: 'ArcCos', arctan: 'ArcTan', log10: 'Log10'};
             const l = name.toLowerCase();
+            if (l === 'tofixed') {
+                return `FloatToStrF(${args[0]}, ffFixed, 18, ${args[1]})`;
+            }
             if (l === 'tostring') {
                 return pascalToStr(args[0], types[0]);
             }
@@ -308,7 +416,7 @@ const LANGS = {
             if (ch) {
                 return ch;
             }
-            return l === 'pi' ? 'Pi' : `${m[l] || name}(${args.join(', ')})`;
+            return l === 'pi' ? 'Pi' : `${own(m, l) || name}(${args.join(', ')})`;
         },
     },
 };
@@ -371,21 +479,60 @@ export const generateLines = (lang, program) => {
     needs = {};
     const pascal = lang === 'pascal';
     const semi = lang === 'python' ? '' : ';';
-    const fns = Object.fromEntries(program.functions.map((f) => [f.name.toLowerCase(), f]));
-    let syms = {};
-    // The interpreter ignores the case of names, the languages (but Pascal) do not: every name is written as declared.
-    let canon = {};
-    const nameOf = (name) => canon[String(name).toLowerCase()] || name;
+    const fns = Object.assign(Object.create(null), Object.fromEntries(program.functions.map((f) => [f.name.toLowerCase(), f])));
+    let syms = Object.create(null);
+    // The interpreter ignores the case of names, the languages (but Pascal) do not: every name is written as declared,
+    // and a name that is a word of the language gets "_" added.
+    const reserved = RESERVED_SETS[lang] || new Set();
+    const caseless = lang === 'pascal' || lang === 'vb';
+    const used = new Set();
+    program.functions.forEach((f) => {
+        used.add(f.name.toLowerCase());
+        f.params.forEach((p) => used.add(p.name.toLowerCase()));
+        allBlocks(f.body).forEach((b) => {
+            if (b.type === 'declare') {
+                String(b.name).split(',').forEach((x) => used.add(x.trim().toLowerCase()));
+            } else if (b.type === 'for') {
+                used.add(String(b.variable || '').trim().toLowerCase());
+            }
+        });
+    });
+    const renamed = new Map();
+    const safe = (name) => {
+        const key = caseless ? name.toLowerCase() : name;
+        if (!reserved.has(key)) {
+            return name;
+        }
+        if (!renamed.has(key)) {
+            let s = `${name}_`;
+            while (reserved.has(caseless ? s.toLowerCase() : s) || used.has(s.toLowerCase())) {
+                s += '_';
+            }
+            used.add(s.toLowerCase());
+            renamed.set(key, s);
+        }
+        return renamed.get(key);
+    };
+    const fnName = (f) => safe(f.name);
+    let canon = Object.create(null);
+    // Pi that is not a variable stays Pi: it is the number pi.
+    const nameOf = (name) => own(canon, String(name).toLowerCase()) ||
+        (String(name).toLowerCase() === 'pi' ? String(name) : safe(String(name)));
     const fixNames = (n) => {
         if (n.k === 'var' || n.k === 'idx') {
             n.name = nameOf(n.name);
-        } else if (n.k === 'call' && fns[n.name.toLowerCase()]) {
-            n.name = fns[n.name.toLowerCase()].name;
+        } else if (n.k === 'call' && own(fns, n.name.toLowerCase())) {
+            n.user = true;
+            n.name = fnName(fns[n.name.toLowerCase()]);
+        } else if (n.k === 'call' && Object.hasOwn(ALIASES, n.name.toLowerCase())) {
+            n.name = ALIASES[n.name.toLowerCase()];
         }
         [n.e, n.l, n.r, n.index, n.index2, ...(n.args || [])].forEach((c) => c && fixNames(c));
         return n;
     };
     const parse = (src) => fixNames(parseExpr(src));
+    // The function of the algorithm a generated name belongs to.
+    const userFn = (name) => program.functions.find((f) => fnName(f) === name) || null;
 
     const expr = (src) => {
         // Code of a node; ctx is the precedence the surrounding code needs, so lower precedence gets parentheses.
@@ -395,10 +542,10 @@ export const generateLines = (lang, program) => {
                 case 'num': code = String(n.v); break;
                 case 'str': code = L.str ? L.str(n.v) : JSON.stringify(n.v); break;
                 case 'bool': code = L.bool(n.v); break;
-                case 'var': code = n.name; break;
+                case 'var': code = !own(syms, n.name) && n.name.toLowerCase() === 'pi' ? L.call('pi', [], []) : n.name; break;
                 case 'idx': code = indexCode(n); break;
                 case 'un': code = n.op === '!' ? `${L.not}${walk(n.e, 8)}` : `${n.op}${walk(n.e, 8)}`; break;
-                case 'call': code = L.call(n.name, callArgs(n), n.args.map((a) => typeOf(a, syms, fns))); break;
+                case 'call': code = callCode(n); break;
                 case 'bin': code = walkBin(n); break;
                 default: code = '';
             }
@@ -429,17 +576,38 @@ export const generateLines = (lang, program) => {
             const op = (L.ops && L.ops[n.op]) || n.op;
             return `${walk(n.l, CMP.includes(n.op) ? p + 0.5 : p)} ${op} ${walk(n.r, p + 0.5)}`;
         };
+        // A call: of a function of the algorithm (even when a built-in function has the same name), the length of an
+        // array, or a built-in function.
+        const callCode = (n) => {
+            if (n.user) {
+                return `${n.name}(${callArgs(n).join(', ')})`;
+            }
+            const a = n.args[0];
+            const l = n.name.toLowerCase();
+            if (l === 'len' && a && a.k === 'var' && own(syms, a.name) && syms[a.name].array) {
+                return arrayLength(a.name);
+            }
+            // ToInt and ToReal of a number (not of a text): the whole part, the number itself.
+            if ((l === 'toint' || l === 'toreal') && a && typeOf(a, syms, fns) !== 'String') {
+                return l === 'toint' ? L.call('int', [walk(a)], ['Real']) : walk(a, 8);
+            }
+            return L.call(n.name, callArgs(n), n.args.map((x) => typeOf(x, syms, fns)));
+        };
+        const arrayLength = (name) => ({python: `len(${name})`, java: `${name}.length`, javascript: `${name}.length`,
+            csharp: syms[name].matrix ? `${name}.GetLength(0)` : `${name}.Length`, cpp: `(int) ${name}.size()`,
+            pascal: `Length(${name})`, c: syms[name].param ? `${name}_rows` : `(int) (sizeof ${name} / sizeof ${name}[0])`,
+        }[lang] || `len(${name})`);
         // Arguments of a call. In C a matrix parameter needs its numbers of rows and columns too: from the matrix
         // parameter of the caller, or with sizeof from a matrix declared there.
         const callArgs = (n) => {
-            const f = fns[n.name.toLowerCase()];
+            const f = n.user ? own(fns, String(n.origName || '').toLowerCase()) || userFn(n.name) : null;
             return n.args.flatMap((a, i) => {
                 const p = f && f.params[i];
                 if (lang !== 'c' || !p || !p.matrix || a.k !== 'var') {
                     return [walk(a)];
                 }
                 const m = a.name;
-                if (syms[m] && syms[m].param) {
+                if (own(syms, m) && syms[m].param) {
                     return [`${m}_rows`, `${m}_cols`, m];
                 }
                 return [`(int) (sizeof ${m} / sizeof ${m}[0])`, `(int) (sizeof ${m}[0] / sizeof ${m}[0][0])`, m];
@@ -502,14 +670,16 @@ export const generateLines = (lang, program) => {
     };
     const inputStmt = (b, ind) => {
         const t = parse(b.target);
-        const sym = syms[t.name] || {type: 'Integer'};
+        const sym = own(syms, t.name) || {type: 'Integer'};
         const target = ex(b.target);
         if (lang === 'python') {
             const conv = {Integer: 'int', Real: 'float', String: 'str', Boolean: 'lambda v: v.lower() == "true"'}[sym.type];
             emit(ind, `${target} = ${conv}(input())`);
         } else if (lang === 'java') {
-            const m = {Integer: 'nextInt', Real: 'nextDouble', String: 'next', Boolean: 'nextBoolean'}[sym.type];
-            emit(ind, `${target} = in.${m}();`);
+            // Whole lines, like the algorithm reads them (nextInt would leave the end of the line for the next input).
+            const conv = {Integer: 'Integer.parseInt(in.nextLine().trim())', Real: 'Double.parseDouble(in.nextLine().trim())',
+                String: 'in.nextLine()', Boolean: 'in.nextLine().trim().equalsIgnoreCase("true")'}[sym.type];
+            emit(ind, `${target} = ${conv};`);
         } else if (lang === 'csharp') {
             const conv = {Integer: 'int.Parse(Console.ReadLine())',
                 Real: 'double.Parse(Console.ReadLine(), CultureInfo.InvariantCulture)',
@@ -525,7 +695,7 @@ export const generateLines = (lang, program) => {
         } else if (pascal) {
             emit(ind, sym.type === 'Boolean' ? `${target} := ReadBoolean();` : `readln(${target});`);
         } else {
-            const spec = {Integer: '%d', Real: '%lf', String: '%255s', Boolean: '%d'}[sym.type];
+            const spec = {Integer: '%d', Real: '%lf', String: ' %255[^\\n]', Boolean: '%d'}[sym.type];
             emit(ind, `scanf("${spec}", ${sym.type === 'String' ? target : `&${target}`});`);
         }
     };
@@ -555,7 +725,7 @@ export const generateLines = (lang, program) => {
 
     const declare = (block, ind) => {
         String(block.name).split(',').map((s) => s.trim()).filter(Boolean)
-            .forEach((name) => declareOne({...block, name}, ind));
+            .forEach((name) => declareOne({...block, name: nameOf(name)}, ind));
     };
     // eslint-disable-next-line complexity
     const declareOne = (b, ind) => {
@@ -640,6 +810,17 @@ export const generateLines = (lang, program) => {
     };
     const close = (ind) => lang !== 'python' && emit(ind, pascal ? 'end;' : '}');
 
+    // Loops being written, innermost last: what a Continue must do first (Python's do-while checks its condition,
+    // Pascal's counting while loop adds the step).
+    const loops = [];
+    const inLoop = (before, write) => {
+        loops.push(before);
+        try {
+            write();
+        } finally {
+            loops.pop();
+        }
+    };
     const forStmt = (blk, ind) => {
         const b = {...blk, variable: nameOf(blk.variable)};
         const step = String(b.step || '1').trim() || '1';
@@ -653,17 +834,18 @@ export const generateLines = (lang, program) => {
             // Pascal's for loop only counts by 1.
             emit(ind, `${b.variable} := ${ex(b.start)};`);
             open(`while ${b.variable} ${neg ? '>=' : '<='} ${ex(b.end)} do`, ind);
-            block(b.body, ind + 1);
             const by = ex(step);
-            emit(ind + 1, `${b.variable} := ${b.variable} ${/^-\d/.test(by) ? `- ${by.slice(1)}` : `+ ${by}`};`);
+            const next = `${b.variable} := ${b.variable} ${/^-\d/.test(by) ? `- ${by.slice(1)}` : `+ ${by}`};`;
+            inLoop([next], () => block(b.body, ind + 1));
+            emit(ind + 1, next);
             close(ind);
             return;
         } else {
-            const decl = syms[b.variable] ? '' : {javascript: 'let '}[lang] || 'int ';
+            const decl = own(syms, b.variable) ? '' : {javascript: 'let '}[lang] || 'int ';
             open(`for (${decl}${b.variable} = ${ex(b.start)}; ${b.variable} ${neg ? '>=' : '<='} ${ex(b.end)}; ` +
                 `${b.variable} += ${ex(step)})`, ind);
         }
-        block(b.body, ind + 1);
+        inLoop([], () => block(b.body, ind + 1));
         close(ind);
     };
 
@@ -715,25 +897,33 @@ export const generateLines = (lang, program) => {
                 break;
             case 'while':
                 open({python: `while ${ex(b.cond)}`, pascal: `while ${ex(b.cond)} do`}[lang] || `while (${ex(b.cond)})`, ind);
-                block(b.body, ind + 1);
+                inLoop([], () => block(b.body, ind + 1));
                 close(ind);
                 break;
             case 'dowhile':
                 if (lang === 'python') {
                     open('while True', ind);
-                    block(b.body, ind + 1);
-                    emit(ind + 1, `if not (${ex(b.cond)}): break`);
+                    const check = `if not (${ex(b.cond)}): break`;
+                    inLoop([check], () => block(b.body, ind + 1));
+                    emit(ind + 1, check);
                 } else if (pascal) {
                     emit(ind, 'repeat');
-                    block(b.body, ind + 1);
+                    inLoop([], () => block(b.body, ind + 1));
                     emit(ind, `until not (${ex(b.cond)});`);
                 } else {
                     emit(ind, 'do {');
-                    block(b.body, ind + 1);
+                    inLoop([], () => block(b.body, ind + 1));
                     emit(ind, `} while (${ex(b.cond)});`);
                 }
                 break;
             case 'for': forStmt(b, ind); break;
+            case 'break':
+                emit(ind, pascal ? 'Break;' : `break${semi}`);
+                break;
+            case 'continue':
+                (loops[loops.length - 1] || []).forEach((line) => emit(ind, line));
+                emit(ind, pascal ? 'Continue;' : `continue${semi}`);
+                break;
             default: break;
         }
     };
@@ -753,25 +943,27 @@ export const generateLines = (lang, program) => {
                 const arr = Boolean(String(b.size || '').trim());
                 const of = arr ? 'array of ' : '';
                 String(b.name).split(',').map((s) => s.trim()).filter(Boolean).forEach((name) => {
-                    vars.set(name, isMatrix(b) ? pascalMatrix(b.varType) : `${of}${TYPE_NAMES.pascal[b.varType]}`);
+                    vars.set(nameOf(name), isMatrix(b) ? pascalMatrix(b.varType) : `${of}${TYPE_NAMES.pascal[b.varType]}`);
                 });
             } else if (b.type === 'for' && !vars.has(nameOf(b.variable))) {
                 vars.set(nameOf(b.variable), 'Integer');
             }
         });
-        f.params.forEach((p) => vars.delete(p.name));
+        f.params.forEach((p) => vars.delete(safe(p.name)));
         return vars;
     };
     const pascalHead = (f) => {
         const ps = f.params
-            .map((p) => `${p.array ? 'var ' : ''}${p.name}: ` +
+            .map((p) => `${p.array ? 'var ' : ''}${safe(p.name)}: ` +
                 (p.matrix ? pascalMatrix(p.type) : `${p.array ? 'array of ' : ''}${TYPE_NAMES.pascal[p.type]}`))
             .join('; ');
         const args = ps ? `(${ps})` : '';
-        return f.returnType ? `function ${f.name}${args}: ${TYPE_NAMES.pascal[f.returnType]};` : `procedure ${f.name}${args};`;
+        return f.returnType ? `function ${fnName(f)}${args}: ${TYPE_NAMES.pascal[f.returnType]};` :
+            `procedure ${fnName(f)}${args};`;
     };
 
-    const fnHead = (f, isMain) => {
+    const fnHead = (fn, isMain) => {
+        const f = {...fn, name: fnName(fn), params: fn.params.map((p) => ({...p, name: safe(p.name)}))};
         const params = f.params.map((p) => p.name);
         if (lang === 'python') {
             return `def ${isMain ? 'main' : f.name}(${params.join(', ')})`;
@@ -810,14 +1002,14 @@ export const generateLines = (lang, program) => {
     // Function bodies first: the C++ and Pascal headers depend on what the code needs.
     funcs.forEach((f) => {
         const isMain = f.name.toLowerCase() === mainName;
-        syms = {};
+        syms = Object.create(null);
         f.params.forEach((p) => {
-            syms[p.name] = {type: p.type, array: Boolean(p.array), matrix: Boolean(p.matrix), param: true};
+            syms[safe(p.name)] = {type: p.type, array: Boolean(p.array), matrix: Boolean(p.matrix), param: true};
         });
         // The first spelling wins: parameters, then declarations and For variables in the order of the diagram.
-        canon = {};
+        canon = Object.create(null);
         const spell = (name) => {
-            canon[name.toLowerCase()] = canon[name.toLowerCase()] || name;
+            canon[name.toLowerCase()] = own(canon, name.toLowerCase()) || safe(name);
         };
         f.params.forEach((p) => spell(p.name));
         allBlocks(f.body).forEach((b) => {
@@ -857,16 +1049,32 @@ export const generateLines = (lang, program) => {
     const body = out.splice(0);
     const bodyOwners = owners.splice(0);
 
-    const emitHeader = () => {
-        if (lang === 'python') {
+    // The start of the program in each language: imports, helpers the code needs, the class around Java and C#.
+    const headers = {
+        python: () => {
             emit(0, 'import math');
             emit(0, 'import random');
             emit(0, '');
-        } else if (lang === 'c') {
+        },
+        c: () => {
+            if (needs.pi) {
+                emit(0, '#define _USE_MATH_DEFINES'); // M_PI on every compiler.
+            }
             ['stdio.h', 'stdlib.h', 'string.h', 'math.h'].forEach((h) => emit(0, `#include <${h}>`));
             emit(0, '');
             emit(0, 'static int rand_below(int n) { return rand() % n; }');
             emit(0, '');
+            if (needs.toFixed) {
+                // ToFixed: a number with n decimals; a few buffers so one printf may use several.
+                emit(0, 'static char *to_fixed(double v, int n) {');
+                emit(1, 'static char buf[8][64];');
+                emit(1, 'static int k;');
+                emit(1, 'k = (k + 1) % 8;');
+                emit(1, 'snprintf(buf[k], sizeof buf[k], "%.*f", n, v);');
+                emit(1, 'return buf[k];');
+                emit(0, '}');
+                emit(0, '');
+            }
             if (program.functions.some((f) => /\b(char|tochar)\s*\(/i.test(JSON.stringify(f.body)))) {
                 // One character as a string (Char, ToChar); a few buffers so one printf may use several.
                 emit(0, 'static char *char_str(int c) {');
@@ -879,8 +1087,13 @@ export const generateLines = (lang, program) => {
                 emit(0, '}');
                 emit(0, '');
             }
-        } else if (lang === 'cpp') {
-            ['iostream', 'string', 'vector', 'cmath', 'cstdlib'].concat(needs.str ? ['sstream'] : [])
+        },
+        cpp: () => {
+            if (needs.pi) {
+                emit(0, '#define _USE_MATH_DEFINES'); // M_PI on every compiler.
+            }
+            ['iostream', 'string', 'vector', 'cmath', 'cstdlib'].concat(needs.str || needs.toFixed ? ['sstream'] : [])
+                .concat(needs.toFixed ? ['iomanip'] : [])
                 .forEach((h) => emit(0, `#include <${h}>`));
             emit(0, '');
             emit(0, 'using namespace std;');
@@ -898,18 +1111,28 @@ export const generateLines = (lang, program) => {
                 emit(0, 'int rand_below(int n) { return rand() % n; }');
                 emit(0, '');
             }
+            if (needs.toFixed) {
+                emit(0, 'string to_fixed(double v, int n) {');
+                emit(1, 'ostringstream out;');
+                emit(1, 'out << fixed << setprecision(n) << v;');
+                emit(1, 'return out.str();');
+                emit(0, '}');
+                emit(0, '');
+            }
             const protos = funcs.filter((f) => f.name.toLowerCase() !== mainName).map((f) => `${fnHead(f, false)};`);
             if (protos.length) {
                 protos.forEach((p) => emit(0, p));
                 emit(0, '');
             }
-        } else if (lang === 'javascript') {
+        },
+        javascript: () => {
             emit(0, '// Run with Node.js: node main.js');
             emit(0, "const lines = require('fs').readFileSync(0, 'utf8').split(/\\r?\\n/);");
             emit(0, 'let nextLine = 0;');
             emit(0, 'const input = () => lines[nextLine++] ?? \'\';');
             emit(0, '');
-        } else if (pascal) {
+        },
+        pascal: () => {
             emit(0, 'program Main;');
             emit(0, '');
             emit(0, '{$mode objfpc}{$H+}');
@@ -942,14 +1165,16 @@ export const generateLines = (lang, program) => {
                 others.forEach((f) => emit(0, `${pascalHead(f)} forward;`));
                 emit(0, '');
             }
-        } else if (lang === 'csharp') {
+        },
+        csharp: () => {
             emit(0, 'using System;');
             emit(0, 'using System.Globalization;');
             emit(0, '');
             emit(0, 'class Program {');
             emit(1, 'static Random rnd = new Random();');
             emit(1, '');
-        } else {
+        },
+        java: () => {
             emit(0, 'import java.util.*;');
             emit(0, '');
             emit(0, 'public class Main {');
@@ -964,8 +1189,9 @@ export const generateLines = (lang, program) => {
             emit(2, 'return java.math.BigDecimal.valueOf(Math.round(v * 1e10) / 1e10).stripTrailingZeros().toPlainString();');
             emit(1, '}');
             emit(1, '');
-        }
+        },
     };
+    const emitHeader = () => (own(headers, lang) || headers.java)();
     const emitFooter = () => {
         if (lang === 'java' || lang === 'csharp') {
             emit(0, '}');

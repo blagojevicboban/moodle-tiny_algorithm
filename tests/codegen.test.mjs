@@ -25,7 +25,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createProgram, createBlock as B} from '../amd/src/model.js';
 import {runSync} from '../amd/src/interpreter.js';
-import {generate} from '../amd/src/codegen.js';
+import {generate, languages} from '../amd/src/codegen.js';
 
 const sample = () => {
     const p = createProgram();
@@ -435,3 +435,148 @@ test('every line of the code knows the block it comes from', async() => {
         assert.doesNotMatch(of(cond.id), /pos/, lang);
     }
 });
+
+// 2.4: names that are words of the languages, Break and Continue in every loop, Pi, Flowgorithm functions, the
+// length of an array, a function of the algorithm named like a built-in one, and text input with spaces.
+const extras = () => {
+    const p = createProgram();
+    const names = ['class', 'int', 'def', 'var', 'begin', 'end', 'in', 'input', 'tmp', 'Result', 'print', 'lines', 'rnd'];
+    const nonl = (expr) => B('output', {expr, newline: false});
+    p.functions[0].body = [
+        B('declare', {name: names.join(', ')}),
+        B('declare', {name: 's', varType: 'String'}),
+        B('declare', {name: 'a', varType: 'Integer', size: '4'}),
+        B('declare', {name: 'i'}),
+        B('input', {target: 'int'}),
+        B('input', {target: 's'}),
+        ...names.filter((n) => n !== 'int').map((n, k) => B('assign', {target: n, expr: String(k + 2)})),
+        B('output', {expr: names.join(' + ')}),
+        B('output', {expr: 's & "!"'}),
+        B('for', {variable: 'i', start: '1', end: '10', step: '1', body: [
+            B('if', {cond: 'i mod 3 = 0', then: [B('continue')], 'else': []}),
+            B('if', {cond: 'i > 7', then: [B('break')], 'else': []}),
+            nonl('i & " "')]}),
+        B('output', {expr: '""'}),
+        B('assign', {target: 'tmp', expr: '0'}),
+        B('while', {cond: 'tmp < 10', body: [B('assign', {target: 'tmp', expr: 'tmp + 1'}),
+            B('if', {cond: 'tmp = 2', then: [B('continue')], 'else': []}),
+            B('if', {cond: 'tmp = 5', then: [B('break')], 'else': []}), nonl('tmp')]}),
+        B('output', {expr: '""'}),
+        B('assign', {target: 'tmp', expr: '0'}),
+        B('dowhile', {cond: 'tmp < 6', body: [B('assign', {target: 'tmp', expr: 'tmp + 1'}),
+            B('if', {cond: 'tmp mod 2 = 0', then: [B('continue')], 'else': []}), nonl('tmp')]}),
+        B('output', {expr: '""'}),
+        B('for', {variable: 'i', start: '10', end: '1', step: '-3', body: [
+            B('if', {cond: 'i = 7', then: [B('continue')], 'else': []}), nonl('i')]}),
+        B('output', {expr: '""'}),
+        B('output', {expr: 'Len(a) & " " & Size("abc") & " " & Sgn(-5) & " " & (ToInteger("12") + 1) & " " & ToInteger(3.9)'}),
+        B('output', {expr: 'ToFixed(pi, 4) & " " & ToFixed(Arctan(1) * 4, 3) & " " & ToFixed(Log10(1000), 1) & " " & ' +
+            'ToFixed(1.23456, 3)'}),
+        B('output', {expr: 'Sqrt(4)'}),
+    ];
+    p.functions.push({name: 'Sqrt', params: [{name: 'x', type: 'Integer', array: false}], returnType: 'Integer',
+        body: [B('return', {expr: 'x * 10'})]});
+    return p;
+};
+const extrasInput = '7\nAna Marija\n';
+
+/**
+ * Compile (when needed) and run generated code in any language; null when its compiler or runtime is not installed.
+ *
+ * @param {string} lang language
+ * @param {Object} program algorithm
+ * @param {string} input standard input
+ * @returns {string|null}
+ */
+const runAny = (lang, program, input) => {
+    const dir = mkdtempSync(join(tmpdir(), `alg-${lang}-`));
+    const opts = {timeout: 120000, input, stdio: ['pipe', 'pipe', 'pipe']};
+    const exe = join(dir, process.platform === 'win32' ? 'main.exe' : 'main');
+    const code = generate(lang, program);
+    // False only when the tool is not installed; a program that does not compile fails the test.
+    const tryRun = (cmd, args, more = {}) => {
+        try {
+            execFileSync(cmd, args, {timeout: 240000, stdio: 'pipe', ...more});
+            return true;
+        } catch (e) {
+            const text = `${e.stdout || ''}${e.stderr || ''}`;
+            if (e.code === 'ENOENT' || /No module named/.test(text)) {
+                return false;
+            }
+            throw new Error(`${cmd} ${args.join(' ')} failed:\n${text}\n${code}`);
+        }
+    };
+    const run = (cmd, args = [], more = {}) => execFileSync(cmd, args, {...opts, ...more}).toString();
+    switch (lang) {
+        case 'python':
+            writeFileSync(join(dir, 'main.py'), code);
+            return tryRun('python', ['--version']) ? run('python', ['-I', join(dir, 'main.py')]) : null;
+        case 'javascript':
+            writeFileSync(join(dir, 'main.js'), code);
+            return run(process.execPath, [join(dir, 'main.js')]);
+        case 'c':
+            writeFileSync(join(dir, 'main.c'), code);
+            if (!tryRun('gcc', [join(dir, 'main.c'), '-o', exe, '-lm']) &&
+                    !tryRun('python', ['-m', 'ziglang', 'cc', join(dir, 'main.c'), '-o', exe, '-lm'])) {
+                return null;
+            }
+            return run(exe);
+        case 'cpp':
+            writeFileSync(join(dir, 'main.cpp'), code);
+            if (!tryRun('g++', ['-std=c++17', join(dir, 'main.cpp'), '-o', exe]) &&
+                    !tryRun('python', ['-m', 'ziglang', 'c++', '-std=c++17', join(dir, 'main.cpp'), '-o', exe])) {
+                return null;
+            }
+            return run(exe);
+        case 'java':
+            writeFileSync(join(dir, 'Main.java'), code);
+            return tryRun('javac', ['-d', dir, join(dir, 'Main.java')]) ? run('java', ['-cp', dir, 'Main']) : null;
+        case 'csharp':
+        case 'vb': {
+            let major;
+            try {
+                major = /^(\d+)\./.exec(execFileSync('dotnet', ['--version'], {timeout: 30000}).toString().trim())[1];
+            } catch {
+                return null;
+            }
+            const vb = lang === 'vb';
+            writeFileSync(join(dir, vb ? 'app.vbproj' : 'app.csproj'), '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>' +
+                `<OutputType>Exe</OutputType><TargetFramework>net${major}.0</TargetFramework>` +
+                (vb ? '<RootNamespace>App</RootNamespace><OptionStrict>Off</OptionStrict>' : '') +
+                '</PropertyGroup></Project>');
+            writeFileSync(join(dir, vb ? 'Program.vb' : 'Program.cs'), code);
+            tryRun('dotnet', ['build', dir, '-o', join(dir, 'out'), '-nologo', '-v', 'q']);
+            return run('dotnet', [join(dir, 'out', 'app.dll')]);
+        }
+        case 'pascal':
+            writeFileSync(join(dir, 'main.pas'), code);
+            return tryRun('fpc', ['-v0', `-o${exe}`, join(dir, 'main.pas')]) ? run(exe) : null;
+        case 'go':
+            writeFileSync(join(dir, 'main.go'), code);
+            return tryRun('go', ['build', '-o', exe, join(dir, 'main.go')], {cwd: dir}) ? run(exe) : null;
+        case 'rust':
+            writeFileSync(join(dir, 'main.rs'), code);
+            return tryRun('rustc', ['-O', '-o', exe, join(dir, 'main.rs')]) ? run(exe) : null;
+        case 'kotlin': {
+            const jar = join(dir, 'main.jar');
+            writeFileSync(join(dir, 'main.kt'), code);
+            const kotlinc = process.platform === 'win32' ? 'kotlinc.bat' : 'kotlinc';
+            return tryRun(kotlinc, [join(dir, 'main.kt'), '-include-runtime', '-d', jar], {shell: process.platform === 'win32'}) ?
+                run('java', ['-jar', jar]) : null;
+        }
+        default:
+            return null;
+    }
+};
+
+for (const lang of languages.filter((l) => l !== 'pseudo')) {
+    test(`${lang}: reserved names, Break, Continue, Pi and the Flowgorithm functions match the interpreter`,
+        {timeout: 600000}, (t) => {
+            const out = runAny(lang, extras(), extrasInput);
+            if (out === null) {
+                t.skip(`no ${lang} compiler`);
+                return;
+            }
+            assert.equal(out.replace(/\r\n/g, '\n'), runSync(extras(), extrasInput.split('\n').filter(Boolean)));
+        });
+}
