@@ -370,6 +370,17 @@ generated code on the right; stacked when the content area is narrow. */
     max-height: 220px;
 }
 
+/* Without the code panel a click on a block does nothing, so the blocks do not look clickable. */
+.tiny_algorithm-viewer.tiny_algorithm-hide-code .tiny_algorithm-node,
+.tiny_algorithm-viewer.tiny_algorithm-no-code .tiny_algorithm-node {
+    cursor: default;
+}
+
+.tiny_algorithm-viewer.tiny_algorithm-hide-code .tiny_algorithm-node:hover > :first-child,
+.tiny_algorithm-viewer.tiny_algorithm-no-code .tiny_algorithm-node:hover > :first-child {
+    filter: none;
+}
+
 .tiny_algorithm-viewer .tiny_algorithm-node.tiny_algorithm-running > :first-child {
     fill: #fdba74;
     stroke: #9a3412;

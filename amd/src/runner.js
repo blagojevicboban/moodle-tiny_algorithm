@@ -72,6 +72,7 @@ export class AlgorithmRunner {
         this.svgHost = el('div', {'class': 'tiny_algorithm-view-svg'});
         this.svgHost.innerHTML = renderProgram(this.program);
         this.zoom = new Zoom(this.svgHost);
+        this.svgHost.addEventListener('click', (e) => this.onDiagramClick(e));
         this.speed = el('input', {
             type: 'range', min: 0, max: 1000, value: 600, 'class': 'tiny_algorithm-speed', 'aria-label': this.t('speed'),
         });
@@ -119,6 +120,12 @@ export class AlgorithmRunner {
         } else {
             this.root.classList.add('tiny_algorithm-no-code');
         }
+        this.root.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.selected) {
+                e.stopPropagation();
+                this.showBlock(null);
+            }
+        });
         host.classList.add('tiny_algorithm-viewer-host');
         host.replaceChildren(this.root);
         // Large diagrams start fitted to the available width.
@@ -143,7 +150,29 @@ export class AlgorithmRunner {
             // Storage can be unavailable (private window); the choice then only lasts for this page.
         }
         this.updateCodeToggle();
+        if (hidden) {
+            this.showBlock(null);
+        }
         requestAnimationFrame(() => this.zoom.autoFit());
+    }
+
+    /** Whether the code panel is shown, so a block of the diagram can be found in it. */
+    codeShown() {
+        return Boolean(this.codeEl) && !this.root.classList.contains('tiny_algorithm-hide-code');
+    }
+
+    /**
+     * A click on a block marks it and its lines in the code; a click on it again or beside the blocks removes the mark.
+     *
+     * @param {MouseEvent} e
+     */
+    onDiagramClick(e) {
+        if (this.running || !this.codeShown()) {
+            return;
+        }
+        const node = e.target instanceof Element ? e.target.closest('.tiny_algorithm-node[data-id]') : null;
+        const id = node && !['start', 'end'].includes(node.dataset.id) ? node.dataset.id : null;
+        this.showBlock(id === this.selected ? null : id);
     }
 
     updateCodeToggle() {
@@ -190,7 +219,7 @@ export class AlgorithmRunner {
     }
 
     /**
-     * Mark a block of the diagram and its code lines (a code line was clicked); null removes the mark.
+     * Mark a block of the diagram and its code lines (the block or a code line was clicked); null removes the mark.
      *
      * @param {?string} id block id
      * @param {boolean} scrollCode scroll the code panel to the block's first line
@@ -212,7 +241,7 @@ export class AlgorithmRunner {
     }
 
     /**
-     * Arrows go through the blocks line by line, Escape removes the mark.
+     * Arrows go through the blocks line by line (Escape anywhere in the viewer removes the mark).
      *
      * @param {KeyboardEvent} e
      */
@@ -223,9 +252,6 @@ export class AlgorithmRunner {
                 e.preventDefault();
                 this.showBlock(id);
             }
-        } else if (e.key === 'Escape' && this.selected) {
-            e.stopPropagation();
-            this.showBlock(null);
         }
     }
 

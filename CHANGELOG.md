@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.1 – 2026-11-06 (stable)
+
+- **A click on a block shows its code in the viewer too:** in pages and quiz questions (no editing) a click on a
+  block marks it and its lines in the code panel; a click on it again, beside the blocks or Escape removes the mark.
+  Without the code panel (hidden or turned off) the click does nothing and the blocks no longer look clickable.
+
 ## 2.3.0 – 2026-11-06 (stable)
 
 - **A click on the code finds the block:** clicking a line of the generated code selects the block it comes from
