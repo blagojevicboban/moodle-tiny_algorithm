@@ -75,7 +75,9 @@ export class AlgorithmRunner {
 
     build(host) {
         const btn = (key, fn) => el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm', onclick: fn}, this.t(key));
-        this.svgHost = el('div', {'class': 'tiny_algorithm-view-svg'});
+        // The diagram scrolls, so it takes the keyboard focus (arrow keys scroll it).
+        this.svgHost = el('div', {'class': 'tiny_algorithm-view-svg', tabindex: '0', role: 'group',
+            'aria-label': this.t('diagram')});
         this.svgHost.innerHTML = renderProgram(this.program);
         this.zoom = new Zoom(this.svgHost);
         this.svgHost.addEventListener('click', (e) => this.onDiagramClick(e));

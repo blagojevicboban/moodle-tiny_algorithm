@@ -83,6 +83,7 @@ $string['ui_cut'] = 'Исеци';
 $string['ui_delete'] = 'Обриши';
 $string['ui_deleted'] = 'Блок је обрисан.';
 $string['ui_delfn'] = '− Функција';
+$string['ui_diagram'] = 'Дијаграм';
 $string['ui_difffirst'] = 'Прва разлика у реду {$a->n}.';
 $string['ui_done'] = 'Заврши измене';
 $string['ui_down'] = 'Доле';

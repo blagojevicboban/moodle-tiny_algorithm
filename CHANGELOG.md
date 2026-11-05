@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.4.2 – 2026-11-10 (stable)
+
+- **Accessibility (axe: no violations in the viewer, the trace table, the editor, the shortcuts and a quiz question):**
+  the diagram of a page takes the keyboard focus and can be scrolled with the arrow keys; the function list and the
+  speed slider have names; the panel titles no longer break the heading order of the page; the zoom button is named
+  by the zoom it shows; the list of shortcuts is a correct definition list.
+
 ## 2.4.1 – 2026-11-10 (stable)
 
 - **Default code language:** the language chosen in the code panel of the insert dialog (or of the question form)

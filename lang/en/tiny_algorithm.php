@@ -83,6 +83,7 @@ $string['ui_cut'] = 'Cut';
 $string['ui_delete'] = 'Delete';
 $string['ui_deleted'] = 'Block deleted.';
 $string['ui_delfn'] = '− Function';
+$string['ui_diagram'] = 'Diagram';
 $string['ui_difffirst'] = 'First difference in line {$a->n}.';
 $string['ui_done'] = 'Done editing';
 $string['ui_down'] = 'Down';

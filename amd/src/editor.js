@@ -75,6 +75,9 @@ const el = (tag, attrs = {}, ...kids) => {
     return e;
 };
 
+// The title of a panel of the editor.
+const paneTitle = (...kids) => el('div', {'class': 'tiny_algorithm-panetitle'}, ...kids);
+
 // Blocks copied in any editor of the page, used when the system clipboard cannot be read.
 let clipboard = null;
 
@@ -132,13 +135,15 @@ export class AlgorithmEditor {
         const btn = (key, fn, extra = {}) => el('button', {
             type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-btn', onclick: fn,
             title: this.t(key), ...extra}, this.t(key));
-        this.fnSelect = el('select', {'class': 'custom-select custom-select-sm tiny_algorithm-fnselect', onchange: () => {
+        this.fnSelect = el('select', {'class': 'custom-select custom-select-sm tiny_algorithm-fnselect',
+            'aria-label': this.t('function'), onchange: () => {
             this.fnIndex = Number(this.fnSelect.value);
             this.selected = null;
             this.refresh();
         }});
         this.speed = el('input',
-            {type: 'range', min: 0, max: 1000, value: 600, 'class': 'tiny_algorithm-speed', title: this.t('speed')});
+            {type: 'range', min: 0, max: 1000, value: 600, 'class': 'tiny_algorithm-speed', title: this.t('speed'),
+                'aria-label': this.t('speed')});
         this.fileInput = el('input', {type: 'file', accept: '.fprg,.xml', hidden: true, onchange: (e) => this.importFile(e)});
         this.btnUndo = btn('undo', () => this.undo());
         this.btnRedo = btn('redo', () => this.redo());
@@ -182,12 +187,12 @@ export class AlgorithmEditor {
         languages.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
         this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeText || ''));
         this.dlBtn = btn('download', () => this.exportCode());
-        this.tabConsole = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('console'), ' ', this.statusEl),
+        this.tabConsole = el('div', {'class': 'tiny_algorithm-pane'}, paneTitle(this.t('console'), ' ', this.statusEl),
             this.consoleEl);
         this.tabCode = el('div', {'class': 'tiny_algorithm-pane'},
-            el('h6', {}, this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn), this.codeEl);
+            paneTitle(this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn), this.codeEl);
         this.watch = new Watch(this.lang);
-        this.tabWatch = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('variables')), this.watch.root);
+        this.tabWatch = el('div', {'class': 'tiny_algorithm-pane'}, paneTitle(this.t('variables')), this.watch.root);
         // On a narrow screen the console, the variables and the code share the space below the diagram as tabs.
         const tab = (key) => el('button', {type: 'button', role: 'tab', 'class': 'btn btn-sm btn-link',
             'data-sidetab': key, onclick: () => this.showTab(key)}, this.t(key === 'watch' ? 'variables' : key));
@@ -409,7 +414,7 @@ export class AlgorithmEditor {
     renderProps() {
         const found = this.selected ? findBlock(this.program, this.selected) : null;
         if (!found) {
-            this.props.replaceChildren(el('h6', {}, this.t('function')),
+            this.props.replaceChildren(paneTitle(this.t('function')),
                 this.field(this.t('name'), 'text', this.fn.name, (v) => this.commit(() => {
                     if (v.trim()) {
                         renameFunction(this.program, this.fn, v.trim());
@@ -443,7 +448,7 @@ export class AlgorithmEditor {
         })));
         const act = (label, fn, cls = 'btn-secondary') =>
             el('button', {type: 'button', 'class': `btn btn-sm ${cls}`, onclick: fn}, label);
-        this.props.replaceChildren(el('h6', {}, this.t(`b.${b.type}`)), ...rows, this.noteField(b),
+        this.props.replaceChildren(paneTitle(this.t(`b.${b.type}`)), ...rows, this.noteField(b),
             el('div', {'class': 'tiny_algorithm-actions'},
             act(this.t('up'), () => this.move(-1)), act(this.t('down'), () => this.move(1)),
             act(this.t('duplicate'), () => this.duplicate()),

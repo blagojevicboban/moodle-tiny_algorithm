@@ -995,3 +995,9 @@ generated code on the right; stacked when the content area is narrow. */
 .tiny_algorithm-viewer > .tiny_algorithm-textdesc {
     grid-column: 1 / -1;
 }
+
+/* Titles of the panels of the editor (not headings: they would break the heading order of the page). */
+.tiny_algorithm-panetitle {
+    font-weight: 700;
+    margin-bottom: .5rem;
+}

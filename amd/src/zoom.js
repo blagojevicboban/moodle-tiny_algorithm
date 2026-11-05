@@ -157,6 +157,8 @@ export class Zoom {
             return b;
         };
         this.label = mk(`${Math.round(this.scale * 100)}%`, t('zoomreset'), () => this.reset());
+        // Its name is what it shows (the zoom); the title says what it does.
+        this.label.removeAttribute('aria-label');
         const box = document.createElement('span');
         box.className = 'tiny_algorithm-zoom';
         box.append(

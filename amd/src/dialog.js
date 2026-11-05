@@ -42,7 +42,7 @@ export const el = (tag, attrs = {}, ...kids) => {
             e.setAttribute(k, v === true ? '' : v);
         }
     }
-    kids.flat().forEach((c) => c !== null && c !== undefined && e.append(c));
+    kids.flat(Infinity).forEach((c) => c !== null && c !== undefined && e.append(c));
     return e;
 };
 
