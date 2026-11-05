@@ -1,5 +1,46 @@
 # Changelog
 
+## 2.4.0 – 2026-11-10 (stable)
+
+Interpreter (the same in qtype_algorithm's PHP interpreter, checked by the parity fixtures):
+- **Break and Continue** blocks (only inside a loop; outside a loop the run stops before it starts).
+- **Limits:** at most 200 nested calls of user functions and 100000 characters of output, with clear errors.
+- **Typed input:** an Integer takes only a whole number, a Real only a number, a Boolean only true or false.
+- **Random** gives the same numbers in every test and grading run (a seed), so expected outputs stay valid.
+- **Pi** without a variable of that name is the number pi; Flowgorithm's **ToInteger, Sgn, Size, Arcsin, Arccos,
+  Arctan, Log10, ToFixed**.
+- Variables named like JavaScript object properties (constructor, toString) work.
+- **Function tests** can pass arrays and matrices (`[1, 2, 3]`, `[[1, 2], [3, 4]]`); the result shows them after the
+  call, so a procedure that sorts or fills an array can be tested.
+
+Editor and viewer:
+- **Debugging:** breakpoints (F9, the block menu, Alt + click in pages), Continue, a status, the call stack above the
+  variables, the block and code lines of an error in red with Show the block, F5 / F10.
+- **Trace table** of the last run (File menu, viewer button): values after each step, Copy, Download CSV.
+- **Break, Continue and early Return** are drawn with a dashed line to where they go; blocks after a jump are faded;
+  the run warns about them and about functions that may end without Return.
+- **Comments on blocks** shown as tooltips and written above the block's code.
+- A value that does not fit the type is asked again with a hint; a screen reader hears every step.
+- **File menu** (import, export, pictures, trace table, shortcuts), zoom in the corner of the diagram, Slow / Fast on
+  the speed slider, **?** lists the keyboard shortcuts, Undo right after Delete, a hint on an empty diagram, a long
+  press opens the block menu, tabs for the console, the variables and the code on narrow screens.
+- Options `showCode` and `fileTools` of the editor (qtype_algorithm's "hide the code and the file tools").
+- A failed test of a quiz question can be stepped through with its input.
+
+Generated code:
+- **Pseudo-code** in the user's language, and a **Text description** (the pseudo-code) under every diagram of a page.
+- **Visual Basic .NET, Go, Rust and Kotlin** (a typed generator that converts numbers like the interpreter).
+- Break and Continue, Pi and the new functions in every language; names that are words of the language get "_";
+  Java and C read whole lines (text input with spaces works); Len of an array; a function of the algorithm named like
+  a built-in one is called as written.
+
+Flowgorithm files:
+- The return variable of a function is imported as a Return block and exported back (no `<return>` elements).
+- A stricter XML reader (closing tags, `&#x...;` entities, CDATA, limits) and translated import messages.
+- The export reports functions Flowgorithm does not have and writes comments of blocks as Comment blocks.
+
+2.3.0 and 2.3.1 (not on the Marketplace on their own) are part of this release.
+
 ## 2.3.1 – 2026-11-06 (stable)
 
 - **A click on a block shows its code in the viewer too:** in pages and quiz questions (no editing) a click on a

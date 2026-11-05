@@ -10,27 +10,29 @@
   <p><strong>Live demo:</strong> try the plugin on <a href="https://algorithm.tsp.edu.rs" target="_blank" rel="noreferrer noopener">algorithm.tsp.edu.rs</a>. Log in as a guest, or use the demo accounts <strong>teacher</strong> and <strong>student</strong> (password <strong>Demo-2026</strong>). Everything is reset every night.</p>
 
   <hr>
-  <p><strong>What's New in v2.3.1</strong></p>
+  <p><strong>What's New in v2.4.0</strong></p>
   <ul>
-    <li><strong>The code and the diagram point to each other:</strong> click a line of the generated code and its block is selected and shown in the diagram; click a block and its lines are marked in the code, also in pages and quiz questions. The arrow keys go from block to block in the code panel.</li>
-    <li><strong>Fix:</strong> Run and Step in a student's copy of an exercise no longer mark the test results as old; only a real change of the algorithm does.</li>
-    <li><strong>The code follows the diagram:</strong> during Run and Step the lines of the generated code that belong to the current block are highlighted, in the editor, in pages and in quiz questions.</li>
-    <li><strong>Matrices as parameters:</strong> a function can take a matrix, written m: Integer[,], passed by reference like an array, in the interpreter and the code of all seven languages.</li>
-    <li><strong>Do...While shows its F branch:</strong> the line below the condition is labelled F and is marked when the loop ends.</li>
-    <li><strong>Generated code:</strong> in Pascal one character of a text is a string of one character, so the character code of it compiles.</li>
+    <li><strong>Debugging:</strong> breakpoints, Continue, a status, the call stack above the variables, and the block and code lines of an error in red.</li>
+    <li><strong>Trace table:</strong> one row per step with the values after it, to copy or download as CSV.</li>
+    <li><strong>Break and Continue:</strong> new blocks, drawn with a dashed line to where they go; blocks that never run are faded.</li>
+    <li><strong>Eleven languages and pseudo-code:</strong> Visual Basic .NET, Go, Rust and Kotlin are new; pseudo-code uses the words of the user's language and is the text description under every diagram.</li>
+    <li><strong>Comments on blocks:</strong> shown as tooltips and written above the block's code.</li>
+    <li><strong>The code and the diagram point to each other:</strong> click a line of the code to select its block, click a block to mark its lines.</li>
+    <li><strong>Safer runs:</strong> limits for recursion and output, typed input asked again when it does not fit, Random that gives the same numbers in every test.</li>
+    <li><strong>Function tests with arrays and matrices,</strong> and Flowgorithm files that keep the return value of functions.</li>
   </ul>
 
   <hr>
   <p><strong>Core features</strong></p>
   <ul>
-    <li><strong>Visual editor:</strong> Declare, Assign, Input, Output, If, For, While, Do...While, Call, Return, Comment; several functions, undo / redo.</li>
+    <li><strong>Visual editor:</strong> Declare, Assign, Input, Output, If, For, While, Do...While, Break, Continue, Call, Return, Comment; several functions, undo / redo.</li>
     <li><strong>Drag, copy and paste:</strong> drag a block onto a + sign with the mouse or a finger; Ctrl + C, X, V and D copy, cut, paste and duplicate blocks, also between diagrams.</li>
-    <li><strong>Arrays and matrices:</strong> m[i, j] in the interpreter, the variable watch and the code in all seven languages.</li>
+    <li><strong>Arrays and matrices:</strong> m[i, j] in the interpreter, the variable watch and the code in every language.</li>
     <li><strong>Save as SVG or PNG:</strong> the whole diagram as a picture for handouts and slides.</li>
     <li><strong>Interpreter:</strong> Run / Step / Stop, console with input, variable watch, infinite-loop guard and clear error messages; the current block and the branch each condition takes are marked.</li>
     <li><strong>Arrows:</strong> every connection that enters a block, goes back to a loop condition or joins another line ends in an arrow.</li>
     <li><strong>Flowgorithm files:</strong> import and export real <code>.fprg</code> files.</li>
-    <li><strong>Code generation:</strong> Python, C, C++, Java, C#, JavaScript and Pascal, every name written as declared.</li>
+    <li><strong>Code generation:</strong> pseudo-code and Python, C, C++, Java, C#, JavaScript, Pascal, Visual Basic .NET, Go, Rust and Kotlin.</li>
     <li><strong>Editable images:</strong> the diagram is an SVG image that keeps its model; double-click to edit again. Zoom and per-diagram options included.</li>
     <li><strong>Students edit and test:</strong> with filter_algorithm, students can change their own copy of a diagram in any content and run the teacher's tests.</li>
     <li><strong>Tests from the solution:</strong> the teacher enters only the inputs; the expected outputs are computed from the teacher's solution. A test can also call one function and check the value it returns.</li>
@@ -48,7 +50,7 @@
   <p><strong>Requirements</strong></p>
   <ul>
     <li><strong>Moodle:</strong> 4.5 LTS to 5.3 (PHP as required by your Moodle version).</li>
-    <li><strong>Companion plugins (optional):</strong> filter_algorithm 2.2.0 (Run / Step and the student features for readers) and qtype_algorithm 2.2.0 (quiz question type with automatic grading).</li>
+    <li><strong>Companion plugins (optional):</strong> filter_algorithm 2.2.0 (Run / Step and the student features for readers) and qtype_algorithm 2.4.0 (quiz question type with automatic grading).</li>
   </ul>
 
   <hr>

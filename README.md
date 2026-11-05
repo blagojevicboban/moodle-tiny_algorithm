@@ -7,10 +7,10 @@
 
 **Tiny Algorithm** is a TinyMCE plugin for Moodle that lets teachers and students draw algorithms as
 [Flowgorithm](https://www.flowgorithm.org/)-style flowcharts directly in the text editor, run them step by step, import and
-export Flowgorithm `.fprg` files and generate **Python**, **C**, **C++**, **Java**, **C#**, **JavaScript** or **Pascal** code -
+export Flowgorithm `.fprg` files and generate pseudo-code and **Python**, **C**, **C++**, **Java**, **C#**, **JavaScript**, **Pascal**, **Visual Basic .NET**, **Go**, **Rust** or **Kotlin** code -
 without leaving the editor.
 
-> Status: **stable** (2.2). Inspired by Flowgorithm, not affiliated with it.
+> Status: **stable** (2.4). Inspired by Flowgorithm, not affiliated with it.
 >
 > 🌐 **Live demo:** [algorithm.tsp.edu.rs](https://algorithm.tsp.edu.rs) (log in as a guest, or use `teacher` / `student` with password `Demo-2026`; reset every night)
 
@@ -18,16 +18,20 @@ without leaving the editor.
 
 | Feature | Description |
 |---------|-------------|
-| 🧱 **Visual Editor** | Declare, Assign, Input, Output, If, For, While, Do…While, Call, Return, Comment; several functions, undo / redo; renaming a function also renames its calls |
+| 🧱 **Visual Editor** | Declare, Assign, Input, Output, If, For, While, Do…While, Break, Continue, Call, Return, Comment; several functions, undo / redo (also right after Delete); renaming a function also renames its calls |
+| 🔀 **Break, Continue, early Return** | A dashed line shows where the jump goes (out of the loop, back to its condition, to End); blocks after a jump are faded and the run warns about them and about functions that may end without Return |
+| 💬 **Comments on Blocks** | Any block may have a comment: a bubble on the block shows it as a tooltip (hover, keyboard focus or a tap), and it is a comment above the block's code |
 | ✋ **Drag, Copy and Paste** | Drag a block onto a **+** sign with the mouse or a finger; **Ctrl + C / X / V / D** copy, cut, paste and duplicate blocks, also between diagrams; a right click (or Shift + F10) on a block opens a menu with Copy, Cut, Duplicate, Paste, Delete and **Move to… / Copy to…**, which lets you click the **+** sign where the block should go; the dialog asks before closing with changes that are not inserted |
 | 🔢 **Arrays and Matrices** | A Declare block with one size is an array `a[i]`, with two sizes a matrix `m[i, j]` (or `m[i][j]`); the variable watch shows a matrix as a table; functions take arrays (`a: Integer[]`) and matrices (`m: Integer[,]`) as parameters, passed by reference |
-| ▶️ **Interpreter** | Run / Step / Stop with a speed slider, the running block and the branch each condition takes (T or F) are highlighted, console with input prompts |
-| 🛡️ **Safe Execution** | Infinite-loop guard, arrays and matrices up to 100000 elements, and clear errors in the user's language (undeclared variable, division by zero, index out of range) |
-| ⌨️ **Keyboard** | Arrow keys move between the blocks and the **+** signs, **Enter** or **Space** edits a block or opens the block menu, **Delete** removes, **Escape** cancels; Enter in a field never submits the form around the editor |
+| ▶️ **Interpreter** | Run / Step / Stop with a speed slider, the running block and the branch each condition takes (T or F) are highlighted, console with input prompts; a value that does not fit the type is asked again |
+| 🐞 **Debugging** | **Breakpoints** (F9, the block menu, Alt + click in pages), Run becomes **Continue** while paused, a status (paused · step 12), the **call stack** above the variables, an error marks its block and code lines red with **Show the block** |
+| 📋 **Trace Table** | One row per step: the block, the branch taken, the input, the values after the step (changes marked) and the output; Copy, Download CSV, a row selects its block |
+| 🛡️ **Safe Execution** | Infinite-loop guard, at most 200 nested calls and 100000 characters of output, arrays and matrices up to 100000 elements, typed input (3.7 is not an Integer), and clear errors in the user's language |
+| ⌨️ **Keyboard** | Arrow keys move between the blocks and the **+** signs, **Enter** or **Space** edits a block or opens the block menu, **Delete** removes, **Escape** cancels, **F5** runs, **F10** steps, **?** lists all shortcuts; Enter in a field never submits the form around the editor; a screen reader hears every step |
 | 🔍 **Variable Watch** | Current value of every variable while stepping, changed values highlighted, long arrays shortened |
-| 🔎 **Zoom** | **−**, **+**, **100%**, **Fit** buttons or **Ctrl + mouse wheel** |
-| 📂 **Flowgorithm Files** | Import and export real `.fprg` files; unsupported elements are reported, not silently dropped |
-| 💻 **Code Generation** | Python, C, C++, Java, C#, JavaScript and Pascal, every name written as declared; during Run and Step the lines of the current block are highlighted, and a click on a line selects its block in the diagram; the tests compile and run the generated programs and compare them with the interpreter |
+| 🔎 **Zoom** | **−**, **+**, **100%**, **Fit** buttons in the corner of the diagram or **Ctrl + mouse wheel**; the file actions are in the **File** menu |
+| 📂 **Flowgorithm Files** | Import and export real `.fprg` files, also the return variable of a function and the functions Flowgorithm names differently (ToInteger, Sgn, Size, Arcsin, Arccos, Arctan, Log10, ToFixed, Pi); what Flowgorithm cannot hold is reported |
+| 💻 **Code Generation** | Pseudo-code in the user's language and Python, C, C++, Java, C#, JavaScript, Pascal, Visual Basic .NET, Go, Rust and Kotlin; names that are words of the language get "_"; during Run and Step the lines of the current block are highlighted, and a click on a line selects its block in the diagram; the tests compile and run the generated programs in every language and compare them with the interpreter |
 | ➡️ **Arrows** | Every connection that enters a block, goes back to a loop condition or joins another line ends in an arrow |
 | 🖼️ **Editable Images** | The diagram is a normal SVG image that stores its model - double-click it to edit again; **Save as SVG** or **Save as PNG** downloads it for handouts and slides |
 | 💬 **Forums and Assignments** | Where Moodle cleans the HTML (forum posts, assignment text, glossary…) the diagram is saved as an image file of the text, so it stays visible, editable and interactive |
@@ -137,9 +141,9 @@ node --import ./tests/register.mjs --test "tests/*.test.mjs"
 ```
 
 The generators are checked by running the generated code and comparing it with the interpreter: Python, JavaScript (Node),
-C# (needs the .NET SDK), C++ (`g++`, or `python -m ziglang c++`) and Pascal (`fpc`); a test is skipped when its tool is missing.
-The GitHub workflow runs all of them.
-C and Java output is generated but not compiled by the tests.
+C (`gcc`, or `python -m ziglang cc`), C++ (`g++`, or `python -m ziglang c++`), Java (`javac`), C# and Visual Basic (the .NET
+SDK), Pascal (`fpc`), Go (`go`), Rust (`rustc`) and Kotlin (`kotlinc`); a test is skipped when its tool is missing.
+The GitHub workflow installs and runs all of them.
 
 ## 📁 Structure
 
@@ -162,7 +166,8 @@ lib/editor/tiny/plugins/algorithm/
 - Exercises are for practice, not for assessment: the solution and the expected outputs are part of the diagram (its SVG
   file), and nothing is graded or sent to the server. For graded work use `qtype_algorithm`.
 - Flowgorithm `.fprg` files cannot hold matrices, also not as parameters (the export says so).
-- A function test passes values (numbers, text, true / false) as arguments, not arrays or matrices.
+- Break, Continue and a Return before the end of a function have no Flowgorithm block: the export writes the return
+  variable and reports what it leaves out.
 - A student's edited copy lives in the browser (`localStorage`) and does not follow them to another device or browser. When the
   teacher changes the diagram or its tests, students start again from the new version.
 
