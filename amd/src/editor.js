@@ -185,13 +185,13 @@ export class AlgorithmEditor {
         this.tabWatch = el('div', {'class': 'tiny_algorithm-pane'}, el('h6', {}, this.t('variables')), this.watch.root);
         // On a narrow screen the console, the variables and the code share the space below the diagram as tabs.
         const tab = (key) => el('button', {type: 'button', role: 'tab', 'class': 'btn btn-sm btn-link',
-            'data-tab': key, onclick: () => this.showTab(key)}, this.t(key === 'watch' ? 'variables' : key));
+            'data-sidetab': key, onclick: () => this.showTab(key)}, this.t(key === 'watch' ? 'variables' : key));
         this.tabBar = el('div', {'class': 'tiny_algorithm-tabbar', role: 'tablist'}, tab('console'), tab('watch'),
             this.showCode ? tab('code') : []);
-        this.tabConsole.dataset.pane = 'console';
-        this.tabWatch.dataset.pane = 'watch';
-        this.tabCode.dataset.pane = 'code';
-        this.side = el('div', {'class': 'tiny_algorithm-side', 'data-tab': 'console'}, this.props, this.tabBar, this.tabConsole,
+        this.tabConsole.dataset.sidepane = 'console';
+        this.tabWatch.dataset.sidepane = 'watch';
+        this.tabCode.dataset.sidepane = 'code';
+        this.side = el('div', {'class': 'tiny_algorithm-side', 'data-sidetab': 'console'}, this.props, this.tabBar, this.tabConsole,
             this.tabWatch, this.showCode ? this.tabCode : []);
         this.root = el('div', {'class': 'tiny_algorithm-editor', onkeydown: (e) => this.onRunKey(e)}, this.toolbar,
             this.emptyBar(), el('div', {'class': 'tiny_algorithm-main'}, this.canvasWrap, this.side), this.announcer);
@@ -1210,9 +1210,9 @@ export class AlgorithmEditor {
      * @param {string} key console, watch or code
      */
     showTab(key) {
-        this.side.dataset.tab = key;
+        this.side.dataset.sidetab = key;
         this.tabBar.querySelectorAll('[role="tab"]').forEach((b) => b.setAttribute('aria-selected',
-            String(b.dataset.tab === key)));
+            String(b.dataset.sidetab === key)));
     }
 
     /**

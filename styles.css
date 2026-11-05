@@ -960,12 +960,12 @@ generated code on the right; stacked when the content area is narrow. */
         text-decoration: underline;
     }
 
-    .tiny_algorithm-side[data-tab="console"] [data-pane="watch"],
-    .tiny_algorithm-side[data-tab="console"] [data-pane="code"],
-    .tiny_algorithm-side[data-tab="watch"] [data-pane="console"],
-    .tiny_algorithm-side[data-tab="watch"] [data-pane="code"],
-    .tiny_algorithm-side[data-tab="code"] [data-pane="console"],
-    .tiny_algorithm-side[data-tab="code"] [data-pane="watch"] {
+    .tiny_algorithm-side[data-sidetab="console"] [data-sidepane="watch"],
+    .tiny_algorithm-side[data-sidetab="console"] [data-sidepane="code"],
+    .tiny_algorithm-side[data-sidetab="watch"] [data-sidepane="console"],
+    .tiny_algorithm-side[data-sidetab="watch"] [data-sidepane="code"],
+    .tiny_algorithm-side[data-sidetab="code"] [data-sidepane="console"],
+    .tiny_algorithm-side[data-sidetab="code"] [data-sidepane="watch"] {
         display: none;
     }
 }
