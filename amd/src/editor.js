@@ -27,13 +27,14 @@ import {
 } from './model';
 import {renderFunction, renderProgram, showBranch} from './render';
 import {runSession} from './session';
-import {openShortcuts, showToast} from './dialog';
+import {openDialog, openShortcuts, showToast} from './dialog';
 import {openTrace} from './trace';
 import {attachNotes} from './notes';
 import {markRun} from './runmarks';
 import {checkExpr} from './expr';
 import {defaultLanguage, isMatrix, languages, languageLabels, extensionOf} from './codegen';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
+import {TEMPLATES} from './templates';
 import {importFprg, exportFprg} from './flowgorithm';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
@@ -187,10 +188,17 @@ export class AlgorithmEditor {
         languages.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
         this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeText || ''));
         this.dlBtn = btn('download', () => this.exportCode());
+        this.btnCodeLab = el('button', {
+            type: 'button',
+            'class': 'btn btn-sm btn-outline-primary tiny_algorithm-btn tiny_algorithm-btn-codelab',
+            title: this.t('opencodelab'),
+            'aria-label': this.t('opencodelab'),
+            onclick: () => this.openInCodeLab(),
+        }, '🚀 CodeLab');
         this.tabConsole = el('div', {'class': 'tiny_algorithm-pane'}, paneTitle(this.t('console'), ' ', this.statusEl),
             this.consoleEl);
         this.tabCode = el('div', {'class': 'tiny_algorithm-pane'},
-            paneTitle(this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn), this.codeEl);
+            paneTitle(this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn, ' ', this.btnCodeLab), this.codeEl);
         this.watch = new Watch(this.lang);
         this.tabWatch = el('div', {'class': 'tiny_algorithm-pane'}, paneTitle(this.t('variables')), this.watch.root);
         // On a narrow screen the console, the variables and the code share the space below the diagram as tabs.
@@ -1159,6 +1167,141 @@ export class AlgorithmEditor {
         this.download(`main.${extensionOf(this.codeLang)}`, this.codeText || '', 'text/plain');
     }
 
+    copyImage() {
+        const svg = renderProgram(this.program);
+        const name = this.program.name || 'algorithm';
+        const url = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth * 2;
+            canvas.height = img.naturalHeight * 2;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(2, 2);
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(url);
+            canvas.toBlob((blob) => {
+                if (blob && typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
+                    navigator.clipboard.write([new ClipboardItem({'image/png': blob})]).then(() => {
+                        showToast(this.root, this.t('copiedimage'));
+                    }).catch(() => {
+                        this.download(`${name}.png`, blob, 'image/png');
+                    });
+                } else if (blob) {
+                    this.download(`${name}.png`, blob, 'image/png');
+                }
+            }, 'image/png');
+        };
+        img.onerror = () => URL.revokeObjectURL(url);
+        img.src = url;
+    }
+
+    openInCodeLab() {
+        if (!this.codeText) {
+            return;
+        }
+        const langMap = {
+            python: 'python',
+            cpp: 'cpp',
+            c: 'c',
+            cs: 'csharp',
+            java: 'java',
+            javascript: 'javascript',
+        };
+        const targetLang = langMap[this.codeLang] || this.codeLang;
+        try {
+            window.sessionStorage.setItem('codelab_import', JSON.stringify({
+                lang: targetLang,
+                code: this.codeText,
+                source: 'tiny_algorithm',
+                timestamp: Date.now(),
+            }));
+        } catch (e) {
+            // sessionStorage might be restricted.
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(this.codeText).catch(() => undefined);
+        }
+        showToast(this.root, this.t('codelabcopied'));
+    }
+
+    showTemplates() {
+        let selectedCategory = 'all';
+        const listContainer = el('div', {'class': 'tiny_algorithm-templates-list'});
+
+        const renderList = () => {
+            const filtered = selectedCategory === 'all'
+                ? TEMPLATES
+                : TEMPLATES.filter((tmpl) => tmpl.category === selectedCategory);
+
+            listContainer.replaceChildren(...filtered.map((tmpl) => {
+                const title = this.t(tmpl.titleKey) !== tmpl.titleKey ? this.t(tmpl.titleKey) : tmpl.fallbackTitle;
+                const desc = this.t(tmpl.descKey) !== tmpl.descKey ? this.t(tmpl.descKey) : tmpl.fallbackDesc;
+                const btnLoad = el('button', {
+                    type: 'button',
+                    'class': 'btn btn-primary btn-sm ml-2 ms-2 text-nowrap',
+                    onclick: () => {
+                        const mainFn = this.program.functions && this.program.functions[0];
+                        const hasBlocks = (this.program.functions && this.program.functions.length > 1) ||
+                            (mainFn && mainFn.body && mainFn.body.length > 0);
+                        if (hasBlocks && !confirm(this.t('confirmtemplate'))) {
+                            return;
+                        }
+                        this.commit(() => {
+                            this.program = cloneProgram(tmpl.build());
+                            this.selected = null;
+                            this.fnIndex = 0;
+                        });
+                        this.refresh();
+                        dlg.close();
+                        showToast(this.root, this.t('loadedtemplate'));
+                    },
+                }, this.t('loadtemplate'));
+
+                return el('div', {'class': 'tiny_algorithm-template-item card mb-2'},
+                    el('div', {'class': 'card-body p-2 d-flex justify-content-between align-items-center'},
+                        el('div', {'class': 'mr-2 me-2'},
+                            el('div', {'class': 'font-weight-bold fw-bold'}, title),
+                            el('div', {'class': 'text-muted small'}, desc)
+                        ),
+                        btnLoad
+                    )
+                );
+            }));
+        };
+
+        const cats = [
+            ['all', 'templates_all'],
+            ['linear', 'templates_linear'],
+            ['branching', 'templates_branching'],
+            ['loops', 'templates_loops'],
+            ['arrays', 'templates_arrays'],
+        ];
+
+        const catNav = el('div', {'class': 'btn-group btn-group-sm mb-3 w-100', role: 'group'},
+            ...cats.map(([catId, labelKey]) => {
+                const b = el('button', {
+                    type: 'button',
+                    'class': `btn btn-outline-secondary ${catId === selectedCategory ? 'active' : ''}`,
+                    onclick: () => {
+                        selectedCategory = catId;
+                        catNav.querySelectorAll('button').forEach((btn) => btn.classList.remove('active'));
+                        b.classList.add('active');
+                        renderList();
+                    },
+                }, this.t(labelKey));
+                return b;
+            })
+        );
+
+        renderList();
+        const body = el('div', {'class': 'tiny_algorithm-templates-wrap',
+            style: 'max-height: 420px; overflow-y: auto; min-width: 340px;'},
+        catNav, listContainer);
+
+        const dlg = openDialog(this.root, this.t('templates_title'), body);
+    }
+
     // ---- Execution --------------------------------------------------------------------------------------------------------
 
     log(text, cls = '') {
@@ -1222,7 +1365,11 @@ export class AlgorithmEditor {
             this.closeFileMenu();
             run();
         }}, this.t(key));
-        const files = this.fileTools ? [item('import', () => this.fileInput.click()), item('export', () => this.exportFile()),
+        const files = this.fileTools ? [
+            item('templates', () => this.showTemplates()),
+            el('hr', {'class': 'dropdown-divider'}),
+            item('import', () => this.fileInput.click()), item('export', () => this.exportFile()),
+            item('copyimage', () => this.copyImage()),
             item('exportsvg', () => this.exportImage('svg')), item('exportpng', () => this.exportImage('png')),
             el('hr', {'class': 'dropdown-divider'})] : [];
         this.fileMenu = el('div', {'class': 'tiny_algorithm-filemenu', role: 'menu', onkeydown: (ev) => {

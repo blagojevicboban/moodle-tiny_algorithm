@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.5.1 – 2026-11-15 (stable)
+
+- **Algorithm templates library:** added standard school programming templates (Swap, Rectangle, Max of 2, Even/Odd, Sum 1..N, Factorial, Euclid GCD, Linear search) accessible from the File menu.
+- **Copy image to clipboard:** one-click high-resolution PNG export directly to system clipboard for pasting into presentations and worksheets.
+- **CodeLab bridge:** added button to prepare and copy generated code for the CodeLab execution environment.
+
 ## 2.5.0 – 2026-11-15 (stable)
 
 - **Synchronized 2.5.0 release:** unified versioning and build alignment with filter_algorithm and qtype_algorithm (build 2026111500).

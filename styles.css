@@ -1024,3 +1024,25 @@ generated code on the right; stacked when the content area is narrow. */
     font-weight: 700;
     margin-bottom: .5rem;
 }
+
+/* Templates dialog and CodeLab button */
+.tiny_algorithm-templates-wrap {
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+.tiny_algorithm-template-item {
+    border: 1px solid #e5e7eb;
+    border-radius: .35rem;
+    background: #fff;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.tiny_algorithm-template-item:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .06);
+}
+
+.tiny_algorithm-btn-codelab {
+    font-weight: 500;
+}
