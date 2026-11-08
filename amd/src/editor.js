@@ -1184,6 +1184,7 @@ export class AlgorithmEditor {
                 if (blob && typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
                     navigator.clipboard.write([new ClipboardItem({'image/png': blob})]).then(() => {
                         showToast(this.root, this.t('copiedimage'));
+                        return true;
                     }).catch(() => {
                         this.download(`${name}.png`, blob, 'image/png');
                     });
@@ -1217,7 +1218,7 @@ export class AlgorithmEditor {
                 timestamp: Date.now(),
             }));
         } catch (e) {
-            // sessionStorage might be restricted.
+            // Storage might be restricted.
         }
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(this.codeText).catch(() => undefined);
@@ -1244,6 +1245,7 @@ export class AlgorithmEditor {
                         const mainFn = this.program.functions && this.program.functions[0];
                         const hasBlocks = (this.program.functions && this.program.functions.length > 1) ||
                             (mainFn && mainFn.body && mainFn.body.length > 0);
+                        // eslint-disable-next-line no-alert
                         if (hasBlocks && !confirm(this.t('confirmtemplate'))) {
                             return;
                         }

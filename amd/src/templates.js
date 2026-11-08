@@ -95,7 +95,7 @@ export const TEMPLATES = [
                     then: [
                         createBlock('output', {expr: '"Veci broj je: " & a', newline: true})
                     ],
-                    else: [
+                    'else': [
                         createBlock('output', {expr: '"Veci broj je: " & b', newline: true})
                     ]
                 })
@@ -122,7 +122,7 @@ export const TEMPLATES = [
                     then: [
                         createBlock('output', {expr: 'n & " je PARAN broj."', newline: true})
                     ],
-                    else: [
+                    'else': [
                         createBlock('output', {expr: 'n & " je NEPARAN broj."', newline: true})
                     ]
                 })
@@ -257,7 +257,7 @@ export const TEMPLATES = [
                                 createBlock('assign', {target: 'nasao', expr: 'true'}),
                                 createBlock('output', {expr: '"Broj je pronadjen na poziciji: " & i', newline: true})
                             ],
-                            else: []
+                            'else': []
                         })
                     ]
                 }),
@@ -266,7 +266,7 @@ export const TEMPLATES = [
                     then: [
                         createBlock('output', {expr: '"Broj nije pronadjen u nizu."', newline: true})
                     ],
-                    else: []
+                    'else': []
                 })
             ];
             return prog;
