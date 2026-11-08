@@ -429,8 +429,13 @@ export class TestsPanel {
         if (tc.call && !names.includes(tc.call)) {
             names.push(tc.call);
         }
-        const kind = el('select', {'class': 'custom-select custom-select-sm form-select form-select-sm tiny_algorithm-test-kind',
-            'aria-label': `${this.t('testcase', {n: i + 1})}: ${this.t('testtype')}`, onchange: () => {
+        const kind = el('select', {
+            'class': 'custom-select custom-select-sm form-select form-select-sm tiny_algorithm-test-kind',
+            'aria-label': `${this.t('testcase', {n: i + 1})}: ${this.t('testtype')}`,
+            onmousedown: (e) => e.stopPropagation(),
+            onpointerdown: (e) => e.stopPropagation(),
+            onclick: (e) => e.stopPropagation(),
+            onchange: () => {
                 if (kind.value) {
                     tc.call = kind.value;
                 } else {
@@ -438,7 +443,8 @@ export class TestsPanel {
                 }
                 this.render();
                 this.changed();
-            }}, el('option', {value: ''}, this.t('testio')),
+            },
+        }, el('option', {value: ''}, this.t('testio')),
         names.map((name) => el('option', {value: name, selected: name === tc.call}, this.t('testcall', {name}))));
         let weight = '';
         if (this.weightOption) {

@@ -121,10 +121,14 @@ export class AlgorithmRunner {
                 onclick: (e) => this.showBlock(blockAt(e), false), onkeydown: (e) => this.onCodeKey(e)});
             this.codeSelect = el('select', {
                 'class': 'custom-select custom-select-sm tiny_algorithm-codelang', 'aria-label': this.t('code'),
+                onmousedown: (e) => e.stopPropagation(),
+                onpointerdown: (e) => e.stopPropagation(),
+                onclick: (e) => e.stopPropagation(),
                 onchange: () => {
                     this.codeLang = this.codeSelect.value;
                     this.renderCode();
-                }}, languages.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
+                },
+            }, languages.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
             this.codeToggle = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-code-toggle',
                 onclick: () => this.toggleCode()});
             this.bar.append(this.codeToggle);

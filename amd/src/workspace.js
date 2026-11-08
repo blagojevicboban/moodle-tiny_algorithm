@@ -98,7 +98,7 @@ export class AlgorithmWorkspace {
         this.badge = el('span', {'class': 'tiny_algorithm-ws-modified'}, this.t('modified'));
         this.bar = el('div', {'class': 'tiny_algorithm-ws-bar'}, this.btnEdit, this.btnReset, this.btnFull, this.badge);
         this.body = el('div', {'class': 'tiny_algorithm-ws-body'});
-        this.root = el('div', {'class': 'tiny_algorithm-workspace', tabindex: '-1', onkeydown: (e) => {
+        this.root = el('div', {'class': 'tiny_algorithm-workspace', onkeydown: (e) => {
             if (e.key === 'Escape' && this.root.classList.contains('tiny_algorithm-fullscreen') && !document.fullscreenElement) {
                 this.setFullscreen(false);
             }
@@ -240,7 +240,10 @@ export class AlgorithmWorkspace {
         this.btnFull.textContent = this.t(on ? 'exitfullscreen' : 'fullscreen');
         this.btnFull.setAttribute('aria-pressed', on ? 'true' : 'false');
         if (on) {
+            this.root.setAttribute('tabindex', '-1');
             this.root.focus();
+        } else {
+            this.root.removeAttribute('tabindex');
         }
         requestAnimationFrame(() => this.view && this.view.zoom && this.view.zoom.autoFit());
     }

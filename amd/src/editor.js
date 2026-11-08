@@ -136,12 +136,18 @@ export class AlgorithmEditor {
         const btn = (key, fn, extra = {}) => el('button', {
             type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-btn', onclick: fn,
             title: this.t(key), ...extra}, this.t(key));
-        this.fnSelect = el('select', {'class': 'custom-select custom-select-sm tiny_algorithm-fnselect',
-            'aria-label': this.t('function'), onchange: () => {
-            this.fnIndex = Number(this.fnSelect.value);
-            this.selected = null;
-            this.refresh();
-        }});
+        this.fnSelect = el('select', {
+            'class': 'custom-select custom-select-sm tiny_algorithm-fnselect',
+            'aria-label': this.t('function'),
+            onmousedown: (e) => e.stopPropagation(),
+            onpointerdown: (e) => e.stopPropagation(),
+            onclick: (e) => e.stopPropagation(),
+            onchange: () => {
+                this.fnIndex = Number(this.fnSelect.value);
+                this.selected = null;
+                this.refresh();
+            },
+        });
         this.speed = el('input',
             {type: 'range', min: 0, max: 1000, value: 600, 'class': 'tiny_algorithm-speed', title: this.t('speed'),
                 'aria-label': this.t('speed')});
@@ -157,7 +163,11 @@ export class AlgorithmEditor {
 
         this.btnFile = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-btn tiny_algorithm-filebtn',
             'aria-haspopup': 'menu', 'aria-expanded': 'false', onclick: (e) => this.toggleFileMenu(e)}, `${this.t('file')} ▾`);
-        this.toolbar = el('div', {'class': 'tiny_algorithm-toolbar'},
+        this.toolbar = el('div', {
+            'class': 'tiny_algorithm-toolbar',
+            onmousedown: (e) => e.stopPropagation(),
+            onpointerdown: (e) => e.stopPropagation(),
+        },
             this.fnSelect, btn('addfn', () => this.addFunction()), btn('delfn', () => this.removeFunction()),
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnUndo, this.btnRedo,
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnStep, this.btnStop,
@@ -183,9 +193,13 @@ export class AlgorithmEditor {
         this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log'});
         this.codeEl = el('pre', {'class': 'tiny_algorithm-code', tabindex: '0', title: this.t('codehint'),
             onclick: (e) => this.selectFromCode(blockAt(e)), onkeydown: (e) => this.onCodeKey(e)});
-        this.codeSelect = el('select', {'class': 'custom-select custom-select-sm', 'aria-label': this.t('code'),
-            onchange: () => this.setLanguage(this.codeSelect.value)},
-        languages.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
+        this.codeSelect = el('select', {
+            'class': 'custom-select custom-select-sm', 'aria-label': this.t('code'),
+            onmousedown: (e) => e.stopPropagation(),
+            onpointerdown: (e) => e.stopPropagation(),
+            onclick: (e) => e.stopPropagation(),
+            onchange: () => this.setLanguage(this.codeSelect.value),
+        }, languages.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
         this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeText || ''));
         this.dlBtn = btn('download', () => this.exportCode());
         this.btnCodeLab = el('button', {
@@ -279,8 +293,18 @@ export class AlgorithmEditor {
     // ---- Rendering --------------------------------------------------------------------------------------------------------
 
     refresh() {
-        this.fnSelect.replaceChildren(...this.program.functions.map(
-            (f, i) => el('option', {value: i, selected: i === this.fnIndex}, f.name)));
+        const funcs = this.program.functions;
+        const currentOptions = [...this.fnSelect.options];
+        const same = currentOptions.length === funcs.length &&
+            currentOptions.every((opt, i) => opt.value === String(i) && opt.textContent === funcs[i].name);
+        if (same) {
+            if (this.fnSelect.value !== String(this.fnIndex)) {
+                this.fnSelect.value = String(this.fnIndex);
+            }
+        } else {
+            this.fnSelect.replaceChildren(...funcs.map(
+                (f, i) => el('option', {value: i, selected: i === this.fnIndex}, f.name)));
+        }
         const {svg, slots} = renderFunction(this.fn, {editable: !this.running});
         this.slots = slots;
         this.canvas.innerHTML = svg;
@@ -393,8 +417,13 @@ export class AlgorithmEditor {
         if (type === 'bool') {
             input = el('input', {type: 'checkbox', id, checked: value !== false, onchange: () => onInput(input.checked)});
         } else if (type === 'type') {
-            input = el('select', {id, 'class': 'custom-select custom-select-sm', onchange: () => onInput(input.value)},
-                ['Integer', 'Real', 'String', 'Boolean'].map((v) => el('option', {value: v, selected: v === value}, v)));
+            input = el('select', {
+                id, 'class': 'custom-select custom-select-sm',
+                onmousedown: (e) => e.stopPropagation(),
+                onpointerdown: (e) => e.stopPropagation(),
+                onclick: (e) => e.stopPropagation(),
+                onchange: () => onInput(input.value),
+            }, ['Integer', 'Real', 'String', 'Boolean'].map((v) => el('option', {value: v, selected: v === value}, v)));
         } else {
             input = el('input', {id, type: 'text', 'class': 'form-control form-control-sm', value: value ?? '', spellcheck: 'false',
                 onkeydown: (e) => {
@@ -1394,11 +1423,15 @@ export class AlgorithmEditor {
         this.btnFile.setAttribute('aria-expanded', 'true');
         this.fileMenu.querySelector('button').focus();
         this.closeOnOutside = (ev) => {
-            if (this.fileMenu && !this.fileMenu.contains(ev.target)) {
+            if (this.fileMenu && !this.fileMenu.contains(ev.target) && !this.btnFile.contains(ev.target)) {
                 this.closeFileMenu();
             }
         };
-        document.addEventListener('click', this.closeOnOutside);
+        setTimeout(() => {
+            if (this.fileMenu) {
+                document.addEventListener('click', this.closeOnOutside);
+            }
+        }, 0);
     }
 
     closeFileMenu() {
