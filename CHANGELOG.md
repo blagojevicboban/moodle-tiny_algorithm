@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.5.0 – 2026-11-15 (stable)
+
+- **Synchronized 2.5.0 release:** unified versioning and build alignment with filter_algorithm and qtype_algorithm (build 2026111500).
+- **Verified translation integrity:** complete Ekavian Serbian and English language strings.
+- **Maintenance & QA:** rebuilt all AMD modules with Moodle Grunt, validated copyright headers across all files.
+
 ## 2.4.4 – 2026-11-10 (stable)
 
 - **File menu:** it opens under the File button (it opened at the left edge of the toolbar, because the toolbar is a
