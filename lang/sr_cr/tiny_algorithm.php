@@ -169,6 +169,7 @@ $string['ui_imported'] = 'Flowgorithm фајл је увезен.';
 $string['ui_inputhintboolean'] = 'Унесите true или false.';
 $string['ui_inputhintinteger'] = 'Унесите цео број, на пример 4.';
 $string['ui_inputhintreal'] = 'Унесите број, на пример 2.5.';
+$string['ui_inputok'] = 'Потврди вредност';
 $string['ui_inputs'] = 'Улаз';
 $string['ui_inputshint'] = 'Једна вредност по реду, "" за празну вредност';
 $string['ui_insertblock'] = 'Уметни блок';

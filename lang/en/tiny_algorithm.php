@@ -169,6 +169,7 @@ $string['ui_imported'] = 'Flowgorithm file imported.';
 $string['ui_inputhintboolean'] = 'Enter true or false.';
 $string['ui_inputhintinteger'] = 'Enter a whole number, for example 4.';
 $string['ui_inputhintreal'] = 'Enter a number, for example 2.5.';
+$string['ui_inputok'] = 'Confirm the value';
 $string['ui_inputs'] = 'Input';
 $string['ui_inputshint'] = 'One value per line, "" for an empty value';
 $string['ui_insertblock'] = 'Insert block';

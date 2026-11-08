@@ -39,6 +39,7 @@ import {importFprg, exportFprg} from './flowgorithm';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
 import {Watch} from './watch';
+import {readLine} from './consoleinput';
 
 const PALETTE = ['declare', 'assign', 'input', 'output', 'if', 'for', 'while', 'dowhile', 'call', 'return', 'break', 'continue',
     'comment'];
@@ -1551,27 +1552,11 @@ export class AlgorithmEditor {
             return Promise.resolve(v);
         }
         return new Promise((resolve) => {
-            const input = el('input', {type: 'text', 'class': 'form-control form-control-sm tiny_algorithm-input',
-                'aria-label': `${ev.name} (${ev.type})`, onkeydown: (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const v = input.value;
-                        input.disabled = true;
-                        row.append(` ${v}`);
-                        input.remove();
-                        run.wake = null;
-                        resolve(v);
-                    }
-                }});
             const row = this.log(`${ev.name} (${ev.type}) ? `);
-            row.append(input);
-            if (hint) {
-                const note = el('span', {'class': 'tiny_algorithm-inputhint', id: `tiny_algorithm-h${Date.now()}`}, hint);
-                row.append(note);
-                input.setAttribute('aria-invalid', 'true');
-                input.setAttribute('aria-describedby', note.id);
-            }
-            input.focus();
+            readLine(row, ev, hint, (key) => this.t(key), (v) => {
+                run.wake = null;
+                resolve(v);
+            });
             run.wake = () => resolve(null);
         });
     }

@@ -75,7 +75,7 @@ export class AlgorithmWorkspace {
         this.starter = starter;
         this.solution = solution;
         this.tests = tests;
-        this.opts = {lang, showCode, showWatch};
+        this.opts = {lang, showCode, showWatch, fullscreen: false};
         this.lang = lang;
         this.storageKey = `tiny_algorithm_work_${scope}_${hash(serialize(starter) + JSON.stringify(tests))}`;
         this.work = this.load() || cloneProgram(starter);

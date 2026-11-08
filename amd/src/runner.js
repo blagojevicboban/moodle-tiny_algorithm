@@ -30,6 +30,7 @@ import {Zoom} from './zoom';
 import {Watch} from './watch';
 import {defaultLanguage, generate, languages, languageLabels} from './codegen';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
+import {readLine} from './consoleinput';
 
 const el = (tag, attrs = {}, ...kids) => {
     const e = document.createElement(tag);
@@ -46,6 +47,12 @@ const el = (tag, attrs = {}, ...kids) => {
     return e;
 };
 
+// Icons of the full screen button (four corners out, four corners in); the text is in its title and aria-label.
+const icon = (d) => '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">' +
+    `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+const FULL_ICON = icon('M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4');
+const EXIT_ICON = icon('M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4');
+
 export class AlgorithmRunner {
     /**
      * @param {HTMLElement} host element that receives the widget
@@ -54,12 +61,14 @@ export class AlgorithmRunner {
      * @param {string} [opts.lang] UI language code
      * @param {boolean} [opts.showCode] show the generated code panel (and its toggle button)
      * @param {boolean} [opts.showWatch] show the variable watch panel (and its toggle button)
+     * @param {boolean} [opts.fullscreen] offer the full screen button (off inside a student workspace, which has its own)
      */
-    constructor(host, program, {lang = null, showCode = true, showWatch = true} = {}) {
+    constructor(host, program, {lang = null, showCode = true, showWatch = true, fullscreen = true} = {}) {
         this.program = program;
         this.lang = lang;
         this.showCode = showCode;
         this.showWatch = showWatch;
+        this.canFullscreen = fullscreen;
         this.running = null;
         this.selected = null;
         this.breakpoints = new Set();
@@ -88,18 +97,28 @@ export class AlgorithmRunner {
         this.statusEl = el('span', {'class': 'tiny_algorithm-status', role: 'status', hidden: true});
         this.announcer = el('div', {'class': 'sr-only visually-hidden', 'aria-live': 'polite'});
         this.btnRun = btn('run', () => this.onRun());
+        // The bar runs the algorithm and chooses the panels; the zoom and the full screen sit in the corner of the diagram.
         this.bar = el('div', {'class': 'tiny_algorithm-view-bar'},
             this.btnRun, btn('step', () => this.onStep()), btn('reset', () => this.reset()),
             el('span', {'class': 'tiny_algorithm-speedbox'}, el('span', {'aria-hidden': 'true'}, this.t('slow')), this.speed,
                 el('span', {'aria-hidden': 'true'}, this.t('fast'))),
-            btn('trace', () => openTrace(this.root, this.trace, {cut: this.traceCut, select: (id) => this.showBlock(id)})),
             this.statusEl,
-            this.zoom.controls((key) => this.t(key)));
+            el('span', {'class': 'tiny_algorithm-grow'}),
+            btn('trace', () => openTrace(this.root, this.trace, {cut: this.traceCut, select: (id) => this.showBlock(id)})));
+        const zoomBox = this.zoom.controls((key) => this.t(key));
+        if (this.canFullscreen) {
+            this.btnFull = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-zoom-btn',
+                onclick: () => this.toggleFullscreen()});
+            zoomBox.append(this.btnFull);
+            this.updateFullscreenButton(false);
+        }
+        const canvas = el('div', {'class': 'tiny_algorithm-view-canvas'}, this.svgHost, zoomBox);
         this.watch = new Watch(this.lang);
-        const mainParts = [this.svgHost, this.bar, this.consoleEl];
+        const mainParts = [canvas, this.bar, this.consoleEl];
         if (this.showWatch) {
-            this.watchToggle = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-watch-toggle',
-                onclick: () => this.toggleWatch()});
+            this.watchToggle = el('button', {type: 'button',
+                'class': 'btn btn-secondary btn-sm tiny_algorithm-toggle tiny_algorithm-watch-toggle',
+                onclick: () => this.toggleWatch()}, this.t('variables'));
             this.bar.append(this.watchToggle);
             mainParts.push(el('div', {'class': 'tiny_algorithm-view-watch'}, el('strong', {}, this.t('variables')),
                 this.watch.root));
@@ -129,8 +148,9 @@ export class AlgorithmRunner {
                     this.renderCode();
                 },
             }, languages.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
-            this.codeToggle = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-code-toggle',
-                onclick: () => this.toggleCode()});
+            this.codeToggle = el('button', {type: 'button',
+                'class': 'btn btn-secondary btn-sm tiny_algorithm-toggle tiny_algorithm-code-toggle',
+                onclick: () => this.toggleCode()}, this.t('code'));
             this.bar.append(this.codeToggle);
             const close = el('button', {type: 'button', 'class': 'btn btn-link btn-sm tiny_algorithm-code-close',
                 onclick: () => this.toggleCode(), title: this.t('hidecode'), 'aria-label': this.t('hidecode')}, '×');
@@ -145,12 +165,7 @@ export class AlgorithmRunner {
         } else {
             this.root.classList.add('tiny_algorithm-no-code');
         }
-        this.root.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.selected) {
-                e.stopPropagation();
-                this.showBlock(null);
-            }
-        });
+        this.root.addEventListener('keydown', (e) => this.onRootKey(e));
         // After the code, so the code stays beside the diagram and the description goes under both.
         this.root.append(description);
         host.classList.add('tiny_algorithm-viewer-host');
@@ -209,8 +224,72 @@ export class AlgorithmRunner {
 
     updateCodeToggle() {
         const hidden = this.root.classList.contains('tiny_algorithm-hide-code');
-        this.codeToggle.textContent = this.t(hidden ? 'showcode' : 'hidecode');
-        this.codeToggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+        this.codeToggle.setAttribute('aria-pressed', hidden ? 'false' : 'true');
+        this.codeToggle.title = this.t(hidden ? 'showcode' : 'hidecode');
+    }
+
+    /**
+     * Escape removes the mark of a block (or leaves the covered window); F switches the full screen.
+     *
+     * @param {KeyboardEvent} e
+     */
+    onRootKey(e) {
+        const typing = e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable]');
+        if (e.key === 'Escape' && this.selected) {
+            e.stopPropagation();
+            this.showBlock(null);
+        } else if (e.key === 'Escape' && this.isFullscreen() && !document.fullscreenElement) {
+            e.stopPropagation();
+            this.setFullscreen(false);
+        } else if (this.btnFull && !typing && (e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            this.toggleFullscreen();
+        }
+    }
+
+    isFullscreen() {
+        return this.root.classList.contains('tiny_algorithm-fullscreen');
+    }
+
+    /** Full screen through the browser when it can; otherwise (e.g. iPhone) the widget covers the window. */
+    toggleFullscreen() {
+        const on = !this.isFullscreen();
+        if (on && this.root.requestFullscreen) {
+            this.root.requestFullscreen().catch(() => null);
+        } else if (!on && document.fullscreenElement === this.root) {
+            document.exitFullscreen().catch(() => null);
+        }
+        this.setFullscreen(on);
+    }
+
+    setFullscreen(on) {
+        this.root.classList.toggle('tiny_algorithm-fullscreen', on);
+        document.documentElement.classList.toggle('tiny_algorithm-noscroll', on);
+        if (on && !this.onFullscreenChange) {
+            this.onFullscreenChange = () => {
+                if (!document.fullscreenElement && this.isFullscreen()) {
+                    this.setFullscreen(false);
+                }
+            };
+            document.addEventListener('fullscreenchange', this.onFullscreenChange);
+        }
+        this.updateFullscreenButton(on);
+        if (on) {
+            this.svgHost.focus({preventScroll: true});
+        }
+        // The diagram starts again at 100% and is fitted to the new width when it does not fit.
+        requestAnimationFrame(() => {
+            this.zoom.reset();
+            this.zoom.autoFit();
+        });
+    }
+
+    updateFullscreenButton(on) {
+        const text = this.t(on ? 'exitfullscreen' : 'fullscreen');
+        this.btnFull.title = text;
+        this.btnFull.setAttribute('aria-label', text);
+        this.btnFull.setAttribute('aria-pressed', on ? 'true' : 'false');
+        this.btnFull.innerHTML = on ? EXIT_ICON : FULL_ICON;
     }
 
     /** Whether the reader chose to hide the variable watch (remembered in this browser). */
@@ -235,8 +314,8 @@ export class AlgorithmRunner {
 
     updateWatchToggle() {
         const hidden = this.root.classList.contains('tiny_algorithm-hide-watch');
-        this.watchToggle.textContent = this.t(hidden ? 'showwatch' : 'hidewatch');
-        this.watchToggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+        this.watchToggle.setAttribute('aria-pressed', hidden ? 'false' : 'true');
+        this.watchToggle.title = this.t(hidden ? 'showwatch' : 'hidewatch');
     }
 
     renderCode() {
@@ -396,25 +475,10 @@ export class AlgorithmRunner {
     askInput(run, ev, hint) {
         return new Promise((resolve) => {
             const row = this.log(`${ev.name} (${ev.type}) ? `);
-            const input = el('input', {type: 'text', 'class': 'form-control form-control-sm tiny_algorithm-input',
-                'aria-label': `${ev.name} (${ev.type})`, onkeydown: (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const v = input.value;
-                        input.remove();
-                        row.append(` ${v}`);
-                        run.wake = null;
-                        resolve(v);
-                    }
-                }});
-            row.append(input);
-            if (hint) {
-                const note = el('span', {'class': 'tiny_algorithm-inputhint', id: `tiny_algorithm-h${Date.now()}`}, hint);
-                row.append(note);
-                input.setAttribute('aria-invalid', 'true');
-                input.setAttribute('aria-describedby', note.id);
-            }
-            input.focus();
+            readLine(row, ev, hint, (key) => this.t(key), (v) => {
+                run.wake = null;
+                resolve(v);
+            });
             run.wake = () => resolve(null);
         });
     }

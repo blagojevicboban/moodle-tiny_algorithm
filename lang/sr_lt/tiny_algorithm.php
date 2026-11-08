@@ -169,6 +169,7 @@ $string['ui_imported'] = 'Flowgorithm fajl je uvezen.';
 $string['ui_inputhintboolean'] = 'Unesite true ili false.';
 $string['ui_inputhintinteger'] = 'Unesite ceo broj, na primer 4.';
 $string['ui_inputhintreal'] = 'Unesite broj, na primer 2.5.';
+$string['ui_inputok'] = 'Potvrdi vrednost';
 $string['ui_inputs'] = 'Ulaz';
 $string['ui_inputshint'] = 'Jedna vrednost po redu, "" za praznu vrednost';
 $string['ui_insertblock'] = 'Umetni blok';

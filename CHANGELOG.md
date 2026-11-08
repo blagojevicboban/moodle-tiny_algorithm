@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.5.2 – 2026-11-08 (stable)
+
+- **Reader view toolbar:** the zoom buttons and a new full screen button sit in the corner of the diagram, as in the
+  editor; the bar keeps Run, Step, Reset, the speed and the status, then Trace table, Variables and Code.
+- **Full screen for the reader view:** the diagram, the bar, the console, the variables and the code cover the screen
+  (through the browser, or by covering the window where the browser cannot, e.g. on an iPhone); Esc, the same button
+  or the F key leave it. On a wide screen the code stays beside the diagram.
+- **Variables and Code are switches:** pressed (blue) means the panel is shown; the label stays the same.
+- **Input on phones:** the field where the algorithm reads a value has a check button, and the Go / Done key of a phone
+  keyboard confirms it (phone keyboards often send no Enter key). It never submits a quiz page around the widget.
+- **Narrow screens:** the speed slider loses its Slow / Fast words and the bar uses smaller gaps.
+
 ## 2.5.1 – 2026-11-15 (stable)
 
 - **Algorithm templates library:** added standard school programming templates (Swap, Rectangle, Max of 2, Even/Odd, Sum 1..N, Factorial, Euclid GCD, Linear search) accessible from the File menu.

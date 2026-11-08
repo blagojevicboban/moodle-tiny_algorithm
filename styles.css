@@ -358,6 +358,105 @@ generated code on the right; stacked when the content area is narrow. */
     margin: 0 auto;
 }
 
+/* The zoom and the full screen button in the corner of the diagram (as in the editor). */
+.tiny_algorithm-viewer .tiny_algorithm-view-canvas {
+    position: relative;
+}
+
+.tiny_algorithm-viewer .tiny_algorithm-view-canvas > .tiny_algorithm-zoom {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    gap: 2px;
+    opacity: .9;
+}
+
+.tiny_algorithm-viewer .tiny_algorithm-zoom-btn svg {
+    display: block;
+    margin: 0 auto;
+}
+
+/* Variables and Code are switches: pressed means the panel is shown. */
+.tiny_algorithm-viewer .tiny_algorithm-view-bar .tiny_algorithm-toggle[aria-pressed="true"] {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    color: #1e3a8a;
+}
+
+.tiny_algorithm-viewer .tiny_algorithm-view-bar .tiny_algorithm-toggle[aria-pressed="false"] {
+    background: #fff;
+    border-color: #ced4da;
+    color: #4b5563;
+}
+
+/* The field where the algorithm reads a value, with its ✓ button (phone keyboards often have no Enter). */
+.tiny_algorithm-console .tiny_algorithm-inputform {
+    display: inline-flex;
+    gap: .25rem;
+    align-items: center;
+    margin: 0;
+    vertical-align: middle;
+}
+
+.tiny_algorithm-console .tiny_algorithm-inputok {
+    min-width: 2.2rem;
+    line-height: 1.2;
+}
+
+/* Full screen: through the browser, or covering the window where the browser cannot (iPhone). */
+html.tiny_algorithm-noscroll,
+html.tiny_algorithm-noscroll body {
+    overflow: hidden;
+}
+
+.tiny_algorithm-viewer.tiny_algorithm-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    margin: 0;
+    padding: .75rem;
+    overflow: auto;
+    align-content: start;
+    background: #fff;
+}
+
+.tiny_algorithm-viewer.tiny_algorithm-fullscreen .tiny_algorithm-view-svg {
+    height: calc(100dvh - 230px);
+    min-height: 220px;
+    max-height: none;
+}
+
+.tiny_algorithm-viewer.tiny_algorithm-fullscreen .tiny_algorithm-code {
+    max-height: calc(100dvh - 6rem);
+}
+
+.tiny_algorithm-viewer.tiny_algorithm-fullscreen > .tiny_algorithm-textdesc {
+    display: none;
+}
+
+/* On a wide screen the code stays beside the diagram, also when the page column around the widget is narrow. */
+@media (min-width: 820px) {
+    .tiny_algorithm-viewer.tiny_algorithm-fullscreen:not(.tiny_algorithm-hide-code):not(.tiny_algorithm-no-code) {
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    }
+}
+
+/* A phone: the speed slider without its words, smaller gaps. */
+/* stylelint-disable-next-line csstree/validator */
+@container (max-width: 480px) {
+    .tiny_algorithm-viewer .tiny_algorithm-speedbox > span {
+        display: none;
+    }
+
+    .tiny_algorithm-viewer .tiny_algorithm-speedbox .tiny_algorithm-speed {
+        width: 80px;
+    }
+
+    .tiny_algorithm-viewer .tiny_algorithm-view-bar {
+        gap: .25rem;
+    }
+}
+
 .tiny_algorithm-viewer .tiny_algorithm-view-bar {
     display: flex;
     flex-wrap: wrap;

@@ -78,7 +78,7 @@ export const STR = {
         statusrunning: 'Running · step {step}', statuspaused: 'Paused · step {step}', statusdone: 'Finished · {step} steps',
         statusstopped: 'Stopped · step {step}', statuserror: 'Error · step {step}', showblock: 'Show the block',
         callstack: 'Calls running now', inputhintinteger: 'Enter a whole number, for example 4.',
-        inputhintreal: 'Enter a number, for example 2.5.', inputhintboolean: 'Enter true or false.',
+        inputhintreal: 'Enter a number, for example 2.5.', inputok: 'Confirm the value', inputhintboolean: 'Enter true or false.',
         file: 'File',
         slow: 'Slow',
         fast: 'Fast',
