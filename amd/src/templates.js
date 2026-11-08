@@ -26,24 +26,24 @@ export const TEMPLATES = [
     {
         id: 'swap',
         category: 'linear',
-        titleKey: 'tmpl_swap_title',
-        descKey: 'tmpl_swap_desc',
-        fallbackTitle: 'Zamena vrednosti (Swap)',
-        fallbackDesc: 'Razmena vrednosti dve promenljive a i b pomoću pomoćne promenljive pom.',
+        title: 'Swap Values',
+        desc: 'Swap the values of two variables a and b using a temporary variable temp.',
+        fallbackTitle: 'Swap Values',
+        fallbackDesc: 'Swap the values of two variables a and b using a temporary variable temp.',
         build: () => {
             const prog = createProgram('Swap');
             prog.functions[0].body = [
-                createBlock('comment', {text: 'Zamena vrednosti dve promenljive'}),
+                createBlock('comment', {text: 'Swap the values of two variables'}),
                 createBlock('declare', {name: 'a', varType: 'Integer'}),
                 createBlock('declare', {name: 'b', varType: 'Integer'}),
-                createBlock('declare', {name: 'pom', varType: 'Integer'}),
-                createBlock('output', {expr: '"Unesite a i b:"', newline: true}),
+                createBlock('declare', {name: 'temp', varType: 'Integer'}),
+                createBlock('output', {expr: '"Enter a and b:"', newline: true}),
                 createBlock('input', {target: 'a'}),
                 createBlock('input', {target: 'b'}),
-                createBlock('assign', {target: 'pom', expr: 'a'}),
+                createBlock('assign', {target: 'temp', expr: 'a'}),
                 createBlock('assign', {target: 'a', expr: 'b'}),
-                createBlock('assign', {target: 'b', expr: 'pom'}),
-                createBlock('output', {expr: '"Nove vrednosti: a = " & a & ", b = " & b', newline: true})
+                createBlock('assign', {target: 'b', expr: 'temp'}),
+                createBlock('output', {expr: '"After swap: a = " & a & ", b = " & b', newline: true})
             ];
             return prog;
         }
@@ -51,25 +51,25 @@ export const TEMPLATES = [
     {
         id: 'rectangle',
         category: 'linear',
-        titleKey: 'tmpl_rect_title',
-        descKey: 'tmpl_rect_desc',
-        fallbackTitle: 'Pravougaonik (Obim i površina)',
-        fallbackDesc: 'Računanje obima O = 2*(a+b) i površine P = a*b za zadate stranice a i b.',
+        title: 'Rectangle (Perimeter and Area)',
+        desc: 'Calculate perimeter P = 2*(a+b) and area A = a*b for given sides a and b.',
+        fallbackTitle: 'Rectangle (Perimeter and Area)',
+        fallbackDesc: 'Calculate perimeter P = 2*(a+b) and area A = a*b for given sides a and b.',
         build: () => {
-            const prog = createProgram('Pravougaonik');
+            const prog = createProgram('Rectangle');
             prog.functions[0].body = [
-                createBlock('comment', {text: 'Obim i povrsina pravougaonika'}),
+                createBlock('comment', {text: 'Perimeter and area of a rectangle'}),
                 createBlock('declare', {name: 'a', varType: 'Real'}),
                 createBlock('declare', {name: 'b', varType: 'Real'}),
-                createBlock('declare', {name: 'o', varType: 'Real'}),
-                createBlock('declare', {name: 'p', varType: 'Real'}),
-                createBlock('output', {expr: '"Unesite stranice a i b:"', newline: true}),
+                createBlock('declare', {name: 'perimeter', varType: 'Real'}),
+                createBlock('declare', {name: 'area', varType: 'Real'}),
+                createBlock('output', {expr: '"Enter sides a and b:"', newline: true}),
                 createBlock('input', {target: 'a'}),
                 createBlock('input', {target: 'b'}),
-                createBlock('assign', {target: 'o', expr: '2 * (a + b)'}),
-                createBlock('assign', {target: 'p', expr: 'a * b'}),
-                createBlock('output', {expr: '"Obim O = " & o', newline: true}),
-                createBlock('output', {expr: '"Povrsina P = " & p', newline: true})
+                createBlock('assign', {target: 'perimeter', expr: '2 * (a + b)'}),
+                createBlock('assign', {target: 'area', expr: 'a * b'}),
+                createBlock('output', {expr: '"Perimeter P = " & perimeter', newline: true}),
+                createBlock('output', {expr: '"Area A = " & area', newline: true})
             ];
             return prog;
         }
@@ -77,26 +77,26 @@ export const TEMPLATES = [
     {
         id: 'max2',
         category: 'branching',
-        titleKey: 'tmpl_max2_title',
-        descKey: 'tmpl_max2_desc',
-        fallbackTitle: 'Maksimum dva broja (Max)',
-        fallbackDesc: 'Određivanje i ispis većeg od dva uneta broja korišćenjem If-Else grananja.',
+        title: 'Maximum of Two Numbers',
+        desc: 'Find and output the larger of two numbers using If-Else branching.',
+        fallbackTitle: 'Maximum of Two Numbers',
+        fallbackDesc: 'Find and output the larger of two numbers using If-Else branching.',
         build: () => {
-            const prog = createProgram('Maksimum2');
+            const prog = createProgram('MaxOfTwo');
             prog.functions[0].body = [
-                createBlock('comment', {text: 'Maksimum dva broja'}),
+                createBlock('comment', {text: 'Maximum of two numbers'}),
                 createBlock('declare', {name: 'a', varType: 'Real'}),
                 createBlock('declare', {name: 'b', varType: 'Real'}),
-                createBlock('output', {expr: '"Unesite dva broja:"', newline: true}),
+                createBlock('output', {expr: '"Enter two numbers:"', newline: true}),
                 createBlock('input', {target: 'a'}),
                 createBlock('input', {target: 'b'}),
                 createBlock('if', {
                     cond: 'a > b',
                     then: [
-                        createBlock('output', {expr: '"Veci broj je: " & a', newline: true})
+                        createBlock('output', {expr: '"Larger number is: " & a', newline: true})
                     ],
                     'else': [
-                        createBlock('output', {expr: '"Veci broj je: " & b', newline: true})
+                        createBlock('output', {expr: '"Larger number is: " & b', newline: true})
                     ]
                 })
             ];
@@ -106,24 +106,24 @@ export const TEMPLATES = [
     {
         id: 'evenodd',
         category: 'branching',
-        titleKey: 'tmpl_evenodd_title',
-        descKey: 'tmpl_evenodd_desc',
-        fallbackTitle: 'Parnost broja',
-        fallbackDesc: 'Provera da li je uneti ceo broj paran ili neparan pomoću operacije modula (n % 2 == 0).',
+        title: 'Even or Odd Number',
+        desc: 'Check whether an integer is even or odd using the modulo operator (n % 2 == 0).',
+        fallbackTitle: 'Even or Odd Number',
+        fallbackDesc: 'Check whether an integer is even or odd using the modulo operator (n % 2 == 0).',
         build: () => {
-            const prog = createProgram('Parnost');
+            const prog = createProgram('EvenOrOdd');
             prog.functions[0].body = [
-                createBlock('comment', {text: 'Provera parnosti celog broja'}),
+                createBlock('comment', {text: 'Check if an integer is even or odd'}),
                 createBlock('declare', {name: 'n', varType: 'Integer'}),
-                createBlock('output', {expr: '"Unesite ceo broj:"', newline: true}),
+                createBlock('output', {expr: '"Enter an integer:"', newline: true}),
                 createBlock('input', {target: 'n'}),
                 createBlock('if', {
                     cond: 'n % 2 == 0',
                     then: [
-                        createBlock('output', {expr: 'n & " je PARAN broj."', newline: true})
+                        createBlock('output', {expr: 'n & " is EVEN."', newline: true})
                     ],
                     'else': [
-                        createBlock('output', {expr: 'n & " je NEPARAN broj."', newline: true})
+                        createBlock('output', {expr: 'n & " is ODD."', newline: true})
                     ]
                 })
             ];
@@ -133,19 +133,19 @@ export const TEMPLATES = [
     {
         id: 'sum_n',
         category: 'loops',
-        titleKey: 'tmpl_sumn_title',
-        descKey: 'tmpl_sumn_desc',
-        fallbackTitle: 'Suma prvih N brojeva',
-        fallbackDesc: 'Računanje zbira brojeva od 1 do n (1 + 2 + ... + n) korišćenjem brojačke For petlje.',
+        title: 'Sum of Numbers 1 to N',
+        desc: 'Calculate the sum of numbers from 1 to n (1 + 2 + ... + n) using a For loop.',
+        fallbackTitle: 'Sum of Numbers 1 to N',
+        fallbackDesc: 'Calculate the sum of numbers from 1 to n (1 + 2 + ... + n) using a For loop.',
         build: () => {
-            const prog = createProgram('SumaN');
+            const prog = createProgram('Sum1toN');
             prog.functions[0].body = [
-                createBlock('comment', {text: 'Suma prvih n prirodnih brojeva'}),
+                createBlock('comment', {text: 'Sum of numbers from 1 to n'}),
                 createBlock('declare', {name: 'n', varType: 'Integer'}),
                 createBlock('declare', {name: 'i', varType: 'Integer'}),
-                createBlock('declare', {name: 's', varType: 'Integer'}),
-                createBlock('assign', {target: 's', expr: '0'}),
-                createBlock('output', {expr: '"Unesite n:"', newline: true}),
+                createBlock('declare', {name: 'sum', varType: 'Integer'}),
+                createBlock('assign', {target: 'sum', expr: '0'}),
+                createBlock('output', {expr: '"Enter n:"', newline: true}),
                 createBlock('input', {target: 'n'}),
                 createBlock('for', {
                     variable: 'i',
@@ -153,10 +153,10 @@ export const TEMPLATES = [
                     end: 'n',
                     step: '1',
                     body: [
-                        createBlock('assign', {target: 's', expr: 's + i'})
+                        createBlock('assign', {target: 'sum', expr: 'sum + i'})
                     ]
                 }),
-                createBlock('output', {expr: '"Suma od 1 do " & n & " je: " & s', newline: true})
+                createBlock('output', {expr: '"Sum from 1 to " & n & " is: " & sum', newline: true})
             ];
             return prog;
         }
@@ -164,19 +164,19 @@ export const TEMPLATES = [
     {
         id: 'factorial',
         category: 'loops',
-        titleKey: 'tmpl_fact_title',
-        descKey: 'tmpl_fact_desc',
-        fallbackTitle: 'Faktorijel (n!)',
-        fallbackDesc: 'Računanje faktorijela prirodnog broja n! = 1 * 2 * ... * n pomoću For petlje.',
+        title: 'Factorial (n!)',
+        desc: 'Calculate factorial n! = 1 * 2 * ... * n for a positive integer using a For loop.',
+        fallbackTitle: 'Factorial (n!)',
+        fallbackDesc: 'Calculate factorial n! = 1 * 2 * ... * n for a positive integer using a For loop.',
         build: () => {
-            const prog = createProgram('Faktorijel');
+            const prog = createProgram('Factorial');
             prog.functions[0].body = [
-                createBlock('comment', {text: 'Faktorijel prirodnog broja n!'}),
+                createBlock('comment', {text: 'Factorial of a positive integer n!'}),
                 createBlock('declare', {name: 'n', varType: 'Integer'}),
                 createBlock('declare', {name: 'i', varType: 'Integer'}),
-                createBlock('declare', {name: 'f', varType: 'Integer'}),
-                createBlock('assign', {target: 'f', expr: '1'}),
-                createBlock('output', {expr: '"Unesite n:"', newline: true}),
+                createBlock('declare', {name: 'fact', varType: 'Integer'}),
+                createBlock('assign', {target: 'fact', expr: '1'}),
+                createBlock('output', {expr: '"Enter n:"', newline: true}),
                 createBlock('input', {target: 'n'}),
                 createBlock('for', {
                     variable: 'i',
@@ -184,10 +184,10 @@ export const TEMPLATES = [
                     end: 'n',
                     step: '1',
                     body: [
-                        createBlock('assign', {target: 'f', expr: 'f * i'})
+                        createBlock('assign', {target: 'fact', expr: 'fact * i'})
                     ]
                 }),
-                createBlock('output', {expr: 'n & "! = " & f', newline: true})
+                createBlock('output', {expr: 'n & "! = " & fact', newline: true})
             ];
             return prog;
         }
@@ -195,18 +195,18 @@ export const TEMPLATES = [
     {
         id: 'gcd',
         category: 'loops',
-        titleKey: 'tmpl_gcd_title',
-        descKey: 'tmpl_gcd_desc',
-        fallbackTitle: 'Euklidov algoritam (NZD)',
-        fallbackDesc: 'Pronalaženje najvećeg zajedničkog delioca dva cela broja a i b While petljom.',
+        title: 'Euclidean Algorithm (GCD)',
+        desc: 'Find the greatest common divisor of two integers a and b using a While loop.',
+        fallbackTitle: 'Euclidean Algorithm (GCD)',
+        fallbackDesc: 'Find the greatest common divisor of two integers a and b using a While loop.',
         build: () => {
-            const prog = createProgram('EuklidNZD');
+            const prog = createProgram('EuclideanGCD');
             prog.functions[0].body = [
-                createBlock('comment', {text: 'Euklidov algoritam za najveci zajednicki delilac (NZD)'}),
+                createBlock('comment', {text: 'Euclidean algorithm for greatest common divisor (GCD)'}),
                 createBlock('declare', {name: 'a', varType: 'Integer'}),
                 createBlock('declare', {name: 'b', varType: 'Integer'}),
                 createBlock('declare', {name: 'r', varType: 'Integer'}),
-                createBlock('output', {expr: '"Unesite a i b:"', newline: true}),
+                createBlock('output', {expr: '"Enter a and b:"', newline: true}),
                 createBlock('input', {target: 'a'}),
                 createBlock('input', {target: 'b'}),
                 createBlock('while', {
@@ -217,7 +217,7 @@ export const TEMPLATES = [
                         createBlock('assign', {target: 'b', expr: 'r'})
                     ]
                 }),
-                createBlock('output', {expr: '"NZD je: " & a', newline: true})
+                createBlock('output', {expr: '"GCD is: " & a', newline: true})
             ];
             return prog;
         }
@@ -225,25 +225,25 @@ export const TEMPLATES = [
     {
         id: 'linear_search',
         category: 'arrays',
-        titleKey: 'tmpl_search_title',
-        descKey: 'tmpl_search_desc',
-        fallbackTitle: 'Linearna pretraga niza',
-        fallbackDesc: 'Pretraga zadatog broja u jednodimenzionalnom nizu i određivanje njegove pozicije.',
+        title: 'Linear Search in Array',
+        desc: 'Search for a number in a 1D array and find its index position.',
+        fallbackTitle: 'Linear Search in Array',
+        fallbackDesc: 'Search for a number in a 1D array and find its index position.',
         build: () => {
-            const prog = createProgram('PretragaNiza');
+            const prog = createProgram('LinearSearch');
             prog.functions[0].body = [
-                createBlock('comment', {text: 'Linearna pretraga niza'}),
-                createBlock('declare', {name: 'niz', varType: 'Integer', size: '5'}),
+                createBlock('comment', {text: 'Linear search in an array'}),
+                createBlock('declare', {name: 'arr', varType: 'Integer', size: '5'}),
                 createBlock('declare', {name: 'i', varType: 'Integer'}),
                 createBlock('declare', {name: 'x', varType: 'Integer'}),
-                createBlock('declare', {name: 'nasao', varType: 'Boolean'}),
-                createBlock('assign', {target: 'nasao', expr: 'false'}),
-                createBlock('assign', {target: 'niz[0]', expr: '12'}),
-                createBlock('assign', {target: 'niz[1]', expr: '45'}),
-                createBlock('assign', {target: 'niz[2]', expr: '7'}),
-                createBlock('assign', {target: 'niz[3]', expr: '23'}),
-                createBlock('assign', {target: 'niz[4]', expr: '56'}),
-                createBlock('output', {expr: '"Unesite broj za pretragu:"', newline: true}),
+                createBlock('declare', {name: 'found', varType: 'Boolean'}),
+                createBlock('assign', {target: 'found', expr: 'false'}),
+                createBlock('assign', {target: 'arr[0]', expr: '12'}),
+                createBlock('assign', {target: 'arr[1]', expr: '45'}),
+                createBlock('assign', {target: 'arr[2]', expr: '7'}),
+                createBlock('assign', {target: 'arr[3]', expr: '23'}),
+                createBlock('assign', {target: 'arr[4]', expr: '56'}),
+                createBlock('output', {expr: '"Enter number to search for:"', newline: true}),
                 createBlock('input', {target: 'x'}),
                 createBlock('for', {
                     variable: 'i',
@@ -252,19 +252,19 @@ export const TEMPLATES = [
                     step: '1',
                     body: [
                         createBlock('if', {
-                            cond: 'niz[i] == x',
+                            cond: 'arr[i] == x',
                             then: [
-                                createBlock('assign', {target: 'nasao', expr: 'true'}),
-                                createBlock('output', {expr: '"Broj je pronadjen na poziciji: " & i', newline: true})
+                                createBlock('assign', {target: 'found', expr: 'true'}),
+                                createBlock('output', {expr: '"Number found at index: " & i', newline: true})
                             ],
                             'else': []
                         })
                     ]
                 }),
                 createBlock('if', {
-                    cond: '!nasao',
+                    cond: '!found',
                     then: [
-                        createBlock('output', {expr: '"Broj nije pronadjen u nizu."', newline: true})
+                        createBlock('output', {expr: '"Number not found in array."', newline: true})
                     ],
                     'else': []
                 })

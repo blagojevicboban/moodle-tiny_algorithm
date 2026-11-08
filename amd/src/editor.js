@@ -1236,8 +1236,8 @@ export class AlgorithmEditor {
                 : TEMPLATES.filter((tmpl) => tmpl.category === selectedCategory);
 
             listContainer.replaceChildren(...filtered.map((tmpl) => {
-                const title = this.t(tmpl.titleKey) !== tmpl.titleKey ? this.t(tmpl.titleKey) : tmpl.fallbackTitle;
-                const desc = this.t(tmpl.descKey) !== tmpl.descKey ? this.t(tmpl.descKey) : tmpl.fallbackDesc;
+                const title = tmpl.title || tmpl.fallbackTitle;
+                const desc = tmpl.desc || tmpl.fallbackDesc;
                 const btnLoad = el('button', {
                     type: 'button',
                     'class': 'btn btn-primary btn-sm ml-2 ms-2 text-nowrap',
