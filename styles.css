@@ -581,6 +581,25 @@ html.tiny_algorithm-noscroll body {
     display: none;
 }
 
+/* Help for the operators and functions */
+.tiny_algorithm-help-wrap {
+    overflow-x: auto;
+}
+
+.tiny_algorithm-help {
+    font-size: .85rem;
+}
+
+.tiny_algorithm-help th[scope="row"] {
+    font-weight: normal;
+    white-space: nowrap;
+}
+
+.tiny_algorithm-help td:nth-child(3) code,
+.tiny_algorithm-help td:nth-child(4) code {
+    white-space: nowrap;
+}
+
 /* All the comments of a diagram, numbered as the bubbles of their blocks */
 .tiny_algorithm-viewer .tiny_algorithm-noteslist {
     margin-top: .5rem;

@@ -115,3 +115,18 @@ test('warnings before a run: a function that may end without Return, blocks that
     assert.deepEqual(checkProgram(p), ['Half may end without Return: a call of it then has no value.',
         'Blocks after a Break, Continue or Return never run: 1.']);
 });
+
+test('warning before a run: a variable declared twice (also a parameter declared again), once per name', async() => {
+    const {checkProgram} = await import('../amd/src/session.js');
+    const p = createProgram();
+    p.functions[0].body = [B('declare', {name: 'a, b'}), B('declare', {name: 'c'}),
+        B('if', {cond: 'true', then: [B('declare', {name: 'A'})], 'else': [B('declare', {name: 'a'})]}),
+        // One Declare inside a loop is one block: no warning.
+        B('for', {variable: 'i', start: '1', end: '3', step: '1', body: [B('declare', {name: 't'})]})];
+    p.functions.push({name: 'F', params: [{name: 'n', type: 'Integer'}], returnType: '', body: [B('declare', {name: 'N'})]});
+    assert.deepEqual(checkProgram(p), [
+        'In Main these variables are declared more than once: A. A second Declare makes a new variable, and the old value ' +
+            'is lost.',
+        'In F these variables are declared more than once: N. A second Declare makes a new variable, and the old value ' +
+            'is lost.']);
+});

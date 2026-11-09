@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.6.0 – 2026-11-10 (stable)
+
+Suggestions of a student of TSP Pirot:
+- **Help for the expressions:** Operators and functions in the File menu, and a link under the fields of every block with
+  an expression, open a table of the operators and the functions with their meaning and an example. The result of each
+  example is computed by the interpreter when the help opens, so it always matches what an algorithm does.
+- **Variable declared twice:** before a run, the console warns when a function declares the same variable in more than
+  one Declare block, or declares a parameter again (a second Declare makes a new variable and the old value is lost).
+  One Declare inside a loop is not reported.
+- New strings in English, Serbian Latin and Serbian Cyrillic.
+
 ## 2.5.3 – 2026-11-09 (stable)
 
 - **Comments button in the reader view:** when some block has a comment, the bar has a Comments switch. It numbers the

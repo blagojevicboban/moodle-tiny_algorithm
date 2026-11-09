@@ -64,11 +64,34 @@ export const checkProgram = (program) => {
     // A list always returns when one of its blocks does: a Return, or an If whose two branches both always return.
     const returns = (b) => b.type === 'return' || (b.type === 'if' && always(b.then) && always(b.else));
     const always = (list) => (list || []).some(returns);
+    // Names declared by more than one Declare block (or a parameter and a Declare) of a function.
+    const twice = (f) => {
+        const seen = new Map((f.params || []).map((p) => [String(p.name).toLowerCase(), 1]));
+        const names = [];
+        const count = (list) => (list || []).forEach((b) => {
+            if (b.type === 'declare') {
+                String(b.name).split(',').map((s) => s.trim()).filter(Boolean).forEach((name) => {
+                    const key = name.toLowerCase();
+                    seen.set(key, (seen.get(key) || 0) + 1);
+                    if (seen.get(key) === 2) {
+                        names.push(name);
+                    }
+                });
+            }
+            ['then', 'else', 'body'].forEach((k) => count(b[k]));
+        });
+        count(f.body);
+        return names;
+    };
     const messages = [];
     program.functions.forEach((f, i) => {
         visit(f.body);
         if (i > 0 && f.returnType && !always(f.body)) {
             messages.push(t('noreturn', {name: f.name}));
+        }
+        const names = twice(f);
+        if (names.length) {
+            messages.push(t('redeclared', {name: f.name, names: names.join(', ')}));
         }
     });
     if (unreachable) {

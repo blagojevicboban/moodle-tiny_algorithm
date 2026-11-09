@@ -124,6 +124,9 @@ they test again. The student's copy is kept in their browser, so it is still the
 
 ### Expressions
 
+The editor has a short help: **File → Operators and functions**, or the link under the fields of a block with an
+expression. It lists the operators and functions with an example and its result.
+
 Follow Flowgorithm: `+ - * / ^ mod`, comparisons `= <> < <= > >=`, logic `and or not`, string join `&`, and functions such as
 `Sqrt`, `Abs`, `Floor`, `Ceiling`, `Round`, `Len`, `ToInt`, `ToReal`, `ToString`, `Random`, and for strings `Char(s, i)`
 (character at index `i`, from 0), `ToChar(n)` and `ToCode(s)`. Variable names are case insensitive,

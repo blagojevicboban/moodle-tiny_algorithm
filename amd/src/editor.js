@@ -28,6 +28,7 @@ import {
 import {renderFunction, renderProgram, showBranch} from './render';
 import {runSession} from './session';
 import {openDialog, openShortcuts, showToast} from './dialog';
+import {openHelp} from './help';
 import {openTrace} from './trace';
 import {attachNotes} from './notes';
 import {markRun} from './runmarks';
@@ -486,7 +487,11 @@ export class AlgorithmEditor {
         })));
         const act = (label, fn, cls = 'btn-secondary') =>
             el('button', {type: 'button', 'class': `btn btn-sm ${cls}`, onclick: fn}, label);
-        this.props.replaceChildren(paneTitle(this.t(`b.${b.type}`)), ...rows, this.noteField(b),
+        // Blocks with an expression link to the help for the operators and functions.
+        const help = FIELDS[b.type].some(([, kind]) => kind === 'expr') ? el('p', {'class': 'small mb-1'},
+            el('button', {type: 'button', 'class': 'btn btn-link btn-sm p-0', onclick: () => openHelp(this.root)},
+                `${this.t('exprhelp')} (?)`)) : [];
+        this.props.replaceChildren(paneTitle(this.t(`b.${b.type}`)), ...rows, help, this.noteField(b),
             el('div', {'class': 'tiny_algorithm-actions'},
             act(this.t('up'), () => this.move(-1)), act(this.t('down'), () => this.move(1)),
             act(this.t('duplicate'), () => this.duplicate()),
@@ -1415,7 +1420,8 @@ export class AlgorithmEditor {
                 ev.preventDefault();
                 items[(at + (ev.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
             }
-        }}, ...files, item('trace', () => this.showTrace()), item('shortcuts', () => openShortcuts(this.root)));
+        }}, ...files, item('trace', () => this.showTrace()), item('exprhelp', () => openHelp(this.root)),
+            item('shortcuts', () => openShortcuts(this.root)));
         this.btnFile.after(this.fileMenu);
         // The toolbar is a flex row: an absolute child without a position would go to its start, so put it under the button.
         const room = this.toolbar.clientWidth - this.fileMenu.offsetWidth - 4;
