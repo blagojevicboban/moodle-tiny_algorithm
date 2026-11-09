@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.5.3 – 2026-11-09 (stable)
+
+- **Comments button in the reader view:** when some block has a comment, the bar has a Comments switch. It numbers the
+  bubbles of the blocks and lists all the comments under the diagram (block and comment), for a projector or a printout
+  where nobody holds the mouse over a block. A click on a block in the list marks it in the diagram and in the code; the
+  choice is remembered in the browser. The tooltips stay as they were.
+- **Safer interpreter:** a string can have at most 100,000 characters, and the arrays of the calls running at the same
+  time at most 1,000,000 elements together (a row of a matrix counts as 10). Declaring an array costs one step for every
+  20 elements, so a loop that declares big arrays stops quickly. A matrix with no columns cannot have more rows than an
+  array can have elements. The PHP interpreter of qtype_algorithm has the same limits, so a response cannot fill the
+  memory or the time of the grading server.
+- New error messages for the two limits (English, Serbian Latin and Cyrillic).
+- **Fast steps with big arrays:** a step copies only the start of an array for the variables panel and the trace table
+  (16 elements, and the length), so Run, Step and the tests in the browser no longer slow down with the size of the
+  arrays, and a long trace of a big array no longer fills the memory of the browser.
+- **Exercise dialog:** a note under the separate template says that the solution is always saved in the page, also when
+  students cannot show it, and that graded work belongs in the Algorithm question type (also in the README).
+- An image whose attributes were removed by the HTML cleaning is read back only from a file of the same site and only
+  up to 5 MB.
+- The Node tests use module.registerHooks() where Node has it (module.register() is deprecated).
+
 ## 2.5.2 – 2026-11-08 (stable)
 
 - **Reader view toolbar:** the zoom buttons and a new full screen button sit in the corner of the diagram, as in the
@@ -12,37 +33,37 @@
   keyboard confirms it (phone keyboards often send no Enter key). It never submits a quiz page around the widget.
 - **Narrow screens:** the speed slider loses its Slow / Fast words and the bar uses smaller gaps.
 
-## 2.5.1 – 2026-11-15 (stable)
+## 2.5.1 – 2026-11-08 (stable)
 
 - **Algorithm templates library:** added standard school programming templates (Swap, Rectangle, Max of 2, Even/Odd, Sum 1..N, Factorial, Euclid GCD, Linear search) accessible from the File menu.
 - **Copy image to clipboard:** one-click high-resolution PNG export directly to system clipboard for pasting into presentations and worksheets.
 - **CodeLab bridge:** added button to prepare and copy generated code for the CodeLab execution environment.
 
-## 2.5.0 – 2026-11-15 (stable)
+## 2.5.0 – 2026-11-08 (stable)
 
 - **Synchronized 2.5.0 release:** unified versioning and build alignment with filter_algorithm and qtype_algorithm (build 2026111500).
 - **Verified translation integrity:** complete Ekavian Serbian and English language strings.
 - **Maintenance & QA:** rebuilt all AMD modules with Moodle Grunt, validated copyright headers across all files.
 
-## 2.4.4 – 2026-11-10 (stable)
+## 2.4.4 – 2026-11-05 (stable)
 
 - **File menu:** it opens under the File button (it opened at the left edge of the toolbar, because the toolbar is a
   flex row), and its items have their own padding and colours, so a theme cannot paint the focused item dark with
   dark text.
 
-## 2.4.3 – 2026-11-10 (stable)
+## 2.4.3 – 2026-11-05 (stable)
 
 - Same code as 2.4.2, with a new version number: the Moodle Plugins directory test run of 2.4.2 failed before it
   started (no log files), and an uploaded version number cannot be used again.
 
-## 2.4.2 – 2026-11-10 (stable)
+## 2.4.2 – 2026-11-05 (stable)
 
 - **Accessibility (axe: no violations in the viewer, the trace table, the editor, the shortcuts and a quiz question):**
   the diagram of a page takes the keyboard focus and can be scrolled with the arrow keys; the function list and the
   speed slider have names; the panel titles no longer break the heading order of the page; the zoom button is named
   by the zoom it shows; the list of shortcuts is a correct definition list.
 
-## 2.4.1 – 2026-11-10 (stable)
+## 2.4.1 – 2026-11-05 (stable)
 
 - **Default code language:** the language chosen in the code panel of the insert dialog (or of the question form)
   becomes the language every reader sees first; new diagrams start with the teacher's last choice. A student's choice
@@ -56,7 +77,7 @@
 - **Fix:** a click in the side panel of the insert dialog switched its tabs (the panel used the dialog's attributes).
 - Checked with the Boost and Moove themes.
 
-## 2.4.0 – 2026-11-10 (stable)
+## 2.4.0 – 2026-11-05 (stable)
 
 Interpreter (the same in qtype_algorithm's PHP interpreter, checked by the parity fixtures):
 - **Break and Continue** blocks (only inside a loop; outside a loop the run stops before it starts).

@@ -22,7 +22,7 @@
  */
 import {runSession} from './session';
 import {openTrace} from './trace';
-import {attachNotes} from './notes';
+import {attachNotes, notesList} from './notes';
 import {markRun} from './runmarks';
 import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
@@ -131,6 +131,16 @@ export class AlgorithmRunner {
             el('pre', {}, generate('pseudo', this.program)));
         this.root = el('div', {'class': 'tiny_algorithm-viewer'}, main, this.announcer);
         attachNotes(this.svgHost, this.root);
+        // All the comments at once (numbered in the diagram), only when some block has one.
+        this.notes = notesList(this.svgHost, {title: this.t('comments'), select: (id) => this.showBlock(id)});
+        if (this.notes) {
+            this.notesToggle = el('button', {type: 'button',
+                'class': 'btn btn-secondary btn-sm tiny_algorithm-toggle tiny_algorithm-notes-toggle',
+                onclick: () => this.toggleNotes()}, this.t('comments'));
+            this.bar.append(this.notesToggle);
+            main.append(this.notes.root);
+            this.showNotes(AlgorithmRunner.notesShown());
+        }
         if (this.showWatch) {
             this.root.classList.toggle('tiny_algorithm-hide-watch', AlgorithmRunner.watchHidden());
             this.updateWatchToggle();
@@ -290,6 +300,37 @@ export class AlgorithmRunner {
         this.btnFull.setAttribute('aria-label', text);
         this.btnFull.setAttribute('aria-pressed', on ? 'true' : 'false');
         this.btnFull.innerHTML = on ? EXIT_ICON : FULL_ICON;
+    }
+
+    /** Whether the reader chose to see all the comments (remembered in this browser). */
+    static notesShown() {
+        try {
+            return window.localStorage.getItem('tiny_algorithm_shownotes') === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /** Show or hide the list of comments and remember the choice. */
+    toggleNotes() {
+        const on = this.notesToggle.getAttribute('aria-pressed') !== 'true';
+        try {
+            window.localStorage.setItem('tiny_algorithm_shownotes', on ? '1' : '0');
+        } catch (e) {
+            // Storage can be unavailable (private window); the choice then only lasts for this page.
+        }
+        this.showNotes(on);
+    }
+
+    /**
+     * Show or hide the list of comments and the numbers in the bubbles.
+     *
+     * @param {boolean} on
+     */
+    showNotes(on) {
+        this.notes.show(on);
+        this.notesToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+        this.notesToggle.title = this.t(on ? 'hidecomments' : 'showcomments');
     }
 
     /** Whether the reader chose to hide the variable watch (remembered in this browser). */

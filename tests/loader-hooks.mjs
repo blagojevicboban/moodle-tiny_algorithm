@@ -29,3 +29,22 @@ export async function resolve(specifier, context, nextResolve) {
     }
     return nextResolve(specifier, context);
 }
+
+/**
+ * The same resolution for module.registerHooks(), which calls the hooks synchronously.
+ *
+ * @param {string} specifier
+ * @param {object} context
+ * @param {Function} nextResolve
+ * @returns {object}
+ */
+export function resolveSync(specifier, context, nextResolve) {
+    if (specifier.startsWith('.') && !/\.[cm]?js$/.test(specifier)) {
+        try {
+            return nextResolve(`${specifier}.js`, context);
+        } catch {
+            // Fall through to the default resolution.
+        }
+    }
+    return nextResolve(specifier, context);
+}

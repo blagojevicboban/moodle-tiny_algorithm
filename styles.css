@@ -581,6 +581,32 @@ html.tiny_algorithm-noscroll body {
     display: none;
 }
 
+/* All the comments of a diagram, numbered as the bubbles of their blocks */
+.tiny_algorithm-viewer .tiny_algorithm-noteslist {
+    margin-top: .5rem;
+    padding: .4rem .6rem;
+    border: 1px solid #fde68a;
+    border-radius: .25rem;
+    background: #fffbeb;
+    color: #1f2937;
+    font-size: .9rem;
+}
+
+.tiny_algorithm-viewer .tiny_algorithm-noteslist ol {
+    margin: .25rem 0 0;
+    padding-left: 1.6rem;
+}
+
+.tiny_algorithm-viewer .tiny_algorithm-noteslist-block {
+    padding: 0 .35rem 0 0;
+    font-weight: 600;
+    vertical-align: baseline;
+}
+
+.tiny_algorithm-viewer .tiny_algorithm-noteslist-note {
+    white-space: pre-wrap;
+}
+
 /* Student workspace (editable diagrams in content) */
 .tiny_algorithm-workspace {
     margin: .5rem 0;
@@ -731,6 +757,13 @@ html.tiny_algorithm-noscroll body {
 .tiny_algorithm-pane-note {
     color: #6b7280;
     font-size: .85rem;
+}
+
+/* The solution of an exercise is in the page even when students cannot show it. */
+.tiny_algorithm-solution-note {
+    color: #92400e;
+    font-size: .85rem;
+    margin: .5rem 0;
 }
 
 .tiny_algorithm-tests .tiny_algorithm-error {

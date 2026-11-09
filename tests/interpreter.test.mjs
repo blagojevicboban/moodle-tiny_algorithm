@@ -20,7 +20,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createProgram, createBlock as B} from '../amd/src/model.js';
-import {MAX_CALL_DEPTH, RANDOM_SEED, execute, runSync} from '../amd/src/interpreter.js';
+import {MAX_CALL_DEPTH, MAX_CELLS, MAX_STRING, RANDOM_SEED, SNAPSHOT_ITEMS, execute, runSync} from '../amd/src/interpreter.js';
 
 const prog = (...body) => {
     const p = createProgram();
@@ -105,6 +105,26 @@ test('watch snapshots copy arrays', () => {
     assert.deepEqual([...execute(p)].find((ev) => ev.event === 'done').vars[0].value, [7, 9]);
 });
 
+test('a step copies only the start of a big array, so stepping does not slow down with its size', () => {
+    const p = prog(B('declare', {name: 'a', size: '100000'}), B('declare', {name: 'm', size: '300', size2: '300'}),
+        B('for', {variable: 'i', start: '1', end: '2000', step: '1', body: [B('assign', {target: 'a[5]', expr: 'i'})]}));
+    p.functions[0].body.unshift(B('declare', {name: 'i'}));
+    const start = Date.now();
+    const steps = [...execute(p)].filter((ev) => ev.event === 'step');
+    assert.ok(Date.now() - start < 3000);
+    const last = steps[steps.length - 1].vars;
+    const a = last.find((x) => x.name === 'a').value;
+    const m = last.find((x) => x.name === 'm').value;
+    assert.equal(a.length, SNAPSHOT_ITEMS);
+    assert.equal(a.fullLength, 100000);
+    assert.equal(a[5], 2000);
+    assert.equal(m.length, SNAPSHOT_ITEMS);
+    assert.equal(m.fullLength, 300);
+    assert.equal(m[0].fullLength, 300);
+    // A short array is copied whole.
+    assert.equal(steps[1].vars.find((x) => x.name === 'i').value, 0);
+});
+
 test('Flowgorithm string functions Char, ToChar, ToCode', () => {
     const p = prog(
         B('declare', {name: 's', varType: 'String'}), B('declare', {name: 'r', varType: 'String'}),
@@ -182,6 +202,35 @@ test('a recursion 200 calls deep inside loops and conditions runs; one more stop
     };
     assert.equal(runSync(deep(MAX_CALL_DEPTH)), `${MAX_CALL_DEPTH}\n`);
     assert.throws(() => runSync(deep(MAX_CALL_DEPTH + 1)), (e) => e.code === 'calldepth');
+});
+
+test('a string cannot grow past MAX_STRING characters', () => {
+    const p = prog(B('declare', {name: 's', varType: 'String'}), B('assign', {target: 's', expr: '"x"'}),
+        B('while', {cond: 'true', body: [B('assign', {target: 's', expr: 's & s'})]}));
+    assert.throws(() => runSync(p, [], {maxSteps: 200000}), (e) => e.code === 'stringlimit' && e.message.includes(MAX_STRING));
+    const plus = prog(B('declare', {name: 's', varType: 'String'}), B('assign', {target: 's', expr: '"x"'}),
+        B('while', {cond: 'true', body: [B('assign', {target: 's', expr: 's + s'})]}));
+    assert.throws(() => runSync(plus, [], {maxSteps: 200000}), (e) => e.code === 'stringlimit');
+});
+
+test('arrays held by running calls are limited; a finished call frees its arrays', () => {
+    const rec = prog(B('call', {expr: 'F(1)'}));
+    rec.functions.push({name: 'F', params: [{name: 'n', type: 'Integer'}], returnType: '', body: [
+        B('declare', {name: 'a', size: '100000'}), B('call', {expr: 'F(n + 1)'})]});
+    assert.throws(() => runSync(rec, [], {maxSteps: 200000}), (e) => e.code === 'memorylimit' && e.message.includes(MAX_CELLS));
+    const loop = prog(B('declare', {name: 'i'}), B('for', {variable: 'i', start: '1', end: '30', step: '1',
+        body: [B('call', {expr: 'G()'})]}), B('output', {expr: '"done"'}));
+    loop.functions.push({name: 'G', params: [], returnType: '', body: [B('declare', {name: 'a', size: '100000'})]});
+    assert.equal(runSync(loop, [], {maxSteps: 200000}), 'done\n');
+});
+
+test('declaring a big array costs steps, so a loop of declarations stops quickly', () => {
+    const p = prog(B('while', {cond: 'true', body: [B('declare', {name: 'a', size: '100000'})]}));
+    const start = Date.now();
+    assert.throws(() => runSync(p, [], {maxSteps: 200000}), (e) => e.code === 'steplimit');
+    assert.ok(Date.now() - start < 5000);
+    const empty = prog(B('declare', {name: 'm', size: '100000000', size2: '0'}));
+    assert.throws(() => runSync(empty), (e) => e.code === 'arraysize');
 });
 
 test('Random with a seed gives the same numbers every time; without a seed it varies', () => {

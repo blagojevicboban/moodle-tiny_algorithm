@@ -39,6 +39,21 @@ export const MAX_CALL_DEPTH = 200;
 /** Most characters the output may have (the PHP interpreter has the same limit). */
 export const MAX_OUTPUT = 100000;
 
+/** Most characters a string may have (the PHP interpreter has the same limit). */
+export const MAX_STRING = 100000;
+
+/**
+ * Most array elements the calls running at the same time may hold together (the PHP interpreter has the same limit).
+ * Each row of a matrix also counts, as ROW_CELLS elements.
+ */
+export const MAX_CELLS = 1000000;
+
+/** Elements a row of a matrix counts as (a row costs more memory than one element), as in PHP. */
+export const ROW_CELLS = 10;
+
+/** Declaring an array costs one more step for every this many elements (as in PHP). */
+export const CELLS_PER_STEP = 20;
+
 /** Seed of Random in tests and grading, so the same algorithm always gets the same numbers (as in PHP). */
 export const RANDOM_SEED = 20261110;
 
@@ -176,15 +191,35 @@ const show = (v) => (Array.isArray(v) ? `[${v.map(show).join(', ')}]` : fmt(v));
  */
 const declaredNames = (b) => String(b.name).split(',').map((s) => s.trim()).filter(Boolean);
 
+/** Elements of an array (and rows and columns of a matrix) a step copies; the watch panel shows 12, the trace table 6. */
+export const SNAPSHOT_ITEMS = 16;
+
+/**
+ * The start of an array; a shortened copy keeps the length of the whole array in fullLength, so the watch can still
+ * say how long it is (setting length instead would make the browser reserve the whole array again).
+ *
+ * @param {Array} a array
+ * @param {function(*): *} [f] copy of an element
+ * @returns {Array}
+ */
+const head = (a, f = (x) => x) => {
+    const copy = a.slice(0, SNAPSHOT_ITEMS).map(f);
+    if (a.length > SNAPSHOT_ITEMS) {
+        copy.fullLength = a.length;
+    }
+    return copy;
+};
+
 /**
  * Copy of the variables of a scope for the watch panel (arrays are copied so later steps cannot change them).
+ * Only the start of a big array is copied, so a step does not slow down with the size of the arrays.
  *
  * @param {object} env variables of one function call
  * @returns {Array<{name: string, type: string, value: *}>}
  */
 const snapshot = (env) => Object.values(env || {}).map((v) => ({
     name: v.name, type: v.type,
-    value: Array.isArray(v.value) ? v.value.map((x) => (Array.isArray(x) ? x.slice() : x)) : v.value,
+    value: Array.isArray(v.value) ? head(v.value, (x) => (Array.isArray(x) ? head(x) : x)) : v.value,
 }));
 
 const hasText = (s) => s !== undefined && s !== null && String(s).trim() !== '';
@@ -229,6 +264,8 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
     let steps = 0;
     let depth = 0;
     let written = 0;
+    // Array elements held by the variables declared in the calls running now.
+    let cells = 0;
     let lastEnv = Object.create(null);
     let topArgs = [];
     // Calls running now, as the variables panel shows them: Main(), Fact(5), ...
@@ -286,10 +323,17 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
         return op === '/' ? l / r : l % r;
     };
 
+    const text = (s) => {
+        if (s.length > MAX_STRING) {
+            throw new AlgorithmError('stringlimit', {max: String(MAX_STRING)});
+        }
+        return s;
+    };
+
     const binary = (op, l, r) => {
         switch (op) {
-            case '+': return typeof l === 'string' || typeof r === 'string' ? fmt(l) + fmt(r) : l + r;
-            case '&': return fmt(l) + fmt(r);
+            case '+': return typeof l === 'string' || typeof r === 'string' ? text(fmt(l) + fmt(r)) : l + r;
+            case '&': return text(fmt(l) + fmt(r));
             case '-': return l - r;
             case '*': return l * r;
             case '/':
@@ -409,6 +453,34 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
         }
     }
 
+    /**
+     * Count the elements of a new array (the old array of the same variable is freed) and the steps they cost.
+     *
+     * @param {?Object} old the variable the declaration replaces
+     * @param {number} count elements of the new array
+     */
+    const reserve = (old, count) => {
+        cells += count - (old && old.cells ? old.cells : 0);
+        if (cells > MAX_CELLS) {
+            throw new AlgorithmError('memorylimit', {max: String(MAX_CELLS)});
+        }
+        steps += Math.floor(count / CELLS_PER_STEP);
+        if (steps > maxSteps) {
+            throw new AlgorithmError('steplimit');
+        }
+    };
+
+    /**
+     * Free the arrays declared in a call that ends.
+     *
+     * @param {Object} env variables of the call
+     */
+    const release = (env) => {
+        Object.values(env).forEach((v) => {
+            cells -= v.cells || 0;
+        });
+    };
+
     const tick = (id, env) => {
         if (++steps > maxSteps) {
             throw new AlgorithmError('steplimit');
@@ -506,12 +578,17 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
                 // A second size makes a matrix (rows, columns).
                 const size = hasText(b.size) ? yield* evalStr(b.size, env) : null;
                 const size2 = size !== null && hasText(b.size2) ? yield* evalStr(b.size2, env) : null;
-                if (size !== null && Number(size) * (size2 === null ? 1 : Number(size2)) > MAX_ARRAY_SIZE) {
+                // Each dimension is checked too: a matrix with no columns still makes its rows.
+                if (size !== null && (Number(size) * (size2 === null ? 1 : Number(size2)) > MAX_ARRAY_SIZE ||
+                        Number(size) > MAX_ARRAY_SIZE)) {
                     throw new AlgorithmError('arraysize', {size: size2 === null ? String(size) : `${size} x ${size2}`,
                         max: String(MAX_ARRAY_SIZE)});
                 }
                 const row = () => Array.from({length: size2}, () => defaultValue(b.varType));
+                const length = (n) => (Number.isNaN(Number(n)) || Number(n) < 0 ? 0 : Math.trunc(Number(n)));
+                const count = size === null ? 0 : length(size) * (size2 === null ? 1 : length(size2) + ROW_CELLS);
                 for (const nm of declaredNames(b)) {
+                    reserve(env[nm.toLowerCase()], count);
                     let value = defaultValue(b.varType);
                     if (size !== null) {
                         value = Array.from({length: size}, () => (size2 === null ? defaultValue(b.varType) : row()));
@@ -520,7 +597,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
                     if (size2 !== null) {
                         dims = 2;
                     }
-                    env[nm.toLowerCase()] = {name: nm, type: b.varType, value, dims};
+                    env[nm.toLowerCase()] = {name: nm, type: b.varType, value, dims, cells: count};
                 }
                 break;
             }
@@ -667,6 +744,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
         } finally {
             depth--;
             stack.pop();
+            release(env);
         }
         lastEnv = env; // The last function to finish is the main one.
         return r ? r[1] : undefined;

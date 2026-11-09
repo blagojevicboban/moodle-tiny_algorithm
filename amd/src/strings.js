@@ -67,6 +67,7 @@ export const STR = {
         noreturn: '{name} may end without Return: a call of it then has no value.',
         unreachable: 'Blocks after a Break, Continue or Return never run: {count}.', runinputs: 'Step with this input',
         diagram: 'Diagram', pseudocode: 'Pseudo-code', note: 'Comment', addnote: 'Add a comment',
+        comments: 'Comments', showcomments: 'Show all comments', hidecomments: 'Hide the comments',
         textdescription: 'Text description',
         pcfunction: 'FUNCTION', pcendfunction: 'END FUNCTION', pcdeclare: 'DECLARE', pcinput: 'INPUT', pcoutput: 'OUTPUT',
         pcif: 'IF', pcthen: 'THEN', pcelse: 'ELSE', pcendif: 'END IF', pcwhile: 'WHILE', pcendwhile: 'END WHILE',
@@ -141,6 +142,8 @@ export const STR = {
         'e.calldepth': 'Too many nested function calls (more than {max}). ' +
             'Does the recursion have a stop condition that is reached?',
         'e.outputlimit': 'The output is longer than {max} characters',
+        'e.stringlimit': 'A string is longer than {max} characters',
+        'e.memorylimit': 'The arrays have more than {max} elements in all',
         'e.notinloop': '{block} can only be inside a loop',
         'e.argshape': 'The value for {name} does not fit the parameter (a single value, an array or a matrix with rows of ' +
             'the same length)',

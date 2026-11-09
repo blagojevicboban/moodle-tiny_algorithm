@@ -187,7 +187,7 @@ export const openEditor = async(editor) => {
 
     const keys = ['dialogtitle', 'insert', 'cancel', 'interactive', 'showcode', 'showwatch', 'editable', 'allowsolution',
         'tabsolution', 'tabtemplate', 'tabtests', 'separatetemplate', 'copyfromsolution', 'emptytemplate', 'onlyeditable',
-        'discard', 'discardquestion', 'discardtitle'];
+        'discard', 'discardquestion', 'discardtitle', 'solutioninpage'];
     const s = Object.fromEntries((await getStrings(keys.map((key) => ({key, component})))).map((v, i) => [keys[i], v]));
     const check = (action, label, cls = 'mb-0 mr-3') =>
         `<label class="${cls}"><input type="checkbox" data-action="${action}"> ${label}</label>`;
@@ -205,6 +205,7 @@ export const openEditor = async(editor) => {
             '<button type="button" class="btn btn-secondary btn-sm" data-action="copyfromsolution">' +
             `${s.copyfromsolution}</button> ` +
             `<button type="button" class="btn btn-secondary btn-sm" data-action="emptytemplate">${s.emptytemplate}</button></div>` +
+            `<p class="tiny_algorithm-solution-note">${s.solutioninpage}</p>` +
             '<div class="tiny_algorithm-template"></div></div>' +
             `<div data-pane="tests" hidden><p class="tiny_algorithm-pane-note">${s.onlyeditable}</p></div>`,
         footer: '<div class="tiny_algorithm-footer-options mr-auto">' + check('interactive', s.interactive) +
@@ -272,6 +273,8 @@ export const openEditor = async(editor) => {
             n.hidden = editable.checked;
         });
         templateHost.hidden = !separate.checked;
+        // Students may be able to show the solution only with a separate template, so the warning belongs there.
+        root.querySelector('.tiny_algorithm-solution-note').hidden = !editable.checked || !separate.checked;
         box('copyfromsolution').hidden = !separate.checked;
         box('emptytemplate').hidden = !separate.checked;
         if (separate.checked && !pane('template').hidden) {

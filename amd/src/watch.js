@@ -29,6 +29,9 @@ const MAX_CELLS = 8;
 // A deeper call stack shows its first two and its last calls.
 const MAX_STACK = 8;
 
+// Length of an array of a snapshot: the interpreter copies only the start of a long array (fullLength).
+const sizeOf = (a) => (a.fullLength === undefined ? a.length : a.fullLength);
+
 const isMatrix = (value) => Array.isArray(value) && value.length > 0 && Array.isArray(value[0]);
 
 /**
@@ -41,7 +44,7 @@ const isMatrix = (value) => Array.isArray(value) && value.length > 0 && Array.is
 const formatValue = (value, type) => {
     if (Array.isArray(value)) {
         const shown = value.slice(0, MAX_ITEMS).map((v) => formatValue(v, type)).join(', ');
-        return `[${shown}${value.length > MAX_ITEMS ? `, … (${value.length})` : ''}]`;
+        return `[${shown}${sizeOf(value) > MAX_ITEMS ? `, … (${sizeOf(value)})` : ''}]`;
     }
     if (type === 'String') {
         return JSON.stringify(String(value));
@@ -96,7 +99,7 @@ export class Watch {
             if (isMatrix(v.value)) {
                 const cells = v.value.map((r) => r.map((x) => formatValue(x, v.type)));
                 next.set(v.name, cells);
-                value.append(this.matrix(cells, this.previous.get(v.name)));
+                value.append(this.matrix(cells, this.previous.get(v.name), v.value));
             } else {
                 const text = formatValue(v.value, v.type);
                 next.set(v.name, text);
@@ -148,9 +151,10 @@ export class Watch {
      *
      * @param {string[][]} cells formatted values
      * @param {*} before formatted values of the previous step
+     * @param {Array} [source] the matrix of the snapshot (its rows may be shortened, see sizeOf)
      * @returns {HTMLTableElement}
      */
-    matrix(cells, before) {
+    matrix(cells, before, source = cells) {
         const table = document.createElement('table');
         table.className = 'tiny_algorithm-matrix';
         const old = Array.isArray(before) ? before : null;
@@ -164,18 +168,19 @@ export class Watch {
                 }
                 tr.append(td);
             });
-            if (r.length > MAX_CELLS) {
+            const width = source[i] ? sizeOf(source[i]) : r.length;
+            if (width > MAX_CELLS) {
                 const more = document.createElement('td');
-                more.textContent = `… (${r.length})`;
+                more.textContent = `… (${width})`;
                 tr.append(more);
             }
             table.append(tr);
         });
-        if (cells.length > MAX_CELLS) {
+        if (sizeOf(source) > MAX_CELLS) {
             const tr = document.createElement('tr');
             const more = document.createElement('td');
             more.colSpan = Math.min(cells[0].length, MAX_CELLS);
-            more.textContent = `… (${cells.length})`;
+            more.textContent = `… (${sizeOf(source)})`;
             tr.append(more);
             table.append(tr);
         }

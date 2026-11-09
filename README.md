@@ -117,6 +117,11 @@ and **Test**: every test is marked ✓ or ✗, failed tests show the expected an
 different line highlighted. When the student changes the algorithm after a test run, the results are greyed out until
 they test again. The student's copy is kept in their browser, so it is still there after a reload.
 
+> **Note:** an exercise is not a test. The solution is saved in the page (in the image and its attributes) even when
+> students cannot show it, so a student who knows how can read it in the page source. The expected outputs of the tests
+> are there too. For graded work use the [Algorithm question type](https://github.com/blagojevicboban/moodle-qtype_algorithm),
+> which keeps the solution and the hidden tests on the server.
+
 ### Expressions
 
 Follow Flowgorithm: `+ - * / ^ mod`, comparisons `= <> < <= > >=`, logic `and or not`, string join `&`, and functions such as

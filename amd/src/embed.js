@@ -30,6 +30,8 @@ import {extractModel} from './render';
 
 const PREFIX = `${dataAttribute}-`;
 const ATTRS = /<metadata id="algorithm-attrs">([A-Za-z0-9+/=]+)<\/metadata>/;
+// Largest SVG file that is read back (a diagram with its model is far smaller).
+const MAX_SVG = 5 * 1024 * 1024;
 
 /**
  * Add the attributes (other than the model, which the SVG already has) to the SVG of an algorithm image.
@@ -84,8 +86,16 @@ const svgText = async(src) => {
     if (m) {
         return new TextDecoder().decode(Uint8Array.from(atob(m[1]), (c) => c.charCodeAt(0)));
     }
+    // Only files of this site (Moodle's pluginfile.php): an image of another site is not fetched.
+    if (new URL(src, window.location.href).origin !== window.location.origin) {
+        return null;
+    }
     const response = await fetch(src, {credentials: 'same-origin'});
-    return response.ok ? response.text() : null;
+    if (!response.ok || Number(response.headers.get('content-length') || 0) > MAX_SVG) {
+        return null;
+    }
+    const text = await response.text();
+    return text.length > MAX_SVG ? null : text;
 };
 
 /**

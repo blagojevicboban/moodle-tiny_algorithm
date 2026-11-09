@@ -67,8 +67,22 @@ test('image classes mark interactive images', () => {
 test('restoreAttributes reads a cleaned image back from its SVG file', async() => {
     const svg = embedAttributes(renderProgram(program), attrs);
     const saved = globalThis.fetch;
-    globalThis.fetch = async(url) => ({ok: url === 'https://moodle.test/sum.svg', text: async() => svg});
+    const savedWindow = globalThis.window;
+    const fetched = [];
+    globalThis.window = {location: {href: 'https://moodle.test/mod/page/view.php?id=1', origin: 'https://moodle.test'}};
+    globalThis.fetch = async(url) => {
+        fetched.push(url);
+        const big = url === 'https://moodle.test/big.svg';
+        return {ok: url === 'https://moodle.test/sum.svg' || big, text: async() => svg,
+            headers: {get: (name) => (name === 'content-length' && big ? String(6 * 1024 * 1024) : null)}};
+    };
     try {
+        // An image of another site is not fetched, nor a file that is too large to be a diagram.
+        assert.equal(await restoreAttributes(new FakeImage({src: 'https://other.test/sum.svg'}, ['tiny_algorithm-image'])),
+            false);
+        assert.deepEqual(fetched, []);
+        assert.equal(await restoreAttributes(new FakeImage({src: 'https://moodle.test/big.svg'}, ['tiny_algorithm-image'])),
+            false);
         const img = new FakeImage({src: 'https://moodle.test/sum.svg'}, ['tiny_algorithm-image', 'tiny_algorithm-run']);
         assert.equal(await restoreAttributes(img), true);
         assert.deepEqual(deserialize(img.getAttribute('data-algorithm')), program);
@@ -81,6 +95,7 @@ test('restoreAttributes reads a cleaned image back from its SVG file', async() =
         assert.equal(kept.getAttribute('data-algorithm'), 'AAAA');
     } finally {
         globalThis.fetch = saved;
+        globalThis.window = savedWindow;
     }
 });
 

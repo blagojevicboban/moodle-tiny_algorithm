@@ -17,6 +17,12 @@
  * @copyright  2026 Boban Blagojević
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-import {register} from 'node:module';
+import * as nodeModule from 'node:module';
+import {resolveSync} from './loader-hooks.mjs';
 
-register('./loader-hooks.mjs', import.meta.url);
+// registerHooks (Node 22.15+) runs the hook in this thread; module.register() is deprecated and kept for older versions.
+if (typeof nodeModule.registerHooks === 'function') {
+    nodeModule.registerHooks({resolve: resolveSync});
+} else {
+    nodeModule.register('./loader-hooks.mjs', import.meta.url);
+}

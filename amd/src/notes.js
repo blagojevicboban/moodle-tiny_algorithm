@@ -112,3 +112,52 @@ export const attachNotes = (scroller, host) => {
     });
     tip.setAttribute('aria-label', t('note'));
 };
+
+/**
+ * All the comments of a diagram as a numbered list, with the same numbers in the bubbles of their blocks: for a
+ * projector or a printout, where nobody holds the mouse over a block.
+ *
+ * @param {Element} svgHost element that holds the drawn diagram
+ * @param {Object} o
+ * @param {string} o.title heading of the list
+ * @param {function(string): void} o.select marks a block (by its id) in the diagram
+ * @returns {?{root: HTMLElement, show: function(boolean): void}} null when no block has a comment
+ */
+export const notesList = (svgHost, {title, select}) => {
+    const nodes = [...svgHost.querySelectorAll('.tiny_algorithm-node[data-note]')];
+    if (!nodes.length) {
+        return null;
+    }
+    const list = document.createElement('ol');
+    nodes.forEach((node) => {
+        // The first text of a block is its own (the bubble's mark comes after it).
+        const text = node.querySelector('text');
+        const block = document.createElement('button');
+        block.type = 'button';
+        block.className = 'btn btn-link btn-sm tiny_algorithm-noteslist-block';
+        block.textContent = text ? [...text.childNodes].map((c) => c.textContent).join(' ').trim() : '';
+        block.addEventListener('click', () => select(node.dataset.id));
+        const note = document.createElement('span');
+        note.className = 'tiny_algorithm-noteslist-note';
+        note.textContent = node.dataset.note;
+        const item = document.createElement('li');
+        item.append(block, note);
+        list.append(item);
+    });
+    const heading = document.createElement('strong');
+    heading.textContent = title;
+    const root = document.createElement('div');
+    root.className = 'tiny_algorithm-noteslist';
+    root.hidden = true;
+    root.append(heading, list);
+    const show = (on) => {
+        root.hidden = !on;
+        nodes.forEach((node, i) => {
+            const mark = node.querySelector('.tiny_algorithm-noteicon text');
+            if (mark) {
+                mark.textContent = on ? String(i + 1) : '…';
+            }
+        });
+    };
+    return {root, show};
+};
