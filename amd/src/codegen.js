@@ -20,6 +20,7 @@
  * @copyright  2026 Boban Blagojević
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+import {usesTurtle} from './turtle';
 import {parseExpr} from './expr';
 import {t} from './strings';
 import {labelOf} from './layout';
@@ -896,6 +897,23 @@ export const generateLines = (lang, program) => {
         stmtCode(b, ind);
         owner = outer;
     };
+    // Turtle graphics: Python's turtle module; the other languages have no standard drawing library (a comment).
+    const turtleStmt = (b, ind) => {
+        if (lang !== 'python') {
+            emit(ind, `// Turtle: ${labelOf(b)}`);
+            return;
+        }
+        const up = 'turtle.setheading(90)';
+        const code = {
+            forward: () => (b.pen === 'up' ? ['turtle.penup()', `turtle.forward(${ex(b.distance)})`, 'turtle.pendown()']
+                : [`turtle.forward(${ex(b.distance)})`]),
+            turn: () => [`turtle.${b.rotate === 'left' ? 'left' : 'right'}(${ex(b.angle)})`],
+            pen: () => [`turtle.pencolor(${JSON.stringify(String(b.color || 'black'))})`],
+            home: () => ['turtle.penup()', 'turtle.home()', up, 'turtle.pendown()'],
+            clear: () => ['turtle.clear()', 'turtle.penup()', 'turtle.home()', up, 'turtle.pendown()'],
+        }[b.type]();
+        code.forEach((line) => emit(ind, line));
+    };
     // eslint-disable-next-line complexity
     const stmtCode = (b, ind) => {
         switch (b.type) {
@@ -914,6 +932,11 @@ export const generateLines = (lang, program) => {
                 break;
             }
             case 'comment': emit(ind, `${lang === 'python' ? '#' : '//'} ${b.text}`); break;
+            case 'forward':
+            case 'turn':
+            case 'pen':
+            case 'home':
+            case 'clear': turtleStmt(b, ind); break;
             case 'if':
                 if (pascal) {
                     emit(ind, `if ${ex(b.cond)} then`);
@@ -1095,6 +1118,12 @@ export const generateLines = (lang, program) => {
         python: () => {
             emit(0, 'import math');
             emit(0, 'import random');
+            if (usesTurtle(program)) {
+                emit(0, 'import turtle');
+                emit(0, '');
+                // The turtle looks up at the start, as in the editor.
+                emit(0, 'turtle.setheading(90)');
+            }
             emit(0, '');
         },
         c: () => {
@@ -1239,6 +1268,9 @@ export const generateLines = (lang, program) => {
         } else if (lang === 'python') {
             emit(0, `if __name__ == "__main__":`);
             emit(1, `${mainName === 'main' ? 'main' : mainName}()`);
+            if (usesTurtle(program)) {
+                emit(1, 'turtle.done()');
+            }
         } else if (lang === 'javascript') {
             emit(0, `${mainName === 'main' ? 'main' : mainName}();`);
         }
@@ -1866,6 +1898,11 @@ const generateTyped = (lang, program) => {
             case 'comment':
                 String(b.text).split('\n').forEach((line) => emit(ind, `${L.comment} ${line}`));
                 break;
+            case 'forward':
+            case 'turn':
+            case 'pen':
+            case 'home':
+            case 'clear': emit(ind, `${L.comment} Turtle: ${labelOf(b)}`); break;
             case 'if': ifStmt(b, ind); break;
             case 'while': whileStmt(b, ind); break;
             case 'dowhile': doStmt(b, ind); break;
@@ -2168,6 +2205,9 @@ const generatePseudo = (program) => {
         input: (b) => `${kw('input')} ${b.target}`, output: (b) => `${kw('output')} ${b.expr}`,
         call: (b) => `${kw('call')} ${b.expr}`, 'return': (b) => `${kw('return')} ${b.expr || ''}`.trim(),
         'break': () => kw('break'), 'continue': () => kw('continue'),
+        forward: (b) => `${kw('forward')} ${b.distance}${b.pen === 'up' ? ` (${kw('penup')})` : ''}`,
+        turn: (b) => `${kw('turn')} ${kw(b.rotate === 'left' ? 'left' : 'right')} ${b.angle}`,
+        pen: (b) => `${kw('pen')} ${b.color}`, home: () => kw('home'), clear: () => kw('clear'),
     };
     const block = (b, ind) => {
         if (Object.hasOwn(SIMPLE, b.type)) {

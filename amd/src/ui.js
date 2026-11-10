@@ -172,6 +172,44 @@ const imageHtml = async(editor, o) => {
         `width="${m[1]}" height="${m[2]}">`;
 };
 
+// Icons of the maximize button (four corners out, four corners in); the text is in its title and aria-label.
+const cornerIcon = (d) => '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">' +
+    `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+const MAX_ICON = cornerIcon('M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4');
+const RESTORE_ICON = cornerIcon('M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4');
+
+/**
+ * A button beside the close button of the dialog that makes it fill the window (and back).
+ *
+ * @param {Object} modal the Moodle modal
+ * @param {Object<string, string>} s strings (ui_fullscreen, ui_exitfullscreen)
+ * @param {function(): Array} editors the editors of the dialog, fitted again after the change
+ */
+const addMaximize = (modal, s, editors) => {
+    const dialog = modal.getModal()[0];
+    const header = modal.getRoot()[0].querySelector('.modal-header');
+    if (!dialog || !header) {
+        return;
+    }
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-link tiny_algorithm-modal-maxbtn';
+    const show = (on) => {
+        const text = on ? s.ui_exitfullscreen : s.ui_fullscreen;
+        button.title = text;
+        button.setAttribute('aria-label', text);
+        button.setAttribute('aria-pressed', on ? 'true' : 'false');
+        button.innerHTML = on ? RESTORE_ICON : MAX_ICON;
+    };
+    button.addEventListener('click', () => {
+        show(dialog.classList.toggle('tiny_algorithm-modal-max'));
+        requestAnimationFrame(() => editors().forEach((w) => w && w.zoom && w.zoom.autoFit()));
+    });
+    show(false);
+    const close = header.querySelector('[data-action="hide"]');
+    header.insertBefore(button, close);
+};
+
 export const openEditor = async(editor) => {
     await loadStrings();
     const selected = editor.selection.getNode();
@@ -187,7 +225,7 @@ export const openEditor = async(editor) => {
 
     const keys = ['dialogtitle', 'insert', 'cancel', 'interactive', 'showcode', 'showwatch', 'editable', 'allowsolution',
         'tabsolution', 'tabtemplate', 'tabtests', 'separatetemplate', 'copyfromsolution', 'emptytemplate', 'onlyeditable',
-        'discard', 'discardquestion', 'discardtitle', 'solutioninpage'];
+        'discard', 'discardquestion', 'discardtitle', 'solutioninpage', 'ui_fullscreen', 'ui_exitfullscreen'];
     const s = Object.fromEntries((await getStrings(keys.map((key) => ({key, component})))).map((v, i) => [keys[i], v]));
     const check = (action, label, cls = 'mb-0 mr-3') =>
         `<label class="${cls}"><input type="checkbox" data-action="${action}"> ${label}</label>`;
@@ -237,6 +275,7 @@ export const openEditor = async(editor) => {
     const widget = new AlgorithmEditor(pane('solution'), {program: savedSolution || shown, lang, chooseLanguage: true});
     let template = null;
     let templateStart = null;
+    addMaximize(modal, s, () => [widget, template]);
     const templateHost = root.querySelector('.tiny_algorithm-template');
     const ensureTemplate = () => {
         if (!template) {

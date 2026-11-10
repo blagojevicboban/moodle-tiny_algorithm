@@ -30,7 +30,7 @@ export const newId = () => `n${Date.now().toString(36)}${(counter++).toString(36
 export const VAR_TYPES = ['Integer', 'Real', 'String', 'Boolean'];
 
 export const BLOCK_TYPES = ['declare', 'assign', 'input', 'output', 'if', 'while', 'for', 'dowhile', 'call', 'return', 'break',
-    'continue', 'comment'];
+    'continue', 'comment', 'forward', 'turn', 'pen', 'home', 'clear'];
 
 /** Longest comment of a block. */
 export const MAX_NOTE = 500;
@@ -49,6 +49,12 @@ const defaults = {
     'break': () => ({}),
     'continue': () => ({}),
     comment: () => ({text: 'Comment'}),
+    // Turtle graphics.
+    forward: () => ({distance: '50', pen: 'down'}),
+    turn: () => ({angle: '90', rotate: 'right'}),
+    pen: () => ({color: 'black'}),
+    home: () => ({}),
+    clear: () => ({}),
 };
 
 export const createBlock = (type, props = {}) => {

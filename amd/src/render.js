@@ -29,6 +29,7 @@ const COLORS = {
     stroke: '#1f2937',
     fill: {
         rect: '#dbeafe', para: '#dcfce7', diamond: '#fef3c7', hexagon: '#fae8ff', oval: '#e5e7eb', note: '#fff7ed',
+        turtle: '#ecfccb',
     },
 };
 
@@ -67,6 +68,9 @@ const shapeSvg = (it, editable = false) => {
             break;
         case 'note':
             body = `<rect x="${x}" y="${y}" width="${w}" height="${h}" ${attrs} stroke-dasharray="5 3"/>`;
+            break;
+        case 'turtle':
+            body = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" ${attrs}/>`;
             break;
         default:
             body = `<rect x="${x}" y="${y}" width="${w}" height="${h}" ${attrs}/>`;

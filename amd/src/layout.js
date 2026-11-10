@@ -38,6 +38,9 @@ const JUMP = 14;
 const SIMPLE_LABELS = {
     input: (b) => `Input ${b.target}`, output: (b) => `Output ${b.expr}`, call: (b) => `Call ${b.expr}`,
     'break': () => 'Break', 'continue': () => 'Continue', comment: (b) => b.text,
+    forward: (b) => `Forward ${b.distance}${b.pen === 'up' ? ' (pen up)' : ''}`,
+    turn: (b) => `Turn ${b.rotate === 'left' ? 'left' : 'right'} ${b.angle}`,
+    pen: (b) => `Pen ${b.color}`, home: () => 'Home', clear: () => 'Clear',
 };
 
 export const labelOf = (b) => {
@@ -99,6 +102,7 @@ const shapeOf = (b) => ({
     declare: 'rect', assign: 'rect', call: 'rect', comment: 'note',
     input: 'para', output: 'para', 'if': 'diamond', 'while': 'diamond', dowhile: 'diamond', 'for': 'hexagon',
     'return': 'oval', 'break': 'oval', 'continue': 'oval',
+    forward: 'turtle', turn: 'turtle', pen: 'turtle', home: 'turtle', clear: 'turtle',
 }[b.type]);
 
 /**

@@ -122,6 +122,12 @@ they test again. The student's copy is kept in their browser, so it is still the
 > are there too. For graded work use the [Algorithm question type](https://github.com/blagojevicboban/moodle-qtype_algorithm),
 > which keeps the solution and the hidden tests on the server.
 
+### Turtle Graphics
+
+The blocks **Forward** (with the pen down or up), **Turn** (right or left, in degrees), **Pen** (ten colours), **Home**
+and **Clear** move a turtle that starts at the centre and looks up. While the algorithm runs or steps, the **Drawing**
+panel shows its lines. Flowgorithm files keep these shapes, and the Python code uses the `turtle` module.
+
 ### Expressions
 
 The editor has a short help: **File → Operators and functions**, or the link under the fields of a block with an
@@ -206,3 +212,5 @@ GNU GPL v3 or later - see [LICENSE](LICENSE).
 ---
 
 Made with ❤️ for teaching programming
+
+Flowgorithm is a separate program by Devin Cook; this plugin reads and writes its file format and is not affiliated with it.

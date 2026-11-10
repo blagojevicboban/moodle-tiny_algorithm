@@ -23,6 +23,7 @@
 import {runSession} from './session';
 import {openTrace} from './trace';
 import {attachNotes, notesList} from './notes';
+import {TurtleView, usesTurtle} from './turtle';
 import {markRun} from './runmarks';
 import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
@@ -115,6 +116,12 @@ export class AlgorithmRunner {
         const canvas = el('div', {'class': 'tiny_algorithm-view-canvas'}, this.svgHost, zoomBox);
         this.watch = new Watch(this.lang);
         const mainParts = [canvas, this.bar, this.consoleEl];
+        // The drawing of turtle graphics, only for an algorithm that uses the turtle.
+        this.turtle = usesTurtle(this.program) ? new TurtleView(this.lang) : null;
+        if (this.turtle) {
+            mainParts.push(el('div', {'class': 'tiny_algorithm-view-turtle'}, el('strong', {}, this.t('turtle')),
+                this.turtle.root));
+        }
         if (this.showWatch) {
             this.watchToggle = el('button', {type: 'button',
                 'class': 'btn btn-secondary btn-sm tiny_algorithm-toggle tiny_algorithm-watch-toggle',
@@ -469,6 +476,9 @@ export class AlgorithmRunner {
         }
         this.consoleEl.replaceChildren();
         this.watch.clear();
+        if (this.turtle) {
+            this.turtle.reset();
+        }
         this.highlight(null);
         this.errorId = null;
         this.statusEl.hidden = true;
@@ -532,6 +542,9 @@ export class AlgorithmRunner {
         markRun(this.svgHost, this.codeEl, this.breakpoints, null);
         this.consoleEl.replaceChildren();
         this.watch.clear();
+        if (this.turtle) {
+            this.turtle.reset();
+        }
         const ui = {
             program: this.program,
             breakpoints: this.breakpoints,
@@ -539,6 +552,7 @@ export class AlgorithmRunner {
             highlight: (id) => this.highlight(id),
             branch: (ev) => showBranch(this.svgHost, ev),
             watch: (vars, stack) => this.watch.update(vars, stack),
+            turtle: (ev) => this.turtle && this.turtle.apply(ev),
             output: (text) => this.write(text),
             info: (text) => this.log(text, 'tiny_algorithm-info'),
             error: (text, id) => {

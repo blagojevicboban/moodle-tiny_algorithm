@@ -209,6 +209,10 @@ export const runSession = async(ui, run) => {
                 trace.after = ev.vars;
             } else if (ev.event === 'output') {
                 onOutput(ev);
+            } else if (ev.event === 'turtle') {
+                if (ui.turtle) {
+                    ui.turtle(ev);
+                }
             } else if (ev.event === 'input') {
                 value = await askValue(ui, run, ev);
                 if (row()) {

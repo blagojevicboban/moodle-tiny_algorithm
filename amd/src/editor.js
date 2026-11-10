@@ -29,6 +29,7 @@ import {renderFunction, renderProgram, showBranch} from './render';
 import {runSession} from './session';
 import {openDialog, openShortcuts, showToast} from './dialog';
 import {openHelp} from './help';
+import {PEN_COLORS, TurtleView, usesTurtle} from './turtle';
 import {openTrace} from './trace';
 import {attachNotes} from './notes';
 import {markRun} from './runmarks';
@@ -43,7 +44,7 @@ import {Watch} from './watch';
 import {readLine} from './consoleinput';
 
 const PALETTE = ['declare', 'assign', 'input', 'output', 'if', 'for', 'while', 'dowhile', 'call', 'return', 'break', 'continue',
-    'comment'];
+    'comment', 'forward', 'turn', 'pen', 'home', 'clear'];
 // Blocks that only make sense inside a loop.
 const LOOP_ONLY = ['break', 'continue'];
 
@@ -61,6 +62,18 @@ const FIELDS = {
     'break': [],
     'continue': [],
     comment: [['text', 'text']],
+    forward: [['distance', 'expr'], ['pen', 'penstate']],
+    turn: [['angle', 'expr'], ['rotate', 'rotate']],
+    pen: [['color', 'color']],
+    home: [],
+    clear: [],
+};
+
+// Choices of the select fields: values and the keys of their labels.
+const CHOICES = {
+    penstate: [['down', 'o.down'], ['up', 'o.up']],
+    rotate: [['right', 'o.right'], ['left', 'o.left']],
+    color: Object.keys(PEN_COLORS).map((c) => [c, `c.${c}`]),
 };
 
 const el = (tag, attrs = {}, ...kids) => {
@@ -217,16 +230,22 @@ export class AlgorithmEditor {
             paneTitle(this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn, ' ', this.btnCodeLab), this.codeEl);
         this.watch = new Watch(this.lang);
         this.tabWatch = el('div', {'class': 'tiny_algorithm-pane'}, paneTitle(this.t('variables')), this.watch.root);
+        // The drawing of turtle graphics, only for an algorithm that uses the turtle.
+        this.turtle = new TurtleView(this.lang);
+        this.tabTurtle = el('div', {'class': 'tiny_algorithm-pane', hidden: true}, paneTitle(this.t('turtle')), this.turtle.root);
         // On a narrow screen the console, the variables and the code share the space below the diagram as tabs.
         const tab = (key) => el('button', {type: 'button', role: 'tab', 'class': 'btn btn-sm btn-link',
             'data-sidetab': key, onclick: () => this.showTab(key)}, this.t(key === 'watch' ? 'variables' : key));
-        this.tabBar = el('div', {'class': 'tiny_algorithm-tabbar', role: 'tablist'}, tab('console'), tab('watch'),
+        this.turtleTab = tab('turtle');
+        this.turtleTab.hidden = true;
+        this.tabBar = el('div', {'class': 'tiny_algorithm-tabbar', role: 'tablist'}, tab('console'), this.turtleTab, tab('watch'),
             this.showCode ? tab('code') : []);
         this.tabConsole.dataset.sidepane = 'console';
         this.tabWatch.dataset.sidepane = 'watch';
+        this.tabTurtle.dataset.sidepane = 'turtle';
         this.tabCode.dataset.sidepane = 'code';
         this.side = el('div', {'class': 'tiny_algorithm-side', 'data-sidetab': 'console'}, this.props, this.tabBar, this.tabConsole,
-            this.tabWatch, this.showCode ? this.tabCode : []);
+            this.tabTurtle, this.tabWatch, this.showCode ? this.tabCode : []);
         this.main = el('div', {'class': 'tiny_algorithm-main'}, this.canvasWrap, this.side);
         this.root = el('div', {'class': 'tiny_algorithm-editor', onkeydown: (e) => this.onRunKey(e)}, this.toolbar,
             this.emptyBar(), this.main, this.announcer);
@@ -328,6 +347,9 @@ export class AlgorithmEditor {
         if (this.emptyHint) {
             this.emptyHint.hidden = this.program.functions.some((f) => f.body.length);
         }
+        const drawing = usesTurtle(this.program);
+        this.tabTurtle.hidden = !drawing;
+        this.turtleTab.hidden = !drawing;
         if (this.onChange) {
             this.onChange(this.program);
         }
@@ -418,6 +440,14 @@ export class AlgorithmEditor {
         let applied = null;
         if (type === 'bool') {
             input = el('input', {type: 'checkbox', id, checked: value !== false, onchange: () => onInput(input.checked)});
+        } else if (Object.hasOwn(CHOICES, type)) {
+            input = el('select', {
+                id, 'class': 'custom-select custom-select-sm',
+                onmousedown: (e) => e.stopPropagation(),
+                onpointerdown: (e) => e.stopPropagation(),
+                onclick: (e) => e.stopPropagation(),
+                onchange: () => onInput(input.value),
+            }, CHOICES[type].map(([v, key]) => el('option', {value: v, selected: v === value}, this.t(key))));
         } else if (type === 'type') {
             input = el('select', {
                 id, 'class': 'custom-select custom-select-sm',
@@ -1596,6 +1626,7 @@ export class AlgorithmEditor {
         this.errorId = null;
         this.consoleEl.replaceChildren();
         this.watch.clear();
+        this.turtle.reset();
         this.refresh();
         const ui = {
             program: this.program,
@@ -1604,6 +1635,7 @@ export class AlgorithmEditor {
             highlight: (id) => this.highlight(id),
             branch: (ev) => showBranch(this.canvas, ev),
             watch: (vars, stack) => this.watch.update(vars, stack),
+            turtle: (ev) => this.turtle.apply(ev),
             output: (text) => this.flushOutput(text),
             info: (text) => this.log(text, 'tiny_algorithm-info'),
             error: (text, id) => this.showError(text, id),

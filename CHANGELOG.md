@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.7.0 – 2026-11-10 (stable)
+
+- **Turtle graphics:** five new blocks, Forward (with the pen down or up), Turn (right or left, in degrees), Pen (ten
+  colours), Home and Clear. The turtle starts at the centre and looks up. A Drawing panel beside the console (and under
+  the reader view) shows the lines while the algorithm runs or steps; it appears only for an algorithm that uses the
+  turtle and keeps up to 20,000 lines.
+- The blocks have their own look (a rounded light green box) and English labels, like the other blocks.
+- Flowgorithm files: forward, turn, pen, home and clear shapes are imported and exported with their attributes.
+- Generated code: Python draws with the turtle module; the other languages get a comment for each turtle block;
+  pseudo-code has FORWARD, TURN, PEN, HOME and CLEAR.
+- The distance and the angle must be numbers (the same check as in the PHP interpreter of qtype_algorithm).
+- **Full screen dialog:** a button beside the close button of the editor dialog makes it fill the window (the diagram
+  and the side panel grow, and on a wide screen the code moves to its own column); the same button makes it small again.
+- Flowgorithm is a separate program by Devin Cook; this plugin is not affiliated with it.
+
 ## 2.6.0 – 2026-11-10 (stable)
 
 Suggestions of a student of TSP Pirot:

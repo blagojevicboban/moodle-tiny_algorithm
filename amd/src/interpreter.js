@@ -267,6 +267,16 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
     // Array elements held by the variables declared in the calls running now.
     let cells = 0;
     let lastEnv = Object.create(null);
+    // Turtle graphics: the turtle starts at the centre and looks up (heading in degrees, counter-clockwise).
+    const turtle = {x: 0, y: 0, heading: 90, color: 'black'};
+    const turtleNumber = function* (text, env) {
+        const v = yield* evalStr(text, env);
+        const n = Number(v);
+        if (typeof v === 'boolean' || Array.isArray(v) || !Number.isFinite(n)) {
+            throw new AlgorithmError('invalidinput', {text: fmt(v), type: 'Real'});
+        }
+        return n;
+    };
     let topArgs = [];
     // Calls running now, as the variables panel shows them: Main(), Fact(5), ...
     const stack = [];
@@ -565,6 +575,41 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
     }
 
     /**
+     * Run a block of turtle graphics (kept out of runBlock, so a deep recursion does not need more stack).
+     *
+     * @param {Object} b block
+     * @param {Object} env environment
+     */
+    function* runTurtle(b, env) {
+        switch (b.type) {
+            case 'forward': {
+                const d = yield* turtleNumber(b.distance, env);
+                const rad = turtle.heading * Math.PI / 180;
+                const from = {x: turtle.x, y: turtle.y};
+                turtle.x += d * Math.cos(rad);
+                turtle.y += d * Math.sin(rad);
+                yield {event: 'turtle', ...turtle, line: b.pen === 'up' ? null
+                    : {x1: from.x, y1: from.y, x2: turtle.x, y2: turtle.y, color: turtle.color}};
+                break;
+            }
+            case 'turn': {
+                const a = yield* turtleNumber(b.angle, env);
+                turtle.heading = (((turtle.heading + (b.rotate === 'left' ? a : -a)) % 360) + 360) % 360;
+                yield {event: 'turtle', ...turtle};
+                break;
+            }
+            case 'pen':
+                turtle.color = String(b.color || 'black');
+                yield {event: 'turtle', ...turtle};
+                break;
+            default:
+                // Home and Clear: back to the centre, looking up (Clear also wipes the drawing).
+                Object.assign(turtle, {x: 0, y: 0, heading: 90});
+                yield {event: 'turtle', ...turtle, clear: b.type === 'clear'};
+        }
+    }
+
+    /**
      * Run a single block.
      *
      * @param {Object} b block
@@ -650,6 +695,13 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
                 return yield* runFor(b, env);
             case 'call':
                 yield* evalStr(b.expr, env);
+                break;
+            case 'forward':
+            case 'turn':
+            case 'pen':
+            case 'home':
+            case 'clear':
+                yield* runTurtle(b, env);
                 break;
             case 'return': {
                 const value = hasText(b.expr) ? yield* evalStr(b.expr, env) : undefined;

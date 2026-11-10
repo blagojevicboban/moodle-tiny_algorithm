@@ -214,6 +214,19 @@ const importList = (el, warnings) => {
             case 'comment':
                 list.push(createBlock('comment', {text: a.text || ''}));
                 break;
+            case 'forward':
+                list.push(createBlock('forward', {distance: a.expression || '0', pen: a.pen === 'up' ? 'up' : 'down'}));
+                break;
+            case 'turn':
+                list.push(createBlock('turn', {angle: a.expression || '0', rotate: a.rotate === 'left' ? 'left' : 'right'}));
+                break;
+            case 'pen':
+                list.push(createBlock('pen', {color: a.color || 'black'}));
+                break;
+            case 'home':
+            case 'clear':
+                list.push(createBlock(e.name));
+                break;
             default:
                 warn(warnings, t('fprgskipped', {name: e.name}));
         }
@@ -314,6 +327,13 @@ const exportList = (list, ind, ctx) => {
                 }
                 break;
             case 'comment': out += `${pad}<comment${attrs({text: b.text})}/>\n`; break;
+            case 'forward': out += `${pad}<forward${attrs({expression: x(b.distance), pen: b.pen === 'up' ? 'up' : 'down'})}/>\n`;
+                break;
+            case 'turn': out += `${pad}<turn${attrs({expression: x(b.angle), rotate: b.rotate === 'left' ? 'left' : 'right'})}/>\n`;
+                break;
+            case 'pen': out += `${pad}<pen${attrs({color: b.color || 'black'})}/>\n`; break;
+            case 'home':
+            case 'clear': out += `${pad}<${b.type}/>\n`; break;
             case 'if':
                 out += `${pad}<if${attrs({expression: x(b.cond)})}>\n${pad}  <then>\n${exportList(b.then, ind + 2, ctx)}` +
                     `${pad}  </then>\n${pad}  <else>\n${exportList(b.else, ind + 2, ctx)}${pad}  </else>\n${pad}</if>\n`;
