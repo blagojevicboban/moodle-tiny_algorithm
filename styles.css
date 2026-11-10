@@ -645,6 +645,37 @@ html.tiny_algorithm-noscroll body {
     margin-top: .5rem;
 }
 
+/* Files of an algorithm and the files it writes */
+.tiny_algorithm-files .tiny_algorithm-file {
+    margin-bottom: .5rem;
+}
+
+.tiny_algorithm-files .tiny_algorithm-file-head {
+    display: flex;
+    gap: .25rem;
+    align-items: center;
+    margin-bottom: .25rem;
+}
+
+.tiny_algorithm-files pre {
+    max-height: 160px;
+    overflow: auto;
+    margin: 0;
+    padding: .25rem .4rem;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: .25rem;
+    font-size: .85rem;
+}
+
+.tiny_algorithm-files-output {
+    margin-top: .5rem;
+}
+
+.tiny_algorithm-viewer .tiny_algorithm-view-files {
+    margin-top: .5rem;
+}
+
 /* Help for the operators and functions */
 .tiny_algorithm-help-wrap {
     overflow-x: auto;
@@ -1208,6 +1239,11 @@ html.tiny_algorithm-noscroll body {
     .tiny_algorithm-side[data-sidetab="code"] [data-sidepane="console"],
     .tiny_algorithm-side[data-sidetab="code"] [data-sidepane="watch"],
     .tiny_algorithm-side:not([data-sidetab="turtle"]) [data-sidepane="turtle"],
+    .tiny_algorithm-side:not([data-sidetab="files"]) [data-sidepane="files"],
+    .tiny_algorithm-side[data-sidetab="files"] [data-sidepane="console"],
+    .tiny_algorithm-side[data-sidetab="files"] [data-sidepane="watch"],
+    .tiny_algorithm-side[data-sidetab="files"] [data-sidepane="code"],
+    .tiny_algorithm-side[data-sidetab="turtle"] [data-sidepane="files"],
     .tiny_algorithm-side[data-sidetab="turtle"] [data-sidepane="console"],
     .tiny_algorithm-side[data-sidetab="turtle"] [data-sidepane="watch"],
     .tiny_algorithm-side[data-sidetab="turtle"] [data-sidepane="code"] {

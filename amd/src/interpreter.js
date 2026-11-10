@@ -250,8 +250,9 @@ const checkLoops = (program) => {
  * @param {number} [options.maxSteps] step limit
  * @param {string|null} [options.call] a call such as Sum(2, 3) to evaluate instead of running the main function
  * @param {number|null} [options.seed] seed of Random (tests and grading), null for really random numbers
+ * @param {Object|null} [options.files] files to start with (name => text), else the files of the algorithm
  */
-export function* execute(program, {maxSteps = 1000000, call = null, seed = null} = {}) {
+export function* execute(program, {maxSteps = 1000000, call = null, seed = null, files = null} = {}) {
     checkLoops(program);
     const cache = new Map();
     const ast = (s) => {
@@ -276,6 +277,20 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
             throw new AlgorithmError('invalidinput', {text: fmt(v), type: 'Real'});
         }
         return n;
+    };
+    // Files: the text of each file by name, the file open for reading (its lines and the next one) and for writing.
+    const fs = new Map(Object.entries(files || program.files || {}).map(([k, v]) => [String(k), String(v)]));
+    let readFile = null;
+    let writeFile = null;
+    // Random and EOF: functions that use the state of the run (the random numbers, the file open for reading).
+    const stateCall = (lname, args) => {
+        if (lname === 'random') {
+            return Math.floor(random() * args[0]);
+        }
+        if (!readFile) {
+            throw new AlgorithmError('noreadfile');
+        }
+        return readFile.pos >= readFile.lines.length;
     };
     let topArgs = [];
     // Calls running now, as the variables panel shows them: Main(), Fact(5), ...
@@ -429,8 +444,8 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
                 if (funcs.has(lname)) {
                     return yield* callFunction(funcs.get(lname), args);
                 }
-                if (lname === 'random') {
-                    return Math.floor(random() * args[0]);
+                if (lname === 'random' || lname === 'eof') {
+                    return stateCall(lname, args);
                 }
                 if (Object.hasOwn(BUILTINS, lname)) {
                     return BUILTINS[lname](...args);
@@ -575,6 +590,66 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
     }
 
     /**
+     * Run a block that uses files (kept out of runBlock, so a deep recursion does not need more stack).
+     *
+     * @param {Object} b block
+     * @param {Object} env environment
+     */
+    function* runFile(b, env) {
+        switch (b.type) {
+            case 'open': {
+                const name = fmt(yield* evalStr(b.file, env));
+                if (b.mode === 'write' || b.mode === 'append') {
+                    fs.set(name, b.mode === 'append' && fs.has(name) ? fs.get(name) : '');
+                    writeFile = name;
+                    yield {event: 'file', name, text: fs.get(name)};
+                    break;
+                }
+                if (!fs.has(name)) {
+                    throw new AlgorithmError('filenotfound', {name});
+                }
+                const lines = fs.get(name).split(/\r?\n/);
+                if (lines[lines.length - 1] === '') {
+                    lines.pop();
+                }
+                readFile = {name, lines, pos: 0};
+                break;
+            }
+            case 'read': {
+                if (!readFile) {
+                    throw new AlgorithmError('noreadfile');
+                }
+                if (readFile.pos >= readFile.lines.length) {
+                    throw new AlgorithmError('fileend', {name: readFile.name});
+                }
+                const decl = lookup(env, ast(b.target).name);
+                yield* assign(b.target, parseInputValue(readFile.lines[readFile.pos++], decl.type), env);
+                break;
+            }
+            case 'write': {
+                if (writeFile === null) {
+                    throw new AlgorithmError('nowritefile');
+                }
+                const text = fmt(yield* evalStr(b.expr, env)) + '\n';
+                written += text.length;
+                if (written > MAX_OUTPUT) {
+                    throw new AlgorithmError('outputlimit', {max: String(MAX_OUTPUT)});
+                }
+                fs.set(writeFile, fs.get(writeFile) + text);
+                yield {event: 'file', name: writeFile, text: fs.get(writeFile)};
+                break;
+            }
+            default:
+                // Close: the file open for writing, or the one for reading.
+                if (b.mode === 'write') {
+                    writeFile = null;
+                } else {
+                    readFile = null;
+                }
+        }
+    }
+
+    /**
      * Run a block of turtle graphics (kept out of runBlock, so a deep recursion does not need more stack).
      *
      * @param {Object} b block
@@ -702,6 +777,12 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null}
             case 'home':
             case 'clear':
                 yield* runTurtle(b, env);
+                break;
+            case 'open':
+            case 'read':
+            case 'write':
+            case 'close':
+                yield* runFile(b, env);
                 break;
             case 'return': {
                 const value = hasText(b.expr) ? yield* evalStr(b.expr, env) : undefined;

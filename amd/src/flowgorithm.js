@@ -227,6 +227,19 @@ const importList = (el, warnings) => {
             case 'clear':
                 list.push(createBlock(e.name));
                 break;
+            case 'open':
+                list.push(createBlock('open', {file: a.expression || '""',
+                    mode: ['write', 'append'].includes(a.mode) ? a.mode : 'read'}));
+                break;
+            case 'read':
+                list.push(createBlock('read', {target: a.variable || ''}));
+                break;
+            case 'write':
+                list.push(createBlock('write', {expr: a.expression || '""'}));
+                break;
+            case 'close':
+                list.push(createBlock('close', {mode: a.mode === 'write' || a.mode === 'append' ? 'write' : 'read'}));
+                break;
             default:
                 warn(warnings, t('fprgskipped', {name: e.name}));
         }
@@ -334,6 +347,10 @@ const exportList = (list, ind, ctx) => {
             case 'pen': out += `${pad}<pen${attrs({color: b.color || 'black'})}/>\n`; break;
             case 'home':
             case 'clear': out += `${pad}<${b.type}/>\n`; break;
+            case 'open': out += `${pad}<open${attrs({expression: x(b.file), mode: b.mode || 'read'})}/>\n`; break;
+            case 'read': out += `${pad}<read${attrs({variable: b.target})}/>\n`; break;
+            case 'write': out += `${pad}<write${attrs({expression: x(b.expr)})}/>\n`; break;
+            case 'close': out += `${pad}<close${attrs({mode: b.mode === 'write' ? 'write' : 'read'})}/>\n`; break;
             case 'if':
                 out += `${pad}<if${attrs({expression: x(b.cond)})}>\n${pad}  <then>\n${exportList(b.then, ind + 2, ctx)}` +
                     `${pad}  </then>\n${pad}  <else>\n${exportList(b.else, ind + 2, ctx)}${pad}  </else>\n${pad}</if>\n`;

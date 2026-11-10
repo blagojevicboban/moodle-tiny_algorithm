@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.9.0 – 2026-11-10 (stable)
+
+- **Files:** four new blocks, Open (a file name, for reading, writing or appending), Read (the next line into a
+  variable, checked like Input), Write (a value and a new line) and Close, and the function EOF() for a loop that reads
+  a file to its end. As in Flowgorithm, one file can be open for reading and one for writing.
+- There is no disk: the files of an algorithm are kept with it. The Files panel (beside the console, and under the
+  reader view) lists them; teachers and students can add, change, upload and delete them in the editor, and the files
+  the algorithm writes appear there with a Download button.
+- Clear errors: a missing file, no file open, reading after the last line; written text counts toward the output limit.
+- Flowgorithm files keep the open, read, write and close shapes; Python opens, reads and writes real files (with an EOF
+  helper); the other languages get a comment; pseudo-code has OPEN, READ, WRITE and CLOSE.
+- New module files.js and tests/files.test.mjs; Random and EOF share a helper in the interpreter.
+
 ## 2.8.0 – 2026-11-10 (stable)
 
 - **Code language on three levels:**

@@ -30,7 +30,7 @@ export const newId = () => `n${Date.now().toString(36)}${(counter++).toString(36
 export const VAR_TYPES = ['Integer', 'Real', 'String', 'Boolean'];
 
 export const BLOCK_TYPES = ['declare', 'assign', 'input', 'output', 'if', 'while', 'for', 'dowhile', 'call', 'return', 'break',
-    'continue', 'comment', 'forward', 'turn', 'pen', 'home', 'clear'];
+    'continue', 'comment', 'forward', 'turn', 'pen', 'home', 'clear', 'open', 'read', 'write', 'close'];
 
 /** Longest comment of a block. */
 export const MAX_NOTE = 500;
@@ -55,6 +55,11 @@ const defaults = {
     pen: () => ({color: 'black'}),
     home: () => ({}),
     clear: () => ({}),
+    // Files (the files of an algorithm are program.files: name => text).
+    open: () => ({file: '"data.txt"', mode: 'read'}),
+    read: () => ({target: 'x'}),
+    write: () => ({expr: 'x'}),
+    close: () => ({mode: 'read'}),
 };
 
 export const createBlock = (type, props = {}) => {

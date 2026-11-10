@@ -41,6 +41,8 @@ const SIMPLE_LABELS = {
     forward: (b) => `Forward ${b.distance}${b.pen === 'up' ? ' (pen up)' : ''}`,
     turn: (b) => `Turn ${b.rotate === 'left' ? 'left' : 'right'} ${b.angle}`,
     pen: (b) => `Pen ${b.color}`, home: () => 'Home', clear: () => 'Clear',
+    open: (b) => `Open ${b.file} (${b.mode || 'read'})`, read: (b) => `Read ${b.target}`, write: (b) => `Write ${b.expr}`,
+    close: (b) => `Close (${b.mode === 'write' ? 'write' : 'read'})`,
 };
 
 export const labelOf = (b) => {
@@ -103,6 +105,7 @@ const shapeOf = (b) => ({
     input: 'para', output: 'para', 'if': 'diamond', 'while': 'diamond', dowhile: 'diamond', 'for': 'hexagon',
     'return': 'oval', 'break': 'oval', 'continue': 'oval',
     forward: 'turtle', turn: 'turtle', pen: 'turtle', home: 'turtle', clear: 'turtle',
+    open: 'file', read: 'file', write: 'file', close: 'file',
 }[b.type]);
 
 /**

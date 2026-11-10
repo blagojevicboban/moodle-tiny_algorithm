@@ -24,6 +24,7 @@ import {runSession} from './session';
 import {openTrace} from './trace';
 import {attachNotes, notesList} from './notes';
 import {TurtleView, usesTurtle} from './turtle';
+import {FilesPanel, usesFiles} from './files';
 import {markRun} from './runmarks';
 import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
@@ -125,6 +126,13 @@ export class AlgorithmRunner {
         if (this.turtle) {
             mainParts.push(el('div', {'class': 'tiny_algorithm-view-turtle'}, el('strong', {}, this.t('turtle')),
                 this.turtle.root));
+        }
+        // The files the algorithm reads, and those it writes.
+        this.filesPanel = usesFiles(this.program) ? new FilesPanel({lang: this.lang}) : null;
+        if (this.filesPanel) {
+            this.filesPanel.setFiles(this.program.files);
+            mainParts.push(el('div', {'class': 'tiny_algorithm-view-files'}, el('strong', {}, this.t('files')),
+                this.filesPanel.root));
         }
         if (this.showWatch) {
             this.watchToggle = el('button', {type: 'button',
@@ -485,6 +493,9 @@ export class AlgorithmRunner {
         if (this.turtle) {
             this.turtle.reset();
         }
+        if (this.filesPanel) {
+            this.filesPanel.reset();
+        }
         this.highlight(null);
         this.errorId = null;
         this.statusEl.hidden = true;
@@ -551,6 +562,9 @@ export class AlgorithmRunner {
         if (this.turtle) {
             this.turtle.reset();
         }
+        if (this.filesPanel) {
+            this.filesPanel.reset();
+        }
         const ui = {
             program: this.program,
             breakpoints: this.breakpoints,
@@ -559,6 +573,7 @@ export class AlgorithmRunner {
             branch: (ev) => showBranch(this.svgHost, ev),
             watch: (vars, stack) => this.watch.update(vars, stack),
             turtle: (ev) => this.turtle && this.turtle.apply(ev),
+            file: (ev) => this.filesPanel && this.filesPanel.apply(ev),
             output: (text) => this.write(text),
             info: (text) => this.log(text, 'tiny_algorithm-info'),
             error: (text, id) => {

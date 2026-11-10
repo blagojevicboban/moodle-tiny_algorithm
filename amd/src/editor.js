@@ -30,6 +30,7 @@ import {runSession} from './session';
 import {openDialog, openShortcuts, showToast} from './dialog';
 import {openHelp} from './help';
 import {PEN_COLORS, TurtleView, usesTurtle} from './turtle';
+import {FilesPanel, usesFiles} from './files';
 import {openTrace} from './trace';
 import {attachNotes} from './notes';
 import {markRun} from './runmarks';
@@ -45,7 +46,7 @@ import {Watch} from './watch';
 import {readLine} from './consoleinput';
 
 const PALETTE = ['declare', 'assign', 'input', 'output', 'if', 'for', 'while', 'dowhile', 'call', 'return', 'break', 'continue',
-    'comment', 'forward', 'turn', 'pen', 'home', 'clear'];
+    'comment', 'forward', 'turn', 'pen', 'home', 'clear', 'open', 'read', 'write', 'close'];
 // Blocks that only make sense inside a loop.
 const LOOP_ONLY = ['break', 'continue'];
 
@@ -68,6 +69,10 @@ const FIELDS = {
     pen: [['color', 'color']],
     home: [],
     clear: [],
+    open: [['file', 'expr'], ['mode', 'filemode']],
+    read: [['target', 'expr']],
+    write: [['expr', 'expr']],
+    close: [['mode', 'closemode']],
 };
 
 // Choices of the select fields: values and the keys of their labels.
@@ -75,6 +80,8 @@ const CHOICES = {
     penstate: [['down', 'o.down'], ['up', 'o.up']],
     rotate: [['right', 'o.right'], ['left', 'o.left']],
     color: Object.keys(PEN_COLORS).map((c) => [c, `c.${c}`]),
+    filemode: [['read', 'o.read'], ['write', 'o.write'], ['append', 'o.append']],
+    closemode: [['read', 'o.closeread'], ['write', 'o.closewrite']],
 };
 
 const el = (tag, attrs = {}, ...kids) => {
@@ -252,19 +259,36 @@ export class AlgorithmEditor {
         // The drawing of turtle graphics, only for an algorithm that uses the turtle.
         this.turtle = new TurtleView(this.lang);
         this.tabTurtle = el('div', {'class': 'tiny_algorithm-pane', hidden: true}, paneTitle(this.t('turtle')), this.turtle.root);
+        // The files of the algorithm and the files it writes, only for an algorithm that uses files.
+        this.filesPanel = new FilesPanel({lang: this.lang, editable: true, onChange: (files) => {
+            if (Object.keys(files).length) {
+                this.program.files = files;
+            } else {
+                delete this.program.files;
+            }
+            this.filesFor = this.program;
+            if (this.onChange) {
+                this.onChange(this.program);
+            }
+        }});
+        this.tabFiles = el('div', {'class': 'tiny_algorithm-pane', hidden: true}, paneTitle(this.t('files')), this.filesPanel.root);
         // On a narrow screen the console, the variables and the code share the space below the diagram as tabs.
         const tab = (key) => el('button', {type: 'button', role: 'tab', 'class': 'btn btn-sm btn-link',
             'data-sidetab': key, onclick: () => this.showTab(key)}, this.t(key === 'watch' ? 'variables' : key));
         this.turtleTab = tab('turtle');
         this.turtleTab.hidden = true;
-        this.tabBar = el('div', {'class': 'tiny_algorithm-tabbar', role: 'tablist'}, tab('console'), this.turtleTab, tab('watch'),
+        this.filesTab = tab('files');
+        this.filesTab.hidden = true;
+        this.tabBar = el('div', {'class': 'tiny_algorithm-tabbar', role: 'tablist'}, tab('console'), this.turtleTab, this.filesTab,
+            tab('watch'),
             this.showCode ? tab('code') : []);
         this.tabConsole.dataset.sidepane = 'console';
         this.tabWatch.dataset.sidepane = 'watch';
         this.tabTurtle.dataset.sidepane = 'turtle';
+        this.tabFiles.dataset.sidepane = 'files';
         this.tabCode.dataset.sidepane = 'code';
         this.side = el('div', {'class': 'tiny_algorithm-side', 'data-sidetab': 'console'}, this.props, this.tabBar, this.tabConsole,
-            this.tabTurtle, this.tabWatch, this.showCode ? this.tabCode : []);
+            this.tabTurtle, this.tabFiles, this.tabWatch, this.showCode ? this.tabCode : []);
         this.main = el('div', {'class': 'tiny_algorithm-main'}, this.canvasWrap, this.side);
         this.root = el('div', {'class': 'tiny_algorithm-editor', onkeydown: (e) => this.onRunKey(e)}, this.toolbar,
             this.emptyBar(), this.main, this.announcer);
@@ -369,6 +393,13 @@ export class AlgorithmEditor {
         const drawing = usesTurtle(this.program);
         this.tabTurtle.hidden = !drawing;
         this.turtleTab.hidden = !drawing;
+        const filing = usesFiles(this.program);
+        this.tabFiles.hidden = !filing;
+        this.filesTab.hidden = !filing;
+        if (this.filesFor !== this.program) {
+            this.filesFor = this.program;
+            this.filesPanel.setFiles(this.program.files);
+        }
         if (this.onChange) {
             this.onChange(this.program);
         }
@@ -1642,6 +1673,7 @@ export class AlgorithmEditor {
         this.consoleEl.replaceChildren();
         this.watch.clear();
         this.turtle.reset();
+        this.filesPanel.reset();
         this.refresh();
         const ui = {
             program: this.program,
@@ -1651,6 +1683,7 @@ export class AlgorithmEditor {
             branch: (ev) => showBranch(this.canvas, ev),
             watch: (vars, stack) => this.watch.update(vars, stack),
             turtle: (ev) => this.turtle.apply(ev),
+            file: (ev) => this.filesPanel.apply(ev),
             output: (text) => this.flushOutput(text),
             info: (text) => this.log(text, 'tiny_algorithm-info'),
             error: (text, id) => this.showError(text, id),

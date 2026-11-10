@@ -21,6 +21,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import {usesTurtle} from './turtle';
+import {usesFiles} from './files';
 import {parseExpr} from './expr';
 import {t} from './strings';
 import {labelOf} from './layout';
@@ -632,6 +633,9 @@ export const generateLines = (lang, program) => {
             if ((l === 'toint' || l === 'toreal') && a && typeOf(a, syms, fns) !== 'String') {
                 return l === 'toint' ? L.call('int', [walk(a)], ['Real']) : walk(a, 8);
             }
+            if (l === 'eof') {
+                return lang === 'python' ? '_eof()' : 'EOF()';
+            }
             return L.call(n.name, callArgs(n), n.args.map((x) => typeOf(x, syms, fns)));
         };
         const arrayLength = (name) => ({python: `len(${name})`, java: `${name}.length`, javascript: `${name}.length`,
@@ -914,6 +918,26 @@ export const generateLines = (lang, program) => {
         }[b.type]();
         code.forEach((line) => emit(ind, line));
     };
+    // Files: Python opens, reads and writes them; the other languages get a comment.
+    const fileStmt = (b, ind) => {
+        if (lang !== 'python') {
+            emit(ind, `// File: ${labelOf(b)}`);
+            return;
+        }
+        const handle = (mode) => `_files["${mode === 'read' ? 'read' : 'write'}"]`;
+        if (b.type === 'open') {
+            const how = {write: 'w', append: 'a'}[b.mode] || 'r';
+            emit(ind, `${handle(b.mode)} = open(${ex(b.file)}, "${how}", encoding="utf-8")`);
+        } else if (b.type === 'read') {
+            const sym = own(syms, parse(b.target).name) || {type: 'Integer'};
+            const conv = {Integer: 'int', Real: 'float', String: '', Boolean: '(lambda v: v.lower() == "true")'}[sym.type];
+            emit(ind, `${ex(b.target)} = ${conv}(_files["read"].readline().rstrip("\\n"))`);
+        } else if (b.type === 'write') {
+            emit(ind, `_files["write"].write(str(${ex(b.expr)}) + "\\n")`);
+        } else {
+            emit(ind, `${handle(b.mode)}.close()`);
+        }
+    };
     // eslint-disable-next-line complexity
     const stmtCode = (b, ind) => {
         switch (b.type) {
@@ -937,6 +961,10 @@ export const generateLines = (lang, program) => {
             case 'pen':
             case 'home':
             case 'clear': turtleStmt(b, ind); break;
+            case 'open':
+            case 'read':
+            case 'write':
+            case 'close': fileStmt(b, ind); break;
             case 'if':
                 if (pascal) {
                     emit(ind, `if ${ex(b.cond)} then`);
@@ -1125,6 +1153,19 @@ export const generateLines = (lang, program) => {
                 emit(0, 'turtle.setheading(90)');
             }
             emit(0, '');
+            if (usesFiles(program)) {
+                // The file open for reading and the one open for writing, and EOF() of the first.
+                emit(0, '_files = {}');
+                emit(0, '');
+                emit(0, '');
+                emit(0, 'def _eof():');
+                emit(1, 'here = _files["read"].tell()');
+                emit(1, 'end = _files["read"].readline() == ""');
+                emit(1, '_files["read"].seek(here)');
+                emit(1, 'return end');
+                emit(0, '');
+                emit(0, '');
+            }
         },
         c: () => {
             if (needs.pi) {
@@ -1903,6 +1944,10 @@ const generateTyped = (lang, program) => {
             case 'pen':
             case 'home':
             case 'clear': emit(ind, `${L.comment} Turtle: ${labelOf(b)}`); break;
+            case 'open':
+            case 'read':
+            case 'write':
+            case 'close': emit(ind, `${L.comment} File: ${labelOf(b)}`); break;
             case 'if': ifStmt(b, ind); break;
             case 'while': whileStmt(b, ind); break;
             case 'dowhile': doStmt(b, ind); break;
@@ -2208,6 +2253,9 @@ const generatePseudo = (program) => {
         forward: (b) => `${kw('forward')} ${b.distance}${b.pen === 'up' ? ` (${kw('penup')})` : ''}`,
         turn: (b) => `${kw('turn')} ${kw(b.rotate === 'left' ? 'left' : 'right')} ${b.angle}`,
         pen: (b) => `${kw('pen')} ${b.color}`, home: () => kw('home'), clear: () => kw('clear'),
+        open: (b) => `${kw('open')} ${b.file} ${kw({write: 'forwrite', append: 'forappend'}[b.mode] || 'forread')}`,
+        read: (b) => `${kw('read')} ${b.target}`, write: (b) => `${kw('write')} ${b.expr}`,
+        close: (b) => `${kw('close')} (${kw(b.mode === 'write' ? 'forwrite' : 'forread')})`,
     };
     const block = (b, ind) => {
         if (Object.hasOwn(SIMPLE, b.type)) {

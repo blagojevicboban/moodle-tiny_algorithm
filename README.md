@@ -122,6 +122,13 @@ they test again. The student's copy is kept in their browser, so it is still the
 > are there too. For graded work use the [Algorithm question type](https://github.com/blagojevicboban/moodle-qtype_algorithm),
 > which keeps the solution and the hidden tests on the server.
 
+### Files
+
+**Open** (a file name, for reading, writing or appending), **Read** (the next line into a variable), **Write** and
+**Close**, and the function `EOF()`, work as in Flowgorithm: one file open for reading and one for writing. There is no
+disk: the files are kept with the algorithm and edited in the **Files** panel (add, upload, change, delete); the files
+the algorithm writes appear there and can be downloaded. In a quiz question, the tests read the files of the solution.
+
 ### Code Language
 
 The code panel shows the algorithm in one of twelve languages. Which one is shown first:

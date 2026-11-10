@@ -213,6 +213,10 @@ export const runSession = async(ui, run) => {
                 if (ui.turtle) {
                     ui.turtle(ev);
                 }
+            } else if (ev.event === 'file') {
+                if (ui.file) {
+                    ui.file(ev);
+                }
             } else if (ev.event === 'input') {
                 value = await askValue(ui, run, ev);
                 if (row()) {
