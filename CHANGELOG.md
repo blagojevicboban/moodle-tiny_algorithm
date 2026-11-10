@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.8.0 – 2026-11-10 (stable)
+
+- **Code language on three levels:**
+  - Site: Site administration, Plugins, TinyMCE, Algorithm has a default code language and the languages offered.
+  - Course, category or activity: the local settings of the Algorithm viewer filter (Course, More, Filters) choose a
+    language, may use it for every algorithm and may lock it for students (needs filter_algorithm 2.8.0).
+  - Algorithm: the language chosen in the code panel of the dialog, and a new option, Students see only this language.
+  The algorithm comes before the course unless the course forces its language; a student's own choice is remembered per
+  course when nothing is locked. Teachers' editors always offer every language of the site.
+- New modules codelang.js and options.js, class local/code_language and settings.php; Node and PHPUnit tests.
+
 ## 2.7.1 – 2026-11-10 (stable)
 
 - The style of the full screen button of the editor dialog has no !important (the stylelint check of 2.7.0 failed);

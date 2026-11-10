@@ -68,6 +68,7 @@ export const STR = {
         unreachable: 'Blocks after a Break, Continue or Return never run: {count}.', runinputs: 'Step with this input',
         diagram: 'Diagram', pseudocode: 'Pseudo-code', note: 'Comment', addnote: 'Add a comment',
         comments: 'Comments', showcomments: 'Show all comments', hidecomments: 'Hide the comments',
+        codelock: 'Students see only this language',
         'b.forward': 'Forward',
         'b.turn': 'Turn',
         'b.pen': 'Pen',

@@ -122,6 +122,19 @@ they test again. The student's copy is kept in their browser, so it is still the
 > are there too. For graded work use the [Algorithm question type](https://github.com/blagojevicboban/moodle-qtype_algorithm),
 > which keeps the solution and the hidden tests on the server.
 
+### Code Language
+
+The code panel shows the algorithm in one of twelve languages. Which one is shown first:
+
+1. **Site:** Site administration, Plugins, Text editors, TinyMCE, Algorithm: the default language and the languages
+   offered.
+2. **Course, category or activity:** Course, More, Filters, *Algorithm viewer*, Settings: a language for this course,
+   whether it replaces the language saved in each algorithm, and whether students may change it.
+3. **Algorithm:** the language chosen in the code panel of the dialog, and *Students see only this language*.
+
+The algorithm comes before the course unless the course forces its language. When nothing is locked, a student's own
+choice is remembered for the course.
+
 ### Turtle Graphics
 
 The blocks **Forward** (with the pen down or up), **Turn** (right or left, in degrees), **Pen** (ten colours), **Home**

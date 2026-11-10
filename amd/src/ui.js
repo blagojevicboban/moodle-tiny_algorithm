@@ -20,6 +20,7 @@
  * @copyright  2026 Boban Blagojević
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+import {getCodeConfig} from './options';
 import Modal from 'core/modal';
 import ModalEvents from 'core/modal_events';
 import {saveCancelPromise} from 'core/notification';
@@ -272,7 +273,9 @@ export const openEditor = async(editor) => {
     const separate = box('separatetemplate');
     separate.checked = Boolean(savedSolution);
 
-    const widget = new AlgorithmEditor(pane('solution'), {program: savedSolution || shown, lang, chooseLanguage: true});
+    const codeConfig = getCodeConfig(editor);
+    const widget = new AlgorithmEditor(pane('solution'), {program: savedSolution || shown, lang, chooseLanguage: true,
+        codeConfig});
     let template = null;
     let templateStart = null;
     addMaximize(modal, s, () => [widget, template]);
@@ -280,7 +283,7 @@ export const openEditor = async(editor) => {
     const ensureTemplate = () => {
         if (!template) {
             template = new AlgorithmEditor(templateHost, {program: savedSolution ? shown : widget.getProgram(), lang,
-                chooseLanguage: true});
+                chooseLanguage: true, codeConfig});
             templateStart = JSON.stringify(template.getProgram());
         }
         return template;

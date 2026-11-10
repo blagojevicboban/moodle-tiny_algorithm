@@ -25,6 +25,7 @@ import {getPluginMetadata} from 'editor_tiny/utils';
 import {component, pluginName} from './common';
 import * as Configuration from './configuration';
 import {getSetup} from './commands';
+import * as Options from './options';
 
 const init = async() => {
     const [tinyMCE, setup, pluginMetadata] = await Promise.all([
@@ -34,6 +35,7 @@ const init = async() => {
     ]);
 
     tinyMCE.PluginManager.add(pluginName, (editor) => {
+        Options.register(editor);
         setup(editor);
         return pluginMetadata;
     });

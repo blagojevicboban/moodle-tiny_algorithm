@@ -29,7 +29,8 @@ import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
 import {Watch} from './watch';
-import {defaultLanguage, generate, languages, languageLabels} from './codegen';
+import {generate, languageLabels} from './codegen';
+import {pickLanguage, rememberLanguage} from './codelang';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
 import {readLine} from './consoleinput';
 
@@ -63,8 +64,9 @@ export class AlgorithmRunner {
      * @param {boolean} [opts.showCode] show the generated code panel (and its toggle button)
      * @param {boolean} [opts.showWatch] show the variable watch panel (and its toggle button)
      * @param {boolean} [opts.fullscreen] offer the full screen button (off inside a student workspace, which has its own)
+     * @param {Object} [opts.codeConfig] code languages of the site and the course (tiny_algorithm/codelang)
      */
-    constructor(host, program, {lang = null, showCode = true, showWatch = true, fullscreen = true} = {}) {
+    constructor(host, program, {lang = null, showCode = true, showWatch = true, fullscreen = true, codeConfig = {}} = {}) {
         this.program = program;
         this.lang = lang;
         this.showCode = showCode;
@@ -75,7 +77,9 @@ export class AlgorithmRunner {
         this.breakpoints = new Set();
         this.errorId = null;
         this.trace = [];
-        this.codeLang = defaultLanguage(program);
+        this.codeConfig = codeConfig || {};
+        this.codeChoice = pickLanguage(program, this.codeConfig);
+        this.codeLang = this.codeChoice.lang;
         this.build(host);
     }
 
@@ -162,9 +166,11 @@ export class AlgorithmRunner {
                 onclick: (e) => e.stopPropagation(),
                 onchange: () => {
                     this.codeLang = this.codeSelect.value;
+                    rememberLanguage(this.codeLang, this.codeConfig);
                     this.renderCode();
                 },
-            }, languages.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
+                disabled: this.codeChoice.locked,
+            }, this.codeChoice.allowed.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
             this.codeToggle = el('button', {type: 'button',
                 'class': 'btn btn-secondary btn-sm tiny_algorithm-toggle tiny_algorithm-code-toggle',
                 onclick: () => this.toggleCode()}, this.t('code'));

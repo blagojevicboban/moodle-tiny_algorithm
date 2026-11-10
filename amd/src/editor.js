@@ -34,7 +34,8 @@ import {openTrace} from './trace';
 import {attachNotes} from './notes';
 import {markRun} from './runmarks';
 import {checkExpr} from './expr';
-import {defaultLanguage, isMatrix, languages, languageLabels, extensionOf} from './codegen';
+import {isMatrix, languageLabels, extensionOf} from './codegen';
+import {pickLanguage, rememberLanguage} from './codelang';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
 import {TEMPLATES} from './templates';
 import {importFprg, exportFprg} from './flowgorithm';
@@ -115,11 +116,13 @@ export class AlgorithmEditor {
      * @param {boolean} [options.fileTools] show import, export and the image buttons (a quiz question may hide them)
      * @param {boolean} [options.chooseLanguage] the language chosen in the code panel becomes the diagram's default
      *     (the teacher's editors; a student's choice does not change the answer)
+     * @param {Object} [options.codeConfig] code languages of the site and the course (tiny_algorithm/codelang)
      */
     constructor(container, {program = null, lang = null, onChange = null, showCode = true, fileTools = true,
-            chooseLanguage = false} = {}) {
+            chooseLanguage = false, codeConfig = {}} = {}) {
         this.lang = lang;
         this.chooseLanguage = chooseLanguage;
+        this.codeConfig = codeConfig || {};
         this.showCode = showCode;
         this.fileTools = fileTools;
         this.onChange = onChange;
@@ -132,7 +135,8 @@ export class AlgorithmEditor {
         this.running = null;
         this.breakpoints = new Set();
         this.trace = [];
-        this.codeLang = defaultLanguage(this.program);
+        this.codeChoice = pickLanguage(this.program, this.codeConfig, chooseLanguage);
+        this.codeLang = this.codeChoice.lang;
         this.build(container);
         this.refresh();
     }
@@ -214,7 +218,21 @@ export class AlgorithmEditor {
             onpointerdown: (e) => e.stopPropagation(),
             onclick: (e) => e.stopPropagation(),
             onchange: () => this.setLanguage(this.codeSelect.value),
-        }, languages.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
+            disabled: this.codeChoice.locked,
+        }, this.codeChoice.allowed.map((l) => el('option', {value: l, selected: l === this.codeLang}, languageLabels[l])));
+        // The teacher can lock the language: readers then see only this one.
+        this.codeLock = this.chooseLanguage ? el('label', {'class': 'tiny_algorithm-codelock small mb-0'},
+            el('input', {type: 'checkbox', checked: Boolean(this.program.codeLock), onchange: (e) => {
+                if (e.target.checked) {
+                    this.program.codeLock = true;
+                } else {
+                    delete this.program.codeLock;
+                }
+                this.program.codeLang = this.codeLang;
+                if (this.onChange) {
+                    this.onChange(this.program);
+                }
+            }}), ' ', this.t('codelock')) : [];
         this.copyBtn = btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeText || ''));
         this.dlBtn = btn('download', () => this.exportCode());
         this.btnCodeLab = el('button', {
@@ -227,7 +245,8 @@ export class AlgorithmEditor {
         this.tabConsole = el('div', {'class': 'tiny_algorithm-pane'}, paneTitle(this.t('console'), ' ', this.statusEl),
             this.consoleEl);
         this.tabCode = el('div', {'class': 'tiny_algorithm-pane'},
-            paneTitle(this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn, ' ', this.btnCodeLab), this.codeEl);
+            paneTitle(this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn, ' ', this.btnCodeLab, ' ',
+                this.codeLock), this.codeEl);
         this.watch = new Watch(this.lang);
         this.tabWatch = el('div', {'class': 'tiny_algorithm-pane'}, paneTitle(this.t('variables')), this.watch.root);
         // The drawing of turtle graphics, only for an algorithm that uses the turtle.
@@ -362,13 +381,9 @@ export class AlgorithmEditor {
      */
     setLanguage(lang) {
         this.codeLang = lang;
+        rememberLanguage(lang, this.codeConfig, this.chooseLanguage);
         if (this.chooseLanguage) {
             this.program.codeLang = lang;
-            try {
-                window.localStorage.setItem('tiny_algorithm_codelang', lang);
-            } catch (e) {
-                // Without storage new diagrams start with Python.
-            }
             if (this.onChange) {
                 this.onChange(this.program);
             }

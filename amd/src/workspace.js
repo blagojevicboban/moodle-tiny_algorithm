@@ -69,13 +69,14 @@ export class AlgorithmWorkspace {
      * @param {boolean} [opts.showSolution] students may open the solution
      * @param {string} [opts.lang] UI language code
      * @param {string|number} [opts.scope] where the algorithm is (context id), part of the storage key
+     * @param {Object} [opts.codeConfig] code languages of the site and the course (tiny_algorithm/codelang)
      */
     constructor(host, {starter, solution = null, tests = [], showCode = true, showWatch = true, showSolution = false,
-            lang = null, scope = ''}) {
+            lang = null, scope = '', codeConfig = {}}) {
         this.starter = starter;
         this.solution = solution;
         this.tests = tests;
-        this.opts = {lang, showCode, showWatch, fullscreen: false};
+        this.opts = {lang, showCode, showWatch, fullscreen: false, codeConfig};
         this.lang = lang;
         this.storageKey = `tiny_algorithm_work_${scope}_${hash(serialize(starter) + JSON.stringify(tests))}`;
         this.work = this.load() || cloneProgram(starter);
@@ -136,7 +137,7 @@ export class AlgorithmWorkspace {
         this.body.replaceChildren();
         if (this.editing) {
             this.view = new AlgorithmEditor(this.body, {program: cloneProgram(this.work), lang: this.lang,
-                onChange: (program) => this.save(program)});
+                codeConfig: this.opts.codeConfig, onChange: (program) => this.save(program)});
         } else {
             const host = el('div');
             this.body.append(host);
