@@ -108,9 +108,9 @@ export const showToast = (host, text, action = null) => {
 };
 
 // Keys and what they do, in the order of the shortcuts dialog.
-const SHORTCUTS = [['F5', 'scrun'], ['F10', 'scstep'], ['F9', 'scbreakpoint'], ['↑ ↓ ← →', 'scmove'], ['Enter', 'scedit'],
-    ['Alt + ↑ ↓', 'scmoveblock'], ['Ctrl + C X V D', 'scclipboard'], ['Delete', 'scdelete'], ['Ctrl + Z / Y', 'scundo'],
-    ['Esc', 'scescape'], ['?', 'scshortcuts']];
+const SHORTCUTS = [['F5', 'scrun'], ['F10', 'scstep'], ['F8', 'scstepback'], ['F9', 'scbreakpoint'], ['↑ ↓ ← →', 'scmove'],
+    ['Enter', 'scedit'], ['Alt + ↑ ↓', 'scmoveblock'], ['Ctrl + C X V D', 'scclipboard'], ['Delete', 'scdelete'],
+    ['Ctrl + Z / Y', 'scundo'], ['Esc', 'scescape'], ['?', 'scshortcuts']];
 
 /**
  * Open the list of keyboard shortcuts.

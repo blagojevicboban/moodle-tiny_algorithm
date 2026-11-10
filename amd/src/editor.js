@@ -27,6 +27,7 @@ import {
 } from './model';
 import {renderFunction, renderProgram, showBranch} from './render';
 import {runSession} from './session';
+import {Timeline, replayTo} from './timeline';
 import {openDialog, openShortcuts, showToast} from './dialog';
 import {openHelp} from './help';
 import {PEN_COLORS, TurtleView, usesTurtle} from './turtle';
@@ -182,6 +183,10 @@ export class AlgorithmEditor {
         this.btnRedo = btn('redo', () => this.redo());
         this.btnRun = btn('run', () => this.start(false));
         this.btnStep = btn('step', () => this.start(true));
+        this.btnBack = btn('stepback', () => this.stepBack());
+        this.btnBack.title = this.t('stepbackhint');
+        this.btnBack.disabled = true;
+        this.timeline = new Timeline((key, values) => tr(key, values), (step) => this.goTo(step));
         this.btnStop = btn('stop', () => this.stop());
         this.statusEl = el('span', {'class': 'tiny_algorithm-status', role: 'status', hidden: true});
         // What a screen reader hears while stepping (the panels change too often to be read).
@@ -196,7 +201,7 @@ export class AlgorithmEditor {
         },
             this.fnSelect, btn('addfn', () => this.addFunction()), btn('delfn', () => this.removeFunction()),
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnUndo, this.btnRedo,
-            el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnStep, this.btnStop,
+            el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnBack, this.btnStep, this.btnStop,
             el('span', {'class': 'tiny_algorithm-speedbox'}, el('span', {'aria-hidden': 'true'}, this.t('slow')), this.speed,
                 el('span', {'aria-hidden': 'true'}, this.t('fast'))),
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnFile, this.fileInput);
@@ -250,7 +255,7 @@ export class AlgorithmEditor {
             onclick: () => this.openInCodeLab(),
         }, '🚀 CodeLab');
         this.tabConsole = el('div', {'class': 'tiny_algorithm-pane'}, paneTitle(this.t('console'), ' ', this.statusEl),
-            this.consoleEl);
+            this.timeline.root, this.consoleEl);
         this.tabCode = el('div', {'class': 'tiny_algorithm-pane'},
             paneTitle(this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn, ' ', this.btnCodeLab, ' ',
                 this.codeLock), this.codeEl);
@@ -305,6 +310,7 @@ export class AlgorithmEditor {
     commit(mutator) {
         // A change of the algorithm removes the mark of the last error.
         this.errorId = null;
+        this.forgetRun();
         this.undoStack.push(JSON.stringify(this.program));
         if (this.undoStack.length > 100) {
             this.undoStack.shift();
@@ -319,6 +325,7 @@ export class AlgorithmEditor {
             this.redoStack.push(JSON.stringify(this.program));
             this.program = JSON.parse(this.undoStack.pop());
             this.fnIndex = Math.min(this.fnIndex, this.program.functions.length - 1);
+            this.forgetRun();
             this.refresh();
         }
     }
@@ -328,12 +335,22 @@ export class AlgorithmEditor {
             this.undoStack.push(JSON.stringify(this.program));
             this.program = JSON.parse(this.redoStack.pop());
             this.fnIndex = Math.min(this.fnIndex, this.program.functions.length - 1);
+            this.forgetRun();
             this.refresh();
         }
     }
 
     getProgram() {
         return cloneProgram(this.program);
+    }
+
+    /** After a change of the algorithm the last run cannot be repeated: no step back, no timeline. */
+    forgetRun() {
+        if (!this.running && this.lastRun) {
+            this.lastRun = null;
+            this.btnBack.disabled = true;
+            this.timeline.hide();
+        }
     }
 
     /**
@@ -1454,6 +1471,9 @@ export class AlgorithmEditor {
         if (e.key === 'F5' || e.key === 'F10') {
             e.preventDefault();
             this.start(e.key === 'F10');
+        } else if (e.key === 'F8') {
+            e.preventDefault();
+            this.stepBack();
         } else if (e.key === 'F9' && this.selected) {
             e.preventDefault();
             this.toggleBreakpoint(this.selected);
@@ -1655,19 +1675,71 @@ export class AlgorithmEditor {
         this.statusEl.textContent = tr(`status${state}`, {step});
         this.btnRun.textContent = this.t(state === 'paused' ? 'resume' : 'run');
         this.btnRun.title = this.btnRun.textContent;
+        const run = this.running || this.lastRun;
+        this.btnBack.disabled = !run || step < 2;
+        if (run) {
+            this.timeline.update(step, run.horizon || step);
+        }
     }
 
-    async start(stepMode) {
+    /** Step back: the run is repeated up to the step before this one and pauses there. */
+    stepBack() {
+        const run = this.running || this.lastRun;
+        if (run && run.steps > 1) {
+            this.goTo(run.steps - 1);
+        }
+    }
+
+    /**
+     * Repeat the run (the same Random numbers and input values) up to a step and pause there.
+     *
+     * @param {number} step step to reach
+     */
+    goTo(step) {
+        const replay = replayTo(this.running || this.lastRun, step);
+        if (!replay) {
+            return;
+        }
         if (this.running) {
+            // The run ends quietly and the repeat starts when it has ended.
+            this.running.next = replay;
+            this.running.clear = true;
+            this.stop();
+            return;
+        }
+        this.runFrom(true, replay);
+    }
+
+    /**
+     * Run or Step: a new run, or the paused run goes on.
+     *
+     * @param {boolean} stepMode one step (else to the end or the next breakpoint)
+     */
+    start(stepMode) {
+        if (this.running) {
+            if (this.running.asking) {
+                // The algorithm waits for a value: Run and Step wait for it too.
+                return Promise.resolve();
+            }
             // Paused or running: Step goes one step on, Run (Continue) runs on to the end or the next breakpoint.
             this.running.stepMode = stepMode;
             if (this.running.wake) {
                 this.running.wake();
             }
-            return;
+            return Promise.resolve();
         }
+        return this.runFrom(stepMode, null);
+    }
+
+    /**
+     * A new run from the start.
+     *
+     * @param {boolean} stepMode pause before the first block
+     * @param {?Object} replay a repeat up to a step (step back, the timeline): {until, replay, seed, horizon}
+     */
+    async runFrom(stepMode, replay) {
         this.closePalette();
-        const run = {stepMode, stopped: false, wake: null, timer: null};
+        const run = {stepMode, stopped: false, wake: null, timer: null, ...(replay || {})};
         this.running = run;
         this.errorId = null;
         this.consoleEl.replaceChildren();
@@ -1688,6 +1760,7 @@ export class AlgorithmEditor {
             info: (text) => this.log(text, 'tiny_algorithm-info'),
             error: (text, id) => this.showError(text, id),
             ask: (ev, hint) => this.askInput(run, ev, hint),
+            given: (ev, value) => this.log(`${ev.name} (${ev.type}) ? ${value}`),
             status: (state, step) => this.showStatus(state, step),
             announce: (text) => {
                 this.announcer.textContent = text;
@@ -1698,9 +1771,13 @@ export class AlgorithmEditor {
             this.traceCut = Boolean(run.traceCut);
         } finally {
             this.running = null;
+            this.lastRun = run.next ? null : run;
             this.pendingInputs = null;
             this.highlight(null);
             this.refresh();
+        }
+        if (run.next) {
+            await this.runFrom(true, run.next);
         }
     }
 

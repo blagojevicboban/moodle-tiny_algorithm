@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.10.0 – 2026-11-10 (stable)
+
+- **Step back and a timeline:** a Back button (◀, key F8) beside Step in the editor and in the reader view takes the
+  algorithm one step back, and a slider under the bar (above the console in the editor) goes to any step of the run,
+  also after it has ended (Step 12 of 40). The variables, the console, the drawing of the turtle and the files are as
+  they were at that step; Step and Continue go on from there.
+- How it works: every run gets a seed for Random and keeps the values entered, so the run is repeated up to the
+  chosen step without pauses and without drawing (a long repeat lets the page draw every 20,000 steps). A step back
+  before an Input asks for the value again, and a new value makes the later steps unknown until they run. A change of
+  the algorithm in the editor ends the timeline.
+- **Run and Step wait for a value:** pressing them while the algorithm asks for a value gave the value null and ended
+  the run with an error; now they wait (Stop and Reset still end the run).
+- New module timeline.js and tests/stepback.test.mjs; the shortcuts list has F8; new strings in English, Serbian Latin
+  and Serbian Cyrillic.
+
 ## 2.9.0 – 2026-11-10 (stable)
 
 - **Files:** four new blocks, Open (a file name, for reading, writing or appending), Read (the next line into a

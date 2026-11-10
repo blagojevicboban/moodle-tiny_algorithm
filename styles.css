@@ -978,6 +978,30 @@ html.tiny_algorithm-noscroll body {
     color: #4b5563;
 }
 
+/* Step back: the timeline of the run under the bar of the viewer and above the console of the editor. */
+.tiny_algorithm-timeline {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: .25rem 0;
+    font-size: .8rem;
+    color: #374151;
+}
+
+.tiny_algorithm-timeline[hidden] {
+    display: none;
+}
+
+.tiny_algorithm-timeline-range {
+    flex: 1 1 auto;
+    min-width: 6rem;
+}
+
+.tiny_algorithm-timeline-label {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
 .tiny_algorithm-canvaswrap {
     position: relative;
     min-width: 0;

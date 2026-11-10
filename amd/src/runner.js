@@ -34,6 +34,7 @@ import {generate, languageLabels} from './codegen';
 import {pickLanguage, rememberLanguage} from './codelang';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
 import {readLine} from './consoleinput';
+import {Timeline, replayTo} from './timeline';
 
 const el = (tag, attrs = {}, ...kids) => {
     const e = document.createElement(tag);
@@ -103,9 +104,13 @@ export class AlgorithmRunner {
         this.statusEl = el('span', {'class': 'tiny_algorithm-status', role: 'status', hidden: true});
         this.announcer = el('div', {'class': 'sr-only visually-hidden', 'aria-live': 'polite'});
         this.btnRun = btn('run', () => this.onRun());
+        this.btnBack = btn('stepback', () => this.stepBack());
+        this.btnBack.title = this.t('stepbackhint');
+        this.btnBack.disabled = true;
+        this.timeline = new Timeline((key, values) => tr(key, values), (step) => this.goTo(step));
         // The bar runs the algorithm and chooses the panels; the zoom and the full screen sit in the corner of the diagram.
         this.bar = el('div', {'class': 'tiny_algorithm-view-bar'},
-            this.btnRun, btn('step', () => this.onStep()), btn('reset', () => this.reset()),
+            this.btnRun, this.btnBack, btn('step', () => this.onStep()), btn('reset', () => this.reset()),
             el('span', {'class': 'tiny_algorithm-speedbox'}, el('span', {'aria-hidden': 'true'}, this.t('slow')), this.speed,
                 el('span', {'aria-hidden': 'true'}, this.t('fast'))),
             this.statusEl,
@@ -120,7 +125,7 @@ export class AlgorithmRunner {
         }
         const canvas = el('div', {'class': 'tiny_algorithm-view-canvas'}, this.svgHost, zoomBox);
         this.watch = new Watch(this.lang);
-        const mainParts = [canvas, this.bar, this.consoleEl];
+        const mainParts = [canvas, this.bar, this.timeline.root, this.consoleEl];
         // The drawing of turtle graphics, only for an algorithm that uses the turtle.
         this.turtle = usesTurtle(this.program) ? new TurtleView(this.lang) : null;
         if (this.turtle) {
@@ -272,6 +277,9 @@ export class AlgorithmRunner {
         } else if (e.key === 'Escape' && this.isFullscreen() && !document.fullscreenElement) {
             e.stopPropagation();
             this.setFullscreen(false);
+        } else if (e.key === 'F8' && !typing) {
+            e.preventDefault();
+            this.stepBack();
         } else if (this.btnFull && !typing && (e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
             this.toggleFullscreen();
@@ -418,6 +426,42 @@ export class AlgorithmRunner {
         this.statusEl.className = `tiny_algorithm-status tiny_algorithm-status-${state}`;
         this.statusEl.textContent = tr(`status${state}`, {step});
         this.btnRun.textContent = this.t(state === 'paused' ? 'resume' : 'run');
+        const run = this.running || this.lastRun;
+        this.btnBack.disabled = !run || step < 2;
+        if (run) {
+            this.timeline.update(step, run.horizon || step);
+        }
+    }
+
+    /** Step back: the run is repeated up to the step before this one and pauses there. */
+    stepBack() {
+        const run = this.running || this.lastRun;
+        if (run && run.steps > 1) {
+            this.goTo(run.steps - 1);
+        }
+    }
+
+    /**
+     * Repeat the run (the same Random numbers and input values) up to a step and pause there.
+     *
+     * @param {number} step step to reach
+     */
+    goTo(step) {
+        const replay = replayTo(this.running || this.lastRun, step);
+        if (!replay) {
+            return;
+        }
+        if (this.running) {
+            // The run ends quietly and the repeat starts when it has ended.
+            this.running.next = replay;
+            this.running.stopped = true;
+            this.running.clear = true;
+            if (this.running.wake) {
+                this.running.wake();
+            }
+            return;
+        }
+        this.start(true, replay);
     }
 
     /**
@@ -462,6 +506,9 @@ export class AlgorithmRunner {
             this.start(false);
             return;
         }
+        if (this.running.asking) {
+            return;
+        }
         this.running.stepMode = false;
         if (this.running.wake) {
             this.running.wake();
@@ -471,6 +518,9 @@ export class AlgorithmRunner {
     onStep() {
         if (!this.running) {
             this.start(true);
+            return;
+        }
+        if (this.running.asking) {
             return;
         }
         this.running.stepMode = true;
@@ -500,6 +550,9 @@ export class AlgorithmRunner {
         this.errorId = null;
         this.statusEl.hidden = true;
         this.btnRun.textContent = this.t('run');
+        this.lastRun = null;
+        this.btnBack.disabled = true;
+        this.timeline.hide();
         markRun(this.svgHost, this.codeEl, this.breakpoints, null);
     }
 
@@ -551,8 +604,14 @@ export class AlgorithmRunner {
         });
     }
 
-    async start(stepMode) {
-        const run = {stepMode, stopped: false, clear: false, wake: null, timer: null};
+    /**
+     * Run or step from the start.
+     *
+     * @param {boolean} stepMode pause before the first block
+     * @param {?Object} [replay] a repeat up to a step (step back, the timeline): {until, replay, seed, horizon}
+     */
+    async start(stepMode, replay = null) {
+        const run = {stepMode, stopped: false, clear: false, wake: null, timer: null, ...(replay || {})};
         this.showBlock(null, false);
         this.running = run;
         this.errorId = null;
@@ -581,6 +640,7 @@ export class AlgorithmRunner {
                 this.errorId = id;
             },
             ask: (ev, hint) => this.askInput(run, ev, hint),
+            given: (ev, value) => this.log(`${ev.name} (${ev.type}) ? ${value}`),
             status: (state, step) => this.showStatus(state, step),
             announce: (text) => {
                 this.announcer.textContent = text;
@@ -591,16 +651,23 @@ export class AlgorithmRunner {
             this.traceCut = Boolean(run.traceCut);
         } finally {
             this.running = null;
+            this.lastRun = run.next ? null : run;
             this.highlight(null);
             markRun(this.svgHost, this.codeEl, this.breakpoints, this.errorId);
             if (this.errorId) {
                 revealNode(this.svgHost, this.errorId);
             }
-            if (run.clear) {
+            if (run.clear && !run.next) {
                 this.consoleEl.replaceChildren();
                 this.watch.clear();
                 this.statusEl.hidden = true;
+                this.btnBack.disabled = true;
+                this.timeline.hide();
+                this.lastRun = null;
             }
+        }
+        if (run.next) {
+            await this.start(true, run.next);
         }
     }
 }

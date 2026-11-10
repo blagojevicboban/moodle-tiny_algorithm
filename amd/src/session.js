@@ -29,6 +29,9 @@ import {errorText, t} from './strings';
 /** Most steps the trace table keeps. */
 export const MAX_TRACE = 2000;
 
+/** Steps a repeat (step back) goes through before it lets the browser draw. */
+const REPLAY_CHUNK = 20000;
+
 /**
  * Text of a block for the trace table and the screen reader.
  *
@@ -129,7 +132,10 @@ const waitNext = (run, delay) => new Promise((resolve) => {
 const askValue = async(ui, run, ev) => {
     let hint = '';
     for (;;) {
+        // While a value is asked, Run and Step wait for it (only Stop and Reset end the question).
+        run.asking = true;
         const value = await ui.ask(ev, hint);
+        run.asking = false;
         if (run.stopped || value === null) {
             return null;
         }
@@ -147,10 +153,18 @@ const askValue = async(ui, run, ev) => {
  *
  * The widget (ui) gives: program, breakpoints (a Set of block ids), delay(), highlight(id), branch(ev),
  * watch(vars, stack), output(text), info(text), error(text, id), ask(ev, hint) (a Promise of the text, null when
- * stopped), status(state, step) and announce(text).
+ * stopped), status(state, step) and announce(text); given(ev, value) (optional) shows an input value that a replay
+ * entered by itself.
+ *
+ * Step back: the run is deterministic (Random has a seed, the input values are kept), so a run can be repeated up to
+ * any step. A run with until = N goes through steps 1 to N - 1 at once, without pauses and without drawing (the
+ * console, the turtle and the files are filled), takes the inputs from replay, and pauses at step N.
  *
  * @param {Object} ui the widget
- * @param {Object} run {stepMode, stopped, wake, timer}; Step and Stop of the widget change it
+ * @param {Object} run {stepMode, stopped, wake, timer}; Step and Stop of the widget change it. Also: seed (kept from
+ *     an earlier run, else chosen here), until and replay (a repeat), and the run fills in steps, inputs (the values
+ *     entered, in order) and horizon (the last step known: the end of the earlier run, or the step where a new value
+ *     was entered)
  * @returns {Promise<Array>} the steps for the trace table
  */
 export const runSession = async(ui, run) => {
@@ -158,19 +172,35 @@ export const runSession = async(ui, run) => {
     const trace = [];
     const state = {steps: 0, lastId: null};
     const row = () => trace[trace.length - 1];
-    const onStep = async(ev) => {
+    if (!run.seed) {
+        run.seed = 1 + Math.floor(Math.random() * 2147483645);
+    }
+    run.inputs = [];
+    run.horizon = run.horizon || 0;
+    const replay = run.replay || [];
+    // Steps before until are only repeated.
+    const fast = () => Boolean(run.until) && state.steps < run.until;
+    const onStep = (ev) => {
         state.steps++;
+        run.steps = state.steps;
+        run.horizon = Math.max(run.horizon, state.steps);
         state.lastId = ev.id;
         const found = findBlock(program, ev.id);
         const label = found ? labelOf(found.block) : '';
-        ui.highlight(ev.id);
-        ui.watch(ev.vars, ev.stack);
         if (trace.length < MAX_TRACE) {
             trace.push({step: state.steps, id: ev.id, kind: found ? found.block.type : '', label, vars: ev.vars, output: ''});
         } else {
             run.traceCut = true;
         }
-        if (!run.stepMode && ui.breakpoints.has(ev.id)) {
+        if (fast()) {
+            // A long repeat lets the page breathe now and then (and Stop or Reset work).
+            return state.steps % REPLAY_CHUNK ? null : new Promise((resolve) => setTimeout(resolve, 0));
+        }
+        ui.highlight(ev.id);
+        ui.watch(ev.vars, ev.stack);
+        if (run.until && state.steps === run.until) {
+            run.stepMode = true;
+        } else if (!run.stepMode && ui.breakpoints.has(ev.id)) {
             run.stepMode = true;
             ui.info(t('breakpointhit', {block: label}));
         }
@@ -178,10 +208,12 @@ export const runSession = async(ui, run) => {
         if (run.stepMode) {
             ui.announce(t('stepannounce', {step: state.steps, block: label}));
         }
-        await waitNext(run, ui.delay());
+        return waitNext(run, ui.delay());
     };
     const onBranch = (ev) => {
-        ui.branch(ev);
+        if (!fast()) {
+            ui.branch(ev);
+        }
         if (row() && row().id === ev.id && !['break', 'continue', 'return'].includes(row().kind)) {
             row().branch = ev.taken ? 'T' : 'F';
         }
@@ -192,36 +224,53 @@ export const runSession = async(ui, run) => {
             row().output += ev.text;
         }
     };
+    // A repeat enters the values of the run it repeats; a new value makes the later steps unknown.
+    const onInput = async(ev) => {
+        let value;
+        if (fast() && run.inputs.length < replay.length) {
+            value = replay[run.inputs.length];
+            if (ui.given) {
+                ui.given(ev, value);
+            }
+        } else {
+            value = await askValue(ui, run, ev);
+            run.horizon = state.steps;
+        }
+        if (value !== null && value !== undefined) {
+            run.inputs.push(value);
+        }
+        if (row()) {
+            row().input = value;
+        }
+        return value;
+    };
+    const handlers = {
+        branch: onBranch,
+        output: onOutput,
+        done: (ev) => {
+            ui.watch(ev.vars, []);
+            trace.after = ev.vars;
+        },
+        turtle: (ev) => ui.turtle && ui.turtle(ev),
+        file: (ev) => ui.file && ui.file(ev),
+    };
     ui.status('running', 0);
     checkProgram(program).forEach((message) => ui.info(`⚠ ${message}`));
     try {
-        const gen = execute(program);
+        const gen = execute(program, {seed: run.seed});
         let res = gen.next();
         while (!res.done && !run.stopped) {
             const ev = res.value;
             let value;
             if (ev.event === 'step') {
-                await onStep(ev);
-            } else if (ev.event === 'branch') {
-                onBranch(ev);
-            } else if (ev.event === 'done') {
-                ui.watch(ev.vars, []);
-                trace.after = ev.vars;
-            } else if (ev.event === 'output') {
-                onOutput(ev);
-            } else if (ev.event === 'turtle') {
-                if (ui.turtle) {
-                    ui.turtle(ev);
-                }
-            } else if (ev.event === 'file') {
-                if (ui.file) {
-                    ui.file(ev);
+                const wait = onStep(ev);
+                if (wait) {
+                    await wait;
                 }
             } else if (ev.event === 'input') {
-                value = await askValue(ui, run, ev);
-                if (row()) {
-                    row().input = value;
-                }
+                value = await onInput(ev);
+            } else if (handlers[ev.event]) {
+                handlers[ev.event](ev);
             }
             if (!run.stopped) {
                 res = gen.next(value);
