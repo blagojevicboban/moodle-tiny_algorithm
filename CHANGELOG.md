@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.11.0 – 2026-11-11 (stable)
+
+- **Arrays panel:** an algorithm with arrays has a panel beside the console (and under the reader view) that draws the
+  arrays and matrices of the running function while it runs or steps. Numbers are bars that grow and shrink smoothly,
+  other values are boxes, a matrix is a grid. The elements the last block read are amber and those it wrote green, so
+  a comparison and a swap can be seen; the variables used as the index of an array (a[i], a[j + 1], a[low]) point at
+  their element (↑i ↑j). Up to 200 elements and 50 columns of each array are drawn (more are counted in a note), up to
+  40 with their values; a screen reader gets the values as text.
+- The interpreter sends the arrays and the elements read and written with every step only for this panel (option
+  track); grading and the PHP interpreter of qtype_algorithm are unchanged.
+- **Templates:** Bubble Sort, Selection Sort (random numbers) and Binary Search (low, mid, high) in the Arrays group.
+- On a narrow screen the editor has an Arrays tab.
+- New module arrayview.js and tests/arrayview.test.mjs; new strings in English, Serbian Latin and Serbian Cyrillic.
+
 ## 2.10.0 – 2026-11-10 (stable)
 
 - **Step back and a timeline:** a Back button (◀, key F8) beside Step in the editor and in the reader view takes the

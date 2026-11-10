@@ -154,7 +154,7 @@ const askValue = async(ui, run, ev) => {
  * The widget (ui) gives: program, breakpoints (a Set of block ids), delay(), highlight(id), branch(ev),
  * watch(vars, stack), output(text), info(text), error(text, id), ask(ev, hint) (a Promise of the text, null when
  * stopped), status(state, step) and announce(text); given(ev, value) (optional) shows an input value that a replay
- * entered by itself.
+ * entered by itself; arrays(ev) (optional) draws the arrays of a step (the interpreter then tracks them).
  *
  * Step back: the run is deterministic (Random has a seed, the input values are kept), so a run can be repeated up to
  * any step. A run with until = N goes through steps 1 to N - 1 at once, without pauses and without drawing (the
@@ -198,6 +198,9 @@ export const runSession = async(ui, run) => {
         }
         ui.highlight(ev.id);
         ui.watch(ev.vars, ev.stack);
+        if (ui.arrays) {
+            ui.arrays(ev);
+        }
         if (run.until && state.steps === run.until) {
             run.stepMode = true;
         } else if (!run.stepMode && ui.breakpoints.has(ev.id)) {
@@ -249,6 +252,9 @@ export const runSession = async(ui, run) => {
         output: onOutput,
         done: (ev) => {
             ui.watch(ev.vars, []);
+            if (ui.arrays) {
+                ui.arrays(ev);
+            }
             trace.after = ev.vars;
         },
         turtle: (ev) => ui.turtle && ui.turtle(ev),
@@ -257,7 +263,7 @@ export const runSession = async(ui, run) => {
     ui.status('running', 0);
     checkProgram(program).forEach((message) => ui.info(`⚠ ${message}`));
     try {
-        const gen = execute(program, {seed: run.seed});
+        const gen = execute(program, {seed: run.seed, track: Boolean(ui.arrays)});
         let res = gen.next();
         while (!res.done && !run.stopped) {
             const ev = res.value;

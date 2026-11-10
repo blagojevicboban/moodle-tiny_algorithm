@@ -32,6 +32,7 @@ import {openDialog, openShortcuts, showToast} from './dialog';
 import {openHelp} from './help';
 import {PEN_COLORS, TurtleView, usesTurtle} from './turtle';
 import {FilesPanel, usesFiles} from './files';
+import {ArrayView, usesArrays} from './arrayview';
 import {openTrace} from './trace';
 import {attachNotes} from './notes';
 import {markRun} from './runmarks';
@@ -264,6 +265,9 @@ export class AlgorithmEditor {
         // The drawing of turtle graphics, only for an algorithm that uses the turtle.
         this.turtle = new TurtleView(this.lang);
         this.tabTurtle = el('div', {'class': 'tiny_algorithm-pane', hidden: true}, paneTitle(this.t('turtle')), this.turtle.root);
+        // The arrays and matrices while the algorithm runs, only for an algorithm that has arrays.
+        this.tabArrays = el('div', {'class': 'tiny_algorithm-pane', hidden: true}, paneTitle(this.t('arrays')),
+            new ArrayView(this.program, this.lang).root);
         // The files of the algorithm and the files it writes, only for an algorithm that uses files.
         this.filesPanel = new FilesPanel({lang: this.lang, editable: true, onChange: (files) => {
             if (Object.keys(files).length) {
@@ -284,16 +288,20 @@ export class AlgorithmEditor {
         this.turtleTab.hidden = true;
         this.filesTab = tab('files');
         this.filesTab.hidden = true;
-        this.tabBar = el('div', {'class': 'tiny_algorithm-tabbar', role: 'tablist'}, tab('console'), this.turtleTab, this.filesTab,
+        this.arraysTab = tab('arrays');
+        this.arraysTab.hidden = true;
+        this.tabBar = el('div', {'class': 'tiny_algorithm-tabbar', role: 'tablist'}, tab('console'), this.arraysTab, this.turtleTab,
+            this.filesTab,
             tab('watch'),
             this.showCode ? tab('code') : []);
         this.tabConsole.dataset.sidepane = 'console';
         this.tabWatch.dataset.sidepane = 'watch';
         this.tabTurtle.dataset.sidepane = 'turtle';
         this.tabFiles.dataset.sidepane = 'files';
+        this.tabArrays.dataset.sidepane = 'arrays';
         this.tabCode.dataset.sidepane = 'code';
         this.side = el('div', {'class': 'tiny_algorithm-side', 'data-sidetab': 'console'}, this.props, this.tabBar, this.tabConsole,
-            this.tabTurtle, this.tabFiles, this.tabWatch, this.showCode ? this.tabCode : []);
+            this.tabArrays, this.tabTurtle, this.tabFiles, this.tabWatch, this.showCode ? this.tabCode : []);
         this.main = el('div', {'class': 'tiny_algorithm-main'}, this.canvasWrap, this.side);
         this.root = el('div', {'class': 'tiny_algorithm-editor', onkeydown: (e) => this.onRunKey(e)}, this.toolbar,
             this.emptyBar(), this.main, this.announcer);
@@ -410,6 +418,9 @@ export class AlgorithmEditor {
         const drawing = usesTurtle(this.program);
         this.tabTurtle.hidden = !drawing;
         this.turtleTab.hidden = !drawing;
+        const arrays = usesArrays(this.program);
+        this.tabArrays.hidden = !arrays;
+        this.arraysTab.hidden = !arrays;
         const filing = usesFiles(this.program);
         this.tabFiles.hidden = !filing;
         this.filesTab.hidden = !filing;
@@ -1747,6 +1758,9 @@ export class AlgorithmEditor {
         this.turtle.reset();
         this.filesPanel.reset();
         this.refresh();
+        // A new panel for every run: the index variables come from the algorithm as it is now.
+        this.arrayView = usesArrays(this.program) ? new ArrayView(this.program, this.lang) : null;
+        this.tabArrays.replaceChildren(this.tabArrays.firstChild, ...(this.arrayView ? [this.arrayView.root] : []));
         const ui = {
             program: this.program,
             breakpoints: this.breakpoints,
@@ -1756,6 +1770,7 @@ export class AlgorithmEditor {
             watch: (vars, stack) => this.watch.update(vars, stack),
             turtle: (ev) => this.turtle.apply(ev),
             file: (ev) => this.filesPanel.apply(ev),
+            arrays: this.arrayView ? (ev) => this.arrayView.update(ev) : null,
             output: (text) => this.flushOutput(text),
             info: (text) => this.log(text, 'tiny_algorithm-info'),
             error: (text, id) => this.showError(text, id),

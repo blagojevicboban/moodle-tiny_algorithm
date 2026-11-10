@@ -23,10 +23,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {TEMPLATES} from '../amd/src/templates.js';
 
-test('templates list contains all 8 standard templates across expected categories', () => {
-    assert.equal(TEMPLATES.length, 8);
+test('templates list contains all 11 standard templates across expected categories', () => {
+    assert.equal(TEMPLATES.length, 11);
     const ids = TEMPLATES.map((t) => t.id);
-    assert.deepEqual(ids, ['swap', 'rectangle', 'max2', 'evenodd', 'sum_n', 'factorial', 'gcd', 'linear_search']);
+    assert.deepEqual(ids, ['swap', 'rectangle', 'max2', 'evenodd', 'sum_n', 'factorial', 'gcd', 'linear_search',
+        'bubble_sort', 'selection_sort', 'binary_search']);
 
     const categories = new Set(TEMPLATES.map((t) => t.category));
     assert.ok(categories.has('linear'));

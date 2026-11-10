@@ -222,6 +222,24 @@ const snapshot = (env) => Object.values(env || {}).map((v) => ({
     value: Array.isArray(v.value) ? head(v.value, (x) => (Array.isArray(x) ? head(x) : x)) : v.value,
 }));
 
+/** Most elements of an array (and rows of a matrix) the array panel gets with every step. */
+export const ARRAY_VIEW_ITEMS = 200;
+
+/** Most columns of a matrix the array panel gets. */
+export const ARRAY_VIEW_COLUMNS = 50;
+
+/**
+ * Copies of the arrays and matrices of a scope for the array panel (tiny_algorithm/arrayview), up to
+ * ARRAY_VIEW_ITEMS elements or rows and ARRAY_VIEW_COLUMNS columns each.
+ *
+ * @param {object} env variables of one function call
+ * @returns {Array<{name: string, type: string, dims: number, length: number, value: Array}>}
+ */
+const arraysOf = (env) => Object.values(env || {}).filter((v) => Array.isArray(v.value)).map((v) => ({
+    name: v.name, type: v.type, dims: v.dims || 1, length: v.value.length,
+    value: v.value.slice(0, ARRAY_VIEW_ITEMS).map((x) => (Array.isArray(x) ? x.slice(0, ARRAY_VIEW_COLUMNS) : x)),
+}));
+
 const hasText = (s) => s !== undefined && s !== null && String(s).trim() !== '';
 
 /**
@@ -251,8 +269,10 @@ const checkLoops = (program) => {
  * @param {string|null} [options.call] a call such as Sum(2, 3) to evaluate instead of running the main function
  * @param {number|null} [options.seed] seed of Random (tests and grading), null for really random numbers
  * @param {Object|null} [options.files] files to start with (name => text), else the files of the algorithm
+ * @param {boolean} [options.track] for the array panel: every step (and the end) also has the arrays of the call
+ *     (arrays) and the elements the block before it read and wrote (access: {name, i, j, kind: 'r' or 'w'})
  */
-export function* execute(program, {maxSteps = 1000000, call = null, seed = null, files = null} = {}) {
+export function* execute(program, {maxSteps = 1000000, call = null, seed = null, files = null, track = false} = {}) {
     checkLoops(program);
     const cache = new Map();
     const ast = (s) => {
@@ -268,6 +288,8 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
     // Array elements held by the variables declared in the calls running now.
     let cells = 0;
     let lastEnv = Object.create(null);
+    // Elements of arrays read and written since the last step (only with track).
+    let accesses = [];
     // Turtle graphics: the turtle starts at the centre and looks up (heading in degrees, counter-clockwise).
     const turtle = {x: 0, y: 0, heading: 90, color: 'black'};
     const turtleNumber = function* (text, env) {
@@ -313,8 +335,9 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
      *
      * @param {Object} n idx node
      * @param {Object} env environment
+     * @param {string} kind r (read) or w (written), for the array panel
      */
-    const arrayIndex = function* (n, env) {
+    const arrayIndex = function* (n, env, kind = 'r') {
         const v = lookup(env, n.name);
         if (!Array.isArray(v.value)) {
             throw new AlgorithmError('notarray', {name: n.name});
@@ -328,6 +351,9 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
             throw new AlgorithmError('indexrange', {index: String(i), name: n.name});
         }
         if (!n.index2) {
+            if (track) {
+                accesses.push({name: v.name, i, kind});
+            }
             return [v, v.value, i];
         }
         const j = yield* evalNode(n.index2, env);
@@ -337,6 +363,9 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         }
         if (j < 0 || j >= row.length) {
             throw new AlgorithmError('indexrange', {index: String(j), name: n.name});
+        }
+        if (track) {
+            accesses.push({name: v.name, i, j, kind});
         }
         return [v, row, j];
     };
@@ -471,7 +500,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
             const v = lookup(env, t.name);
             v.value = coerce(v.type, value, t.name);
         } else if (t.k === 'idx') {
-            const [v, list, i] = yield* arrayIndex(t, env);
+            const [v, list, i] = yield* arrayIndex(t, env, 'w');
             list[i] = coerce(v.type, value, t.name);
         } else {
             throw new AlgorithmError('badtarget');
@@ -510,7 +539,13 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         if (++steps > maxSteps) {
             throw new AlgorithmError('steplimit');
         }
-        return {event: 'step', id, vars: snapshot(env), stack: stack.slice()};
+        const ev = {event: 'step', id, vars: snapshot(env), stack: stack.slice()};
+        if (track) {
+            ev.arrays = arraysOf(env);
+            ev.access = accesses;
+            accesses = [];
+        }
+        return ev;
     };
 
     /**
@@ -902,7 +937,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         const main = funcs.get('main') || program.functions[0];
         yield* callFunction(main, []);
     }
-    yield {event: 'done', vars: snapshot(lastEnv)};
+    yield {event: 'done', vars: snapshot(lastEnv), ...(track ? {arrays: arraysOf(lastEnv), access: accesses} : {})};
 }
 
 /**

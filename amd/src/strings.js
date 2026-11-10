@@ -174,6 +174,8 @@ export const STR = {
         statusrunning: 'Running · step {step}', statuspaused: 'Paused · step {step}', statusdone: 'Finished · {step} steps',
         stepback: '◀ Back', stepbackhint: 'Step back (F8): repeats the run up to the step before',
         timeline: 'Timeline of the run', timelinestep: 'Step {step} of {total}',
+        arrays: 'Arrays', arraysempty: 'The arrays appear here when the algorithm runs or steps.',
+        arraycut: 'Only the first {shown} of {length} elements are shown.', arrayvalues: '{name}: {values}',
         statusstopped: 'Stopped · step {step}', statuserror: 'Error · step {step}', showblock: 'Show the block',
         callstack: 'Calls running now', inputhintinteger: 'Enter a whole number, for example 4.',
         inputhintreal: 'Enter a number, for example 2.5.', inputok: 'Confirm the value', inputhintboolean: 'Enter true or false.',

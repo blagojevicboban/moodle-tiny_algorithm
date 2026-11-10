@@ -645,6 +645,147 @@ html.tiny_algorithm-noscroll body {
     margin-top: .5rem;
 }
 
+/* The array panel: numbers as bars, other values as boxes; read elements amber, written green */
+.tiny_algorithm-arrays {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.tiny_algorithm-arrays-empty {
+    margin: 0;
+    color: #6b7280;
+    font-size: .85rem;
+}
+
+.tiny_algorithm-array-title {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+.tiny_algorithm-array-note {
+    color: #92400e;
+    font-size: .8rem;
+}
+
+.tiny_algorithm-array-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    overflow-x: auto;
+    padding-bottom: .25rem;
+}
+
+.tiny_algorithm-array-cell {
+    flex: 1 1 0;
+    min-width: 1.6rem;
+    max-width: 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-end;
+    text-align: center;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .7rem;
+}
+
+.tiny_algorithm-array-value {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tiny_algorithm-array-bar {
+    display: none;
+    background: #93c5fd;
+    border-radius: 2px 2px 0 0;
+    transition: height .25s ease, background-color .25s ease;
+}
+
+.tiny_algorithm-array-bars .tiny_algorithm-array-row {
+    min-height: 8rem;
+}
+
+.tiny_algorithm-array-bars .tiny_algorithm-array-bar {
+    display: block;
+}
+
+.tiny_algorithm-array-bars .tiny_algorithm-array-negative .tiny_algorithm-array-bar {
+    background: #fca5a5;
+}
+
+.tiny_algorithm-array:not(.tiny_algorithm-array-bars) .tiny_algorithm-array-value {
+    border: 1px solid #cbd5e1;
+    border-radius: 3px;
+    padding: .2rem .1rem;
+    background: #fff;
+    transition: background-color .25s ease;
+}
+
+.tiny_algorithm-array-index {
+    color: #6b7280;
+    font-size: .65rem;
+}
+
+.tiny_algorithm-array-pointer {
+    min-height: 1rem;
+    color: #6d28d9;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.tiny_algorithm-array-bars .tiny_algorithm-array-read .tiny_algorithm-array-bar,
+.tiny_algorithm-array-grid .tiny_algorithm-array-read,
+.tiny_algorithm-array:not(.tiny_algorithm-array-bars) .tiny_algorithm-array-read .tiny_algorithm-array-value {
+    background: #fbbf24;
+}
+
+.tiny_algorithm-array-bars .tiny_algorithm-array-written .tiny_algorithm-array-bar,
+.tiny_algorithm-array-grid .tiny_algorithm-array-written,
+.tiny_algorithm-array:not(.tiny_algorithm-array-bars) .tiny_algorithm-array-written .tiny_algorithm-array-value {
+    background: #4ade80;
+}
+
+.tiny_algorithm-array-read .tiny_algorithm-array-value,
+.tiny_algorithm-array-written .tiny_algorithm-array-value {
+    font-weight: 700;
+}
+
+/* Many elements: thin bars without values and indexes; the index variables still point at theirs. */
+.tiny_algorithm-array-dense .tiny_algorithm-array-row {
+    gap: 1px;
+}
+
+.tiny_algorithm-array-dense .tiny_algorithm-array-cell {
+    min-width: 3px;
+}
+
+.tiny_algorithm-array-dense .tiny_algorithm-array-index {
+    visibility: hidden;
+}
+
+.tiny_algorithm-array-grid {
+    display: grid;
+    gap: 2px;
+    overflow-x: auto;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .7rem;
+}
+
+.tiny_algorithm-array-box {
+    border: 1px solid #cbd5e1;
+    border-radius: 3px;
+    padding: .2rem .15rem;
+    text-align: center;
+    background: #fff;
+    transition: background-color .25s ease;
+}
+
+.tiny_algorithm-viewer .tiny_algorithm-view-arrays {
+    margin-top: .5rem;
+}
+
 /* Files of an algorithm and the files it writes */
 .tiny_algorithm-files .tiny_algorithm-file {
     margin-bottom: .5rem;
@@ -1270,7 +1411,13 @@ html.tiny_algorithm-noscroll body {
     .tiny_algorithm-side[data-sidetab="turtle"] [data-sidepane="files"],
     .tiny_algorithm-side[data-sidetab="turtle"] [data-sidepane="console"],
     .tiny_algorithm-side[data-sidetab="turtle"] [data-sidepane="watch"],
-    .tiny_algorithm-side[data-sidetab="turtle"] [data-sidepane="code"] {
+    .tiny_algorithm-side[data-sidetab="turtle"] [data-sidepane="code"],
+    .tiny_algorithm-side:not([data-sidetab="arrays"]) [data-sidepane="arrays"],
+    .tiny_algorithm-side[data-sidetab="arrays"] [data-sidepane="console"],
+    .tiny_algorithm-side[data-sidetab="arrays"] [data-sidepane="watch"],
+    .tiny_algorithm-side[data-sidetab="arrays"] [data-sidepane="code"],
+    .tiny_algorithm-side[data-sidetab="arrays"] [data-sidepane="turtle"],
+    .tiny_algorithm-side[data-sidetab="arrays"] [data-sidepane="files"] {
         display: none;
     }
 }

@@ -25,6 +25,7 @@ import {openTrace} from './trace';
 import {attachNotes, notesList} from './notes';
 import {TurtleView, usesTurtle} from './turtle';
 import {FilesPanel, usesFiles} from './files';
+import {ArrayView, usesArrays} from './arrayview';
 import {markRun} from './runmarks';
 import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
@@ -131,6 +132,12 @@ export class AlgorithmRunner {
         if (this.turtle) {
             mainParts.push(el('div', {'class': 'tiny_algorithm-view-turtle'}, el('strong', {}, this.t('turtle')),
                 this.turtle.root));
+        }
+        // The arrays and matrices while the algorithm runs, only for an algorithm that has arrays.
+        this.arrayView = usesArrays(this.program) ? new ArrayView(this.program, this.lang) : null;
+        if (this.arrayView) {
+            mainParts.push(el('div', {'class': 'tiny_algorithm-view-arrays'}, el('strong', {}, this.t('arrays')),
+                this.arrayView.root));
         }
         // The files the algorithm reads, and those it writes.
         this.filesPanel = usesFiles(this.program) ? new FilesPanel({lang: this.lang}) : null;
@@ -543,6 +550,9 @@ export class AlgorithmRunner {
         if (this.turtle) {
             this.turtle.reset();
         }
+        if (this.arrayView) {
+            this.arrayView.reset();
+        }
         if (this.filesPanel) {
             this.filesPanel.reset();
         }
@@ -621,6 +631,9 @@ export class AlgorithmRunner {
         if (this.turtle) {
             this.turtle.reset();
         }
+        if (this.arrayView) {
+            this.arrayView.reset();
+        }
         if (this.filesPanel) {
             this.filesPanel.reset();
         }
@@ -633,6 +646,7 @@ export class AlgorithmRunner {
             watch: (vars, stack) => this.watch.update(vars, stack),
             turtle: (ev) => this.turtle && this.turtle.apply(ev),
             file: (ev) => this.filesPanel && this.filesPanel.apply(ev),
+            arrays: this.arrayView ? (ev) => this.arrayView.update(ev) : null,
             output: (text) => this.write(text),
             info: (text) => this.log(text, 'tiny_algorithm-info'),
             error: (text, id) => {

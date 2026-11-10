@@ -271,5 +271,116 @@ export const TEMPLATES = [
             ];
             return prog;
         }
+    },
+    {
+        id: 'bubble_sort',
+        category: 'arrays',
+        title: 'Bubble Sort',
+        desc: 'Sort an array of random numbers by swapping neighbours that are in the wrong order; step through it ' +
+            'and watch the Arrays panel.',
+        fallbackTitle: 'Bubble Sort',
+        fallbackDesc: 'Sort an array of random numbers by swapping neighbours that are in the wrong order.',
+        build: () => {
+            const prog = createProgram('BubbleSort');
+            prog.functions[0].body = [
+                createBlock('comment', {text: 'Bubble sort: the biggest number bubbles to the end in every pass'}),
+                createBlock('declare', {name: 'n', varType: 'Integer'}),
+                createBlock('assign', {target: 'n', expr: '8'}),
+                createBlock('declare', {name: 'a', varType: 'Integer', size: 'n'}),
+                createBlock('declare', {name: 'i, j, temp', varType: 'Integer'}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('assign', {target: 'a[i]', expr: 'Random(100)'}),
+                ]}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 2', step: '1', body: [
+                    createBlock('for', {variable: 'j', start: '0', end: 'n - 2 - i', step: '1', body: [
+                        createBlock('if', {cond: 'a[j] > a[j + 1]', then: [
+                            createBlock('assign', {target: 'temp', expr: 'a[j]'}),
+                            createBlock('assign', {target: 'a[j]', expr: 'a[j + 1]'}),
+                            createBlock('assign', {target: 'a[j + 1]', expr: 'temp'}),
+                        ], 'else': []}),
+                    ]}),
+                ]}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('output', {expr: 'a[i] & " "', newline: false}),
+                ]}),
+            ];
+            return prog;
+        }
+    },
+    {
+        id: 'selection_sort',
+        category: 'arrays',
+        title: 'Selection Sort',
+        desc: 'Sort an array of random numbers: find the smallest of the rest and swap it to the front.',
+        fallbackTitle: 'Selection Sort',
+        fallbackDesc: 'Sort an array of random numbers: find the smallest of the rest and swap it to the front.',
+        build: () => {
+            const prog = createProgram('SelectionSort');
+            prog.functions[0].body = [
+                createBlock('comment', {text: 'Selection sort: the smallest of the rest goes to place i'}),
+                createBlock('declare', {name: 'n', varType: 'Integer'}),
+                createBlock('assign', {target: 'n', expr: '8'}),
+                createBlock('declare', {name: 'a', varType: 'Integer', size: 'n'}),
+                createBlock('declare', {name: 'i, j, min, temp', varType: 'Integer'}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('assign', {target: 'a[i]', expr: 'Random(100)'}),
+                ]}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 2', step: '1', body: [
+                    createBlock('assign', {target: 'min', expr: 'i'}),
+                    createBlock('for', {variable: 'j', start: 'i + 1', end: 'n - 1', step: '1', body: [
+                        createBlock('if', {cond: 'a[j] < a[min]', then: [
+                            createBlock('assign', {target: 'min', expr: 'j'}),
+                        ], 'else': []}),
+                    ]}),
+                    createBlock('assign', {target: 'temp', expr: 'a[i]'}),
+                    createBlock('assign', {target: 'a[i]', expr: 'a[min]'}),
+                    createBlock('assign', {target: 'a[min]', expr: 'temp'}),
+                ]}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('output', {expr: 'a[i] & " "', newline: false}),
+                ]}),
+            ];
+            return prog;
+        }
+    },
+    {
+        id: 'binary_search',
+        category: 'arrays',
+        title: 'Binary Search',
+        desc: 'Find a number in a sorted array by halving the part where it can be (low, mid, high).',
+        fallbackTitle: 'Binary Search',
+        fallbackDesc: 'Find a number in a sorted array by halving the part where it can be (low, mid, high).',
+        build: () => {
+            const prog = createProgram('BinarySearch');
+            prog.functions[0].body = [
+                createBlock('comment', {text: 'Binary search in a sorted array: a[i] = 3 * i'}),
+                createBlock('declare', {name: 'n', varType: 'Integer'}),
+                createBlock('assign', {target: 'n', expr: '16'}),
+                createBlock('declare', {name: 'a', varType: 'Integer', size: 'n'}),
+                createBlock('declare', {name: 'i, x, low, high, mid', varType: 'Integer'}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('assign', {target: 'a[i]', expr: '3 * i'}),
+                ]}),
+                createBlock('output', {expr: '"Enter a number to find:"', newline: true}),
+                createBlock('input', {target: 'x'}),
+                createBlock('assign', {target: 'low', expr: '0'}),
+                createBlock('assign', {target: 'high', expr: 'n - 1'}),
+                createBlock('assign', {target: 'mid', expr: '(low + high) / 2'}),
+                createBlock('while', {cond: 'low <= high && a[mid] != x', body: [
+                    createBlock('if', {cond: 'a[mid] < x', then: [
+                        createBlock('assign', {target: 'low', expr: 'mid + 1'}),
+                    ], 'else': [
+                        createBlock('assign', {target: 'high', expr: 'mid - 1'}),
+                    ]}),
+                    createBlock('assign', {target: 'mid', expr: '(low + high) / 2'}),
+                ]}),
+                createBlock('if', {cond: 'low <= high', then: [
+                    createBlock('output', {expr: '"Found at index " & mid', newline: true}),
+                ], 'else': [
+                    createBlock('output', {expr: '"Not found"', newline: true}),
+                ]}),
+            ];
+            return prog;
+        }
     }
 ];
