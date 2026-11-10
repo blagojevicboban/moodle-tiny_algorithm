@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.7.1 – 2026-11-10 (stable)
+
+- The style of the full screen button of the editor dialog has no !important (the stylelint check of 2.7.0 failed);
+  the same look with a more specific selector.
+
 ## 2.7.0 – 2026-11-10 (stable)
 
 - **Turtle graphics:** five new blocks, Forward (with the pen down or up), Turn (right or left, in degrees), Pen (ten

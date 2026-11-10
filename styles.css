@@ -594,8 +594,8 @@ html.tiny_algorithm-noscroll body {
     opacity: 1;
 }
 
-.tiny_algorithm-modal-maxbtn + [data-action="hide"] {
-    margin-left: .25rem !important;
+.modal-header .tiny_algorithm-modal-maxbtn + [data-action="hide"] {
+    margin-left: .25rem;
 }
 
 .modal-dialog.tiny_algorithm-modal-max {
