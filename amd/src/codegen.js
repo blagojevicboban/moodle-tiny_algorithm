@@ -718,8 +718,11 @@ export const generateLines = (lang, program) => {
         const sym = own(syms, t.name) || {type: 'Integer'};
         const target = ex(b.target);
         if (lang === 'python') {
-            const conv = {Integer: 'int', Real: 'float', String: 'str', Boolean: 'lambda v: v.lower() == "true"'}[sym.type];
-            emit(ind, `${target} = ${conv}(input())`);
+            if (sym.type === 'Boolean') {
+                emit(ind, `${target} = input().strip().lower() == "true"`);
+            } else {
+                emit(ind, `${target} = ${{Integer: 'int', Real: 'float', String: 'str'}[sym.type]}(input())`);
+            }
         } else if (lang === 'java') {
             // Whole lines, like the algorithm reads them (nextInt would leave the end of the line for the next input).
             const conv = {Integer: 'Integer.parseInt(in.nextLine().trim())', Real: 'Double.parseDouble(in.nextLine().trim())',
@@ -747,6 +750,12 @@ export const generateLines = (lang, program) => {
 
     const assignStmt = (b, ind) => {
         const target = ex(b.target);
+        // Python keeps a division real; the algorithm stores a whole number in an Integer (mid = (low + high) / 2).
+        if (lang === 'python' && typeOf(parse(b.target), syms, fns) === 'Integer' &&
+                typeOf(parse(b.expr), syms, fns) === 'Real') {
+            emit(ind, `${target} = int(${ex(b.expr)})`);
+            return;
+        }
         if (lang !== 'c' || typeOf(parse(b.target), syms, fns) !== 'String') {
             emit(ind, `${target} ${pascal ? ':=' : '='} ${ex(b.expr)}${semi}`);
             return;
@@ -930,8 +939,9 @@ export const generateLines = (lang, program) => {
             emit(ind, `${handle(b.mode)} = open(${ex(b.file)}, "${how}", encoding="utf-8")`);
         } else if (b.type === 'read') {
             const sym = own(syms, parse(b.target).name) || {type: 'Integer'};
-            const conv = {Integer: 'int', Real: 'float', String: '', Boolean: '(lambda v: v.lower() == "true")'}[sym.type];
-            emit(ind, `${ex(b.target)} = ${conv}(_files["read"].readline().rstrip("\\n"))`);
+            const line = '_files["read"].readline().rstrip("\\n")';
+            emit(ind, sym.type === 'Boolean' ? `${ex(b.target)} = ${line}.strip().lower() == "true"`
+                : `${ex(b.target)} = ${{Integer: 'int', Real: 'float', String: ''}[sym.type]}(${line})`);
         } else if (b.type === 'write') {
             emit(ind, `_files["write"].write(str(${ex(b.expr)}) + "\\n")`);
         } else {

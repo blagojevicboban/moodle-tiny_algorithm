@@ -42,6 +42,7 @@ import {pickLanguage, rememberLanguage} from './codelang';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
 import {TEMPLATES} from './templates';
 import {openComplexity} from './complexity';
+import {importPython} from './codeimport';
 import {importFprg, exportFprg} from './flowgorithm';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
@@ -1511,7 +1512,7 @@ export class AlgorithmEditor {
             run();
         }}, this.t(key));
         const files = this.fileTools ? [
-            item('templates', () => this.showTemplates()),
+            item('templates', () => this.showTemplates()), item('importcode', () => this.showCodeImport()),
             el('hr', {'class': 'dropdown-divider'}),
             item('import', () => this.fileInput.click()), item('export', () => this.exportFile()),
             item('copyimage', () => this.copyImage()),
@@ -1593,6 +1594,43 @@ export class AlgorithmEditor {
         }
         this.pendingInputs = [...values];
         this.start(true);
+    }
+
+    /**
+     * Code to diagram: Python pasted in a field becomes the algorithm (one undo step). Lines that have no block
+     * become comments and are listed.
+     */
+    showCodeImport() {
+        const area = el('textarea', {'class': 'form-control tiny_algorithm-ci-code', rows: '10', spellcheck: 'false',
+            'aria-label': this.t('ciarea'), placeholder: 'n = int(input())\nfor i in range(1, n + 1):\n    print(i * i)'});
+        const note = el('div', {'class': 'tiny_algorithm-ci-note', role: 'status'});
+        let dlg = null;
+        const make = () => {
+            const result = importPython(area.value, {name: this.program.name || 'Program'});
+            if (!result.blocks) {
+                note.textContent = this.t('ciempty');
+                return;
+            }
+            const mainFn = this.program.functions && this.program.functions[0];
+            const hasBlocks = this.program.functions.length > 1 || (mainFn && mainFn.body && mainFn.body.length > 0);
+            // eslint-disable-next-line no-alert
+            if (hasBlocks && !confirm(this.t('ciconfirm'))) {
+                return;
+            }
+            this.setProgram(result.program);
+            showToast(this.root, tr('cidone', {blocks: String(result.blocks)}));
+            if (!result.warnings.length) {
+                dlg.close();
+                return;
+            }
+            // The lines that became comments, so they can be drawn by hand.
+            note.replaceChildren(el('p', {}, this.t('ciwarnings')), el('ul', {}, result.warnings.map((w) =>
+                el('li', {}, tr('ciline', {line: String(w.line), text: w.text})))));
+        };
+        const body = el('div', {'class': 'tiny_algorithm-ci'}, el('p', {}, this.t('ciintro')), area, note);
+        dlg = openDialog(this.root, this.t('importcode'), body, [el('button', {type: 'button',
+            'class': 'btn btn-primary btn-sm', onclick: make}, this.t('cimake'))]);
+        area.focus();
     }
 
     /** How fast the algorithm grows: its steps for several sizes n, beside a template to compare with. */

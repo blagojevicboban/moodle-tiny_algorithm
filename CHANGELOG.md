@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.13.0 – 2026-11-11 (stable)
+
+- **Code to diagram:** File, Code to diagram… in the editor makes a flowchart from pasted Python: def (functions with
+  parameters, array and matrix parameters, return values), input() with int(), float() and a prompt, print() with
+  several values, sep and end, f-strings, if / elif / else, while (while True ending in if …: break is a Do … While),
+  for … in range() up or down, break, continue, return, +=, //, **, lists made with [0] * n, matrices made with
+  [[0] * m for _ in range(n)], list literals, a[i] and m[i][j], comments, math and random functions. The types of
+  the variables come from the values given to them; Declare blocks are added. The diagram replaces the old one in one
+  Undo step.
+- A line with no block (for c in text, max(), a tuple) becomes a Comment with the line, and the dialog lists these
+  lines, so nothing is lost.
+- The Python the plugin generates comes back as the same algorithm: all templates and the PHP/JS parity programs print
+  the same after diagram, Python, diagram.
+- **Python code fixes:** an Integer that gets a division is int(…) (mid = int((low + high) / 2); before, Python made it
+  a real number and a[mid] failed), and an Input or Read of a Boolean is input().strip().lower() == "true" (before, it
+  was not valid Python).
+- New module codeimport.js and tests/codeimport.test.mjs (also runs the generated Python); new strings in English,
+  Serbian Latin and Serbian Cyrillic.
+
 ## 2.12.0 – 2026-11-11 (stable)
 
 - **Complexity:** File, Complexity… in the editor and a Complexity… button in the reader view run the algorithm for

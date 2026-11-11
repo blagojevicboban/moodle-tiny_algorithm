@@ -894,6 +894,23 @@ html.tiny_algorithm-noscroll body {
     width: auto;
 }
 
+/* Code to diagram: the pasted code and the lines that became comments */
+.tiny_algorithm-ci-code {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .85rem;
+    white-space: pre;
+    tab-size: 4;
+}
+
+.tiny_algorithm-ci-note {
+    margin-top: .5rem;
+    font-size: .85rem;
+}
+
+.tiny_algorithm-ci-note li {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 /* Files of an algorithm and the files it writes */
 .tiny_algorithm-files .tiny_algorithm-file {
     margin-bottom: .5rem;
