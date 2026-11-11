@@ -128,10 +128,13 @@ export class AlgorithmEditor {
      * @param {boolean} [options.chooseLanguage] the language chosen in the code panel becomes the diagram's default
      *     (the teacher's editors; a student's choice does not change the answer)
      * @param {Object} [options.codeConfig] code languages of the site and the course (tiny_algorithm/codelang)
+     * @param {boolean} [options.parsons] a Parsons problem: the blocks can only be moved, nested and deleted
      */
     constructor(container, {program = null, lang = null, onChange = null, showCode = true, fileTools = true,
-            chooseLanguage = false, codeConfig = {}} = {}) {
+            chooseLanguage = false, codeConfig = {}, parsons = false} = {}) {
         this.lang = lang;
+        // A Parsons problem (qtype_algorithm): the blocks are given; they can only be moved, nested and deleted.
+        this.parsons = parsons;
         this.chooseLanguage = chooseLanguage;
         this.codeConfig = codeConfig || {};
         this.showCode = showCode;
@@ -202,7 +205,8 @@ export class AlgorithmEditor {
             onmousedown: (e) => e.stopPropagation(),
             onpointerdown: (e) => e.stopPropagation(),
         },
-            this.fnSelect, btn('addfn', () => this.addFunction()), btn('delfn', () => this.removeFunction()),
+            this.fnSelect,
+            ...(this.parsons ? [] : [btn('addfn', () => this.addFunction()), btn('delfn', () => this.removeFunction())]),
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnUndo, this.btnRedo,
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnBack, this.btnStep, this.btnStop,
             el('span', {'class': 'tiny_algorithm-speedbox'}, el('span', {'aria-hidden': 'true'}, this.t('slow')), this.speed,
@@ -558,6 +562,12 @@ export class AlgorithmEditor {
 
     renderProps() {
         const found = this.selected ? findBlock(this.program, this.selected) : null;
+        if (!found && this.parsons) {
+            // A Parsons problem: the functions are given; the task is said in the panel.
+            this.props.replaceChildren(paneTitle(this.t('function')), el('p', {}, el('strong', {}, this.fn.name)),
+                el('p', {'class': 'small'}, this.t('parsonstask')), el('p', {'class': 'text-muted small'}, this.t('parsonshint')));
+            return;
+        }
         if (!found) {
             this.props.replaceChildren(paneTitle(this.t('function')),
                 this.field(this.t('name'), 'text', this.fn.name, (v) => this.commit(() => {
@@ -587,6 +597,15 @@ export class AlgorithmEditor {
             return;
         }
         const b = found.block;
+        if (this.parsons) {
+            // The blocks of a Parsons problem keep their text: they are moved, nested or deleted.
+            this.props.replaceChildren(paneTitle(this.t(`b.${b.type}`)), el('p', {'class': 'small'}, this.t('parsonshint')),
+                el('div', {'class': 'tiny_algorithm-actions'},
+                    this.actionButton('up', () => this.move(-1)), this.actionButton('down', () => this.move(1)),
+                    this.actionButton('moveto', () => this.startPlacing(b.id, false)),
+                    this.actionButton('delete', () => this.deleteSelected(), 'btn-outline-danger')));
+            return;
+        }
         const rows = FIELDS[b.type].map(([key, kind]) => this.field(
             this.t(`f.${key}`), kind, b[key], (v) => this.commit(() => {
             b[key] = v;
@@ -625,6 +644,18 @@ export class AlgorithmEditor {
         return el('div', {'class': 'form-group tiny_algorithm-field'}, el('label', {'for': id}, this.t('note')), area);
     }
 
+    /**
+     * A button of the block panel.
+     *
+     * @param {string} key string key of its text
+     * @param {Function} fn what it does
+     * @param {string} [cls] its style
+     * @returns {HTMLElement}
+     */
+    actionButton(key, fn, cls = 'btn-secondary') {
+        return el('button', {type: 'button', 'class': `btn btn-sm ${cls}`, onclick: fn}, this.t(key));
+    }
+
     /** While the algorithm runs, its blocks cannot be changed. */
     lockProps() {
         this.props.querySelectorAll('input, select, button').forEach((e) => {
@@ -651,7 +682,9 @@ export class AlgorithmEditor {
             return;
         }
         this.closePalette();
-        if (slot) {
+        if (slot && this.parsons) {
+            showToast(this.root, this.t('parsonshint'));
+        } else if (slot) {
             this.openPalette(this.slots[Number(slot.dataset.slot)], e);
         } else {
             this.selected = node && !['start', 'end'].includes(node.dataset.id) ? node.dataset.id : null;
@@ -727,7 +760,7 @@ export class AlgorithmEditor {
             this.focusTarget = `n${this.selected}`;
             this.refocus = true;
             this.move(key === 'ArrowUp' ? -1 : 1);
-        } else if (mod && (key === 'd' || key === 'D') && this.selected && !this.running) {
+        } else if (mod && (key === 'd' || key === 'D') && this.selected && !this.running && !this.parsons) {
             e.preventDefault();
             this.duplicate();
         } else if (item && !this.running && ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'Home', 'End'].includes(key)) {
@@ -743,7 +776,9 @@ export class AlgorithmEditor {
             e.preventDefault();
             this.focusTarget = AlgorithmEditor.focusKey(item);
             if (item.classList.contains('tiny_algorithm-slot')) {
-                this.openPalette(this.slots[Number(item.dataset.slot)], e, item);
+                if (!this.parsons) {
+                    this.openPalette(this.slots[Number(item.dataset.slot)], e, item);
+                }
             } else {
                 this.selected = item.dataset.id;
                 this.refresh();
@@ -840,7 +875,9 @@ export class AlgorithmEditor {
         this.closePalette();
         const keyboard = !e.clientX && !e.clientY;
         if (slot) {
-            this.openPalette(this.slots[Number(slot.dataset.slot)], keyboard ? {} : e, keyboard ? slot : undefined);
+            if (!this.parsons) {
+                this.openPalette(this.slots[Number(slot.dataset.slot)], keyboard ? {} : e, keyboard ? slot : undefined);
+            }
             return;
         }
         this.selected = node.dataset.id;
@@ -855,7 +892,7 @@ export class AlgorithmEditor {
                 navigator.clipboard.writeText(clipboard).catch(() => null);
             }
         };
-        const actions = [
+        const actions = this.parsons ? [['moveto', () => this.startPlacing(id, false)]] : [
             ['copy', copy],
             ['cut', () => {
                 copy();
@@ -874,7 +911,7 @@ export class AlgorithmEditor {
                 }
             }],
         ];
-        if (clipboard && blocksFromText(clipboard)) {
+        if (!this.parsons && clipboard && blocksFromText(clipboard)) {
             actions.push(['paste', () => {
                 const f = findBlock(this.program, id);
                 this.insertBlocks(blocksFromText(clipboard), f.list, f.index + 1);
@@ -1064,6 +1101,11 @@ export class AlgorithmEditor {
      * @param {boolean} cut remove the block too
      */
     onCopy(e, cut) {
+        if (this.parsons) {
+            // Copies would add blocks to the problem; a cut block could be pasted twice.
+            e.preventDefault();
+            return;
+        }
         const f = this.selected && !this.running ? findBlock(this.program, this.selected) : null;
         if (!f) {
             return;
@@ -1086,6 +1128,10 @@ export class AlgorithmEditor {
      * @param {ClipboardEvent} e
      */
     onPaste(e) {
+        if (this.parsons) {
+            e.preventDefault();
+            return;
+        }
         if (this.running) {
             return;
         }

@@ -214,6 +214,10 @@ export const STR = {
         cidone: 'The diagram was made from the code: {blocks} blocks.',
         ciwarnings: 'These lines have no block and became comments in the diagram:',
         ciline: 'Line {line}: {text}',
+        parsonstask: 'Put the given blocks in the right order, inside the right loops and branches, so the algorithm ' +
+            'passes the tests. Some blocks may not belong.',
+        parsonshint: 'Drag a block onto a + sign, or select it and choose Move to. Delete the blocks that do not belong ' +
+            '(Undo brings one back).',
         arrays: 'Arrays', arraysempty: 'The arrays appear here when the algorithm runs or steps.',
         arraycut: 'Only the first {shown} of {length} elements are shown.', arrayvalues: '{name}: {values}',
         statusstopped: 'Stopped · step {step}', statuserror: 'Error · step {step}', showblock: 'Show the block',

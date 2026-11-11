@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.14.0 – 2026-11-11 (stable)
+
+- **Parsons mode of the editor** (for the Parsons problems of qtype_algorithm 2.14): the given blocks can be moved
+  (drag onto a + sign, Move to, Up, Down, Alt + arrows) and deleted, but no block can be added, copied, pasted or
+  duplicated, and their text cannot be changed; a + sign opens no block list. The panel says what to do, and the
+  functions cannot be added, removed or renamed.
+- New strings in English, Serbian Latin and Serbian Cyrillic.
+
 ## 2.13.0 – 2026-11-11 (stable)
 
 - **Code to diagram:** File, Code to diagram… in the editor makes a flowchart from pasted Python: def (functions with
