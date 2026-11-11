@@ -911,6 +911,104 @@ html.tiny_algorithm-noscroll body {
     font-family: SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+/* Class view: the copies of an exercise the students are changing */
+.tiny_algorithm-class-dialog .tiny_algorithm-dialog {
+    width: 1200px;
+    max-width: 96vw;
+}
+
+.tiny_algorithm-class-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1.25rem;
+    margin-bottom: .75rem;
+    font-size: .85rem;
+}
+
+.tiny_algorithm-class-status {
+    font-weight: 600;
+}
+
+.tiny_algorithm-class-note {
+    color: #4b5563;
+}
+
+.tiny_algorithm-class-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: .75rem;
+}
+
+.tiny_algorithm-class-card {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: .5rem;
+    border: 1px solid #d1d5db;
+    border-radius: .5rem;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tiny_algorithm-class-card:hover,
+.tiny_algorithm-class-card:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, .25);
+}
+
+.tiny_algorithm-class-head {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    font-size: .85rem;
+}
+
+.tiny_algorithm-class-time {
+    color: #6b7280;
+    font-variant-numeric: tabular-nums;
+}
+
+.tiny_algorithm-class-tests {
+    align-self: flex-start;
+    padding: 0 .4rem;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 600;
+}
+
+.tiny_algorithm-class-pass {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.tiny_algorithm-class-fail {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.tiny_algorithm-class-picture {
+    height: 160px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+}
+
+.tiny_algorithm-class-picture svg {
+    width: 100%;
+    height: 100%;
+}
+
+.tiny_algorithm-class-empty {
+    color: #6b7280;
+}
+
+.tiny_algorithm-class-large {
+    width: 1100px;
+    max-width: 92vw;
+}
+
 /* Files of an algorithm and the files it writes */
 .tiny_algorithm-files .tiny_algorithm-file {
     margin-bottom: .5rem;

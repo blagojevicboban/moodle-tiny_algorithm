@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.15.0 – 2026-11-11 (stable)
+
+- **Class work** (with filter_algorithm 2.15): in an exercise of a page, a student's changed copy is also sent to the
+  server a moment after each change (and removed when it is back to the original). The teacher has a Class work
+  button: a grid of the copies of the class as small diagrams, each with the name, the time and the result of the
+  tests of the exercise (worked out in the teacher's browser, once for each version), refreshed every 10 seconds. A
+  click shows a copy large, to run and step through it on the projector; Hide the names shows Student 1, 2, … instead.
+- New module classview.js and tests/classview.test.mjs; options share and loadClass of the workspace; new strings in
+  English, Serbian Latin and Serbian Cyrillic.
+
 ## 2.14.0 – 2026-11-11 (stable)
 
 - **Parsons mode of the editor** (for the Parsons problems of qtype_algorithm 2.14): the given blocks can be moved

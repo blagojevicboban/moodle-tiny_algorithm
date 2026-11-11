@@ -27,6 +27,10 @@ import {AlgorithmRunner} from './runner';
 import {TestsPanel} from './tests';
 import {cloneProgram, deserialize, serialize} from './model';
 import {t as tr} from './strings';
+import {openClassView} from './classview';
+
+/** Milliseconds a change waits before the copy is sent to the teacher (the class view). */
+const SHARE_DELAY = 1500;
 
 const el = (tag, attrs = {}, ...kids) => {
     const e = document.createElement(tag);
@@ -70,21 +74,44 @@ export class AlgorithmWorkspace {
      * @param {string} [opts.lang] UI language code
      * @param {string|number} [opts.scope] where the algorithm is (context id), part of the storage key
      * @param {Object} [opts.codeConfig] code languages of the site and the course (tiny_algorithm/codelang)
+     * @param {Function} [opts.share] sends the student's copy to the class view: (key, JSON or '' when it is back to the
+     *     original) => Promise
+     * @param {Function} [opts.loadClass] the copies of the class for the teacher: (key) => Promise of the copies
      */
     constructor(host, {starter, solution = null, tests = [], showCode = true, showWatch = true, showSolution = false,
-            lang = null, scope = '', codeConfig = {}}) {
+            lang = null, scope = '', codeConfig = {}, share = null, loadClass = null}) {
         this.starter = starter;
         this.solution = solution;
         this.tests = tests;
         this.opts = {lang, showCode, showWatch, fullscreen: false, codeConfig};
         this.lang = lang;
-        this.storageKey = `tiny_algorithm_work_${scope}_${hash(serialize(starter) + JSON.stringify(tests))}`;
+        // The exercise: its starting algorithm and its tests (a changed exercise is a new one).
+        this.workKey = `w${hash(serialize(starter) + JSON.stringify(tests))}`;
+        this.storageKey = `tiny_algorithm_work_${scope}_${this.workKey.slice(1)}`;
+        this.share = share;
+        this.loadClass = loadClass;
         this.work = this.load() || cloneProgram(starter);
         this.editing = false;
         this.view = null;
         this.solutionView = null;
         this.build(host, showSolution && solution);
         this.mount();
+        // A copy changed before the class view existed (or on another page load) reaches the teacher too.
+        if (this.isModified()) {
+            this.shareSoon();
+        }
+    }
+
+    /** Send the copy to the class view a moment after the last change. */
+    shareSoon() {
+        if (!this.share) {
+            return;
+        }
+        clearTimeout(this.shareTimer);
+        this.shareTimer = setTimeout(() => {
+            const text = this.isModified() ? JSON.stringify(this.work) : '';
+            Promise.resolve(this.share(this.workKey, text)).catch(() => null);
+        }, SHARE_DELAY);
     }
 
     t(key) {
@@ -107,6 +134,11 @@ export class AlgorithmWorkspace {
         if (this.tests.length) {
             this.testsPanel = new TestsPanel(this.root, {tests: this.tests, mode: 'student', lang: this.lang,
                 getProgram: () => this.current()});
+        }
+        if (this.loadClass) {
+            // The teacher: the copies of the class.
+            this.bar.append(btn('classwork', () => openClassView(this.root, {load: () => this.loadClass(this.workKey),
+                tests: this.tests, lang: this.lang, codeConfig: this.opts.codeConfig})));
         }
         if (canShowSolution) {
             this.btnSolution = btn('showsolution', () => this.toggleSolution());
@@ -196,6 +228,9 @@ export class AlgorithmWorkspace {
         }
         if (this.testsPanel && changed) {
             this.testsPanel.markStale();
+        }
+        if (changed) {
+            this.shareSoon();
         }
         this.updateModified();
     }
