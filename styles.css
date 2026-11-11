@@ -786,6 +786,114 @@ html.tiny_algorithm-noscroll body {
     margin-top: .5rem;
 }
 
+/* Complexity: the steps for each size n, the reference curves n, n log n, n² and a table */
+.tiny_algorithm-cx-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: .5rem 1rem;
+    margin-bottom: .5rem;
+}
+
+.tiny_algorithm-cx-field {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    font-size: .85rem;
+}
+
+.tiny_algorithm-cx-field input {
+    min-width: 14rem;
+}
+
+.tiny_algorithm-cx-status {
+    min-height: 1.2rem;
+    color: #4b5563;
+    font-size: .85rem;
+}
+
+.tiny_algorithm-cx-verdict {
+    margin: 0 0 .25rem;
+    font-weight: 600;
+}
+
+.tiny_algorithm-cx-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: .85rem;
+}
+
+.tiny_algorithm-cx-swatch {
+    display: inline-block;
+    width: .9rem;
+    height: .9rem;
+    margin-right: .3rem;
+    border-radius: 2px;
+    vertical-align: -.1rem;
+}
+
+.tiny_algorithm-cx-chart {
+    display: block;
+    width: 100%;
+    max-width: 640px;
+    height: auto;
+    background: #fcfcfb;
+    font-family: inherit;
+}
+
+.tiny_algorithm-cx-grid {
+    stroke: #e1e0d9;
+    stroke-width: 1;
+}
+
+.tiny_algorithm-cx-tick {
+    fill: #6b6a65;
+    font-size: 11px;
+}
+
+.tiny_algorithm-cx-axis {
+    fill: #3f3e3a;
+    font-size: 12px;
+}
+
+.tiny_algorithm-cx-ref {
+    fill: none;
+    stroke: #898781;
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+}
+
+.tiny_algorithm-cx-reflabel {
+    fill: #6b6a65;
+    font-size: 11px;
+}
+
+.tiny_algorithm-cx-line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+}
+
+.tiny_algorithm-cx-dot {
+    stroke: #fcfcfb;
+    stroke-width: 2;
+}
+
+.tiny_algorithm-cx-label {
+    fill: #1f1f1d;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.tiny_algorithm-cx-note {
+    color: #4b5563;
+    font-size: .8rem;
+}
+
+.tiny_algorithm-cx-table {
+    width: auto;
+}
+
 /* Files of an algorithm and the files it writes */
 .tiny_algorithm-files .tiny_algorithm-file {
     margin-bottom: .5rem;

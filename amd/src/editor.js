@@ -41,6 +41,7 @@ import {isMatrix, languageLabels, extensionOf} from './codegen';
 import {pickLanguage, rememberLanguage} from './codelang';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
 import {TEMPLATES} from './templates';
+import {openComplexity} from './complexity';
 import {importFprg, exportFprg} from './flowgorithm';
 import {errorText, t as tr} from './strings';
 import {Zoom} from './zoom';
@@ -1527,7 +1528,8 @@ export class AlgorithmEditor {
                 ev.preventDefault();
                 items[(at + (ev.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
             }
-        }}, ...files, item('trace', () => this.showTrace()), item('exprhelp', () => openHelp(this.root)),
+        }}, ...files, item('trace', () => this.showTrace()), item('complexity', () => this.showComplexity()),
+            item('exprhelp', () => openHelp(this.root)),
             item('shortcuts', () => openShortcuts(this.root)));
         this.btnFile.after(this.fileMenu);
         // The toolbar is a flex row: an absolute child without a position would go to its start, so put it under the button.
@@ -1591,6 +1593,12 @@ export class AlgorithmEditor {
         }
         this.pendingInputs = [...values];
         this.start(true);
+    }
+
+    /** How fast the algorithm grows: its steps for several sizes n, beside a template to compare with. */
+    showComplexity() {
+        openComplexity(this.root, cloneProgram(this.program), {others: TEMPLATES.map((tmpl) => ({
+            label: tmpl.title || tmpl.fallbackTitle, build: tmpl.build}))});
     }
 
     /** The trace table of the last run; a row selects its block. */

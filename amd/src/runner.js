@@ -36,6 +36,8 @@ import {pickLanguage, rememberLanguage} from './codelang';
 import {SELECTED, blockAt, markCode, nextBlock, revealNode, showCode} from './codeview';
 import {readLine} from './consoleinput';
 import {Timeline, replayTo} from './timeline';
+import {openComplexity, sizeTargets} from './complexity';
+import {TEMPLATES} from './templates';
 
 const el = (tag, attrs = {}, ...kids) => {
     const e = document.createElement(tag);
@@ -117,6 +119,11 @@ export class AlgorithmRunner {
             this.statusEl,
             el('span', {'class': 'tiny_algorithm-grow'}),
             btn('trace', () => openTrace(this.root, this.trace, {cut: this.traceCut, select: (id) => this.showBlock(id)})));
+        // How fast the algorithm grows, when it has a size n (a value it reads or an Assign such as n = 8).
+        if (sizeTargets(this.program).length) {
+            this.bar.append(btn('complexity', () => openComplexity(this.root, this.program, {others: TEMPLATES.map((tmpl) => ({
+                label: tmpl.title || tmpl.fallbackTitle, build: tmpl.build}))})));
+        }
         const zoomBox = this.zoom.controls((key) => this.t(key));
         if (this.canFullscreen) {
             this.btnFull = el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm tiny_algorithm-zoom-btn',

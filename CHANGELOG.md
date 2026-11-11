@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.12.0 – 2026-11-11 (stable)
+
+- **Complexity:** File, Complexity… in the editor and a Complexity… button in the reader view run the algorithm for
+  several sizes n (10, 20, 50, 100, 200, 500 or the reader's own) and count its steps. n is the value of an Assign of a
+  whole number (n = 8; the variable n first) or the first value the algorithm reads; the values it reads after n are
+  random numbers, the same in every measuring. A chart draws the steps against n with the grey curves n, n log n and
+  n² from the first point, and names the growth that fits best (the steps grow like O(n²)), from O(1) to O(n³).
+- **Compare:** a template (e.g. Selection Sort beside Bubble Sort) is measured with the same sizes and drawn in a
+  second colour, with a legend; a table lists the steps of both.
+- A size that needs more than 1,000,000 steps ends the measuring with a note; closing the dialog stops it; the page
+  can draw every 50,000 steps.
+- New module complexity.js and tests/complexity.test.mjs; new strings in English, Serbian Latin and Serbian Cyrillic.
+
 ## 2.11.0 – 2026-11-11 (stable)
 
 - **Arrays panel:** an algorithm with arrays has a panel beside the console (and under the reader view) that draws the
