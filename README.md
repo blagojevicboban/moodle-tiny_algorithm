@@ -55,7 +55,9 @@ without leaving the editor.
 | **Quiz: analyse an algorithm** | **Quiz: draw an algorithm** |
 | ![Quiz analyse](docs/screenshots/quiz-analyse.png) | ![Quiz draw](docs/screenshots/quiz-draw.png) |
 | **A matrix as a function parameter (watch and Pascal code)** | |
-| ![Matrix](docs/screenshots/matrix.png) | |
+| ![Matrix](docs/screenshots/matrix.png) | ![Arrays panel](docs/screenshots/arrays.png) |
+| ![Step back and timeline](docs/screenshots/step-back.png) | ![Complexity](docs/screenshots/complexity.png) |
+| ![Code to diagram](docs/screenshots/code-to-diagram.png) | ![Class work](docs/screenshots/class-work.png) |
 
 ## 📋 Requirements
 
