@@ -14,14 +14,6 @@
   <ul>
     <li><strong>Run the code with CodeLab:</strong> with the CodeLab plugins and a Jobe server on the site, the code panel runs the generated Python, C, C++, Java, C#, JavaScript or Pascal program with an input, so its output can be compared with the run of the flowchart.</li>
     <li><strong>Open in CodeLab:</strong> a new CodeLab example in the same editor starts from the code of the flowchart.</li>
-    <li><strong>Class work (2.15):</strong> with filter_algorithm 2.15 the teacher sees the copies of an exercise the students are changing, as small diagrams with the result of the tests, refreshed every 10 seconds, and shows one large on the projector, with the names hidden when wanted.</li>
-    <li><strong>Parsons problems (2.14):</strong> with qtype_algorithm 2.14 a quiz question can give students the blocks of the solution in a random order, with a few wrong blocks, to arrange and nest; the editor then only moves and deletes blocks.</li>
-    <li><strong>Code to diagram (2.13):</strong> paste Python code and get the flowchart: functions, input and print, if / elif / else, while, for loops, lists and matrices, f-strings. Lines with no block become comments and are listed. The Python the plugin generates comes back as the same algorithm, and it now handles whole-number division and Boolean input correctly.</li>
-    <li><strong>Complexity (2.12):</strong> the algorithm runs for several sizes n, its steps are counted and drawn beside the curves n, n log n and n², and the growth that fits best is named, for example O(n²). A template such as Selection Sort can be measured beside it.</li>
-    <li><strong>Arrays panel (2.11):</strong> while the algorithm runs or steps, its arrays are drawn as bars or boxes and a matrix as a grid. The elements a block read are amber and those it wrote green, so comparisons and swaps can be seen, and the index variables point at their element.</li>
-    <li><strong>New templates (2.11):</strong> Bubble Sort, Selection Sort and Binary Search.</li>
-    <li><strong>Step back and a timeline (2.10):</strong> a Back button (F8) and a slider over the steps of the run take the algorithm back to any earlier step, with the variables, the console, the drawing and the files as they were then. Random numbers and the values entered stay the same; a new value can be entered when the algorithm is taken back before an Input.</li>
-    <li><strong>Run and Step wait for a value (2.10):</strong> pressing them while the algorithm asks for a value no longer ends the run with an error.</li>
   </ul>
   <hr>
   <p><strong>Core features</strong></p>
@@ -37,6 +29,13 @@
     <li><strong>Editable images:</strong> the diagram is an SVG image that keeps its model; double-click to edit again. Zoom and per-diagram options included.</li>
     <li><strong>Students edit and test:</strong> with filter_algorithm, students can change their own copy of a diagram in any content and run the teacher's tests.</li>
     <li><strong>Tests from the solution:</strong> the teacher enters only the inputs; the expected outputs are computed from the teacher's solution. A test can also call one function and check the value it returns.</li>
+    <li><strong>Class work:</strong> with filter_algorithm the teacher sees the students' copies of an exercise as small diagrams with their test results, and shows one large on the projector.</li>
+    <li><strong>Parsons problems:</strong> with qtype_algorithm a question gives the blocks of the solution in random order, with a few wrong ones, to arrange and nest.</li>
+    <li><strong>Code to diagram:</strong> paste Python code and get the flowchart; lines with no block become comments.</li>
+    <li><strong>Complexity:</strong> the algorithm runs for several sizes n, its steps are drawn beside n, n log n and n&sup2;, and the best fit is named.</li>
+    <li><strong>Arrays panel:</strong> arrays drawn as bars or boxes and matrices as a grid while the algorithm runs; read elements amber, written green.</li>
+    <li><strong>Step back and a timeline:</strong> a Back button (F8) and a slider take the run back to any earlier step.</li>
+    <li><strong>Templates:</strong> Bubble Sort, Selection Sort and Binary Search among others.</li>
   </ul>
 
   <hr>
@@ -51,12 +50,12 @@
   <p><strong>Requirements</strong></p>
   <ul>
     <li><strong>Moodle:</strong> 4.5 LTS to 5.3 (PHP as required by your Moodle version).</li>
-    <li><strong>Companion plugins (optional):</strong> filter_algorithm 2.2.0 (Run / Step and the student features for readers) and qtype_algorithm 2.5.3 (quiz question type with automatic grading).</li>
+    <li><strong>Companion plugins (optional):</strong> filter_algorithm 2.15.0 (Run / Step, the student features and class work for readers), qtype_algorithm 2.14.0 (quiz question type with automatic grading and Parsons problems), and tiny_codelab 1.12.0 with a Jobe server for Run the code.</li>
   </ul>
 
   <hr>
   <p><strong>Privacy</strong></p>
-  <p>The editor and interpreter run in the browser; nothing is sent to external services. The diagram is stored in the text you save. The plugin keeps two display preferences (code and variable panels) and the student's own copy of an editable diagram in the browser's local storage and implements the Moodle Privacy API (no personal data stored).</p>
+  <p>The editor and interpreter run in the browser. Only when the site has the CodeLab plugins and the user presses Run the code is the generated program, with its input, sent to the Jobe server set up in CodeLab; nothing else is sent to external services. The diagram is stored in the text you save. The plugin keeps two display preferences (code and variable panels) and the student's own copy of an editable diagram in the browser's local storage and implements the Moodle Privacy API (no personal data stored).</p>
 
   <hr>
   <p>Developed by <strong>Boban Blagojevi&#263;</strong>. Languages: English and Serbian (Latin and Cyrillic).<br>
