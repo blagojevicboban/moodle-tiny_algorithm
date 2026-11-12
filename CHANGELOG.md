@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.16.0 – 2026-11-12 (stable)
+
+- **Run the code** (with the CodeLab plugins, optional): when tiny_codelab with a Jobe server can run the language of
+  the code panel, the panel has Run the code. The generated program runs on Jobe with the input of a small box, and its
+  output stands beside the diagram, to compare with the run of the flowchart. code_language::for_context gives the
+  languages (codelab) to every page, the editor and the question type; without tiny_codelab nothing changes.
+- **Open in CodeLab**: a new CodeLab example in the same editor starts from the code (tiny_codelab 1.12); the message
+  says so.
+- New strings in English, Serbian Latin and Serbian Cyrillic; PHPUnit test of the CodeLab languages.
+
 ## 2.15.0 – 2026-11-11 (stable)
 
 - **Class work** (with filter_algorithm 2.15): in an exercise of a page, a student's changed copy is also sent to the
