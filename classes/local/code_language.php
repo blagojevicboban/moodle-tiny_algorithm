@@ -95,6 +95,28 @@ class code_language {
                 break;
             }
         }
+        $result['codelab'] = self::codelab($context);
         return $result;
+    }
+
+    /**
+     * The languages of the code panel whose program can run with the CodeLab plugins (tiny_codelab with a Jobe server,
+     * optional): the code panel then has a Run button. Empty without tiny_codelab, without Jobe or without the right to run.
+     *
+     * @param \context $context
+     * @return string[]
+     */
+    public static function codelab(\context $context): array {
+        if (
+            !class_exists('\tiny_codelab\local\jobe') || !method_exists('\tiny_codelab\local\languages', 'offered') ||
+            !get_capability_info('tiny/codelab:run') || !has_capability('tiny/codelab:run', $context)
+        ) {
+            return [];
+        }
+        $jobe = new \tiny_codelab\local\jobe();
+        if (!$jobe->is_configured()) {
+            return [];
+        }
+        return array_values(array_intersect(self::LANGUAGES, \tiny_codelab\local\languages::offered()));
     }
 }

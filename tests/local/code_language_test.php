@@ -52,7 +52,7 @@ final class code_language_test extends \advanced_testcase {
 
         $config = code_language::for_context($module);
         $this->assertSame(['default' => 'python', 'allowed' => code_language::LANGUAGES, 'force' => false, 'lock' => false,
-            'scope' => (string) $course->id], $config);
+            'scope' => (string) $course->id, 'codelab' => []], $config);
 
         filter_set_local_config('algorithm', \context_coursecat::instance($category->id)->id, 'codelang', 'java');
         $this->assertSame('java', code_language::for_context($module)['default']);
@@ -70,5 +70,27 @@ final class code_language_test extends \advanced_testcase {
         set_config('codelangs', 'python,csharp', 'tiny_algorithm');
         $this->assertSame('csharp', code_language::for_context($module)['default']);
         $this->assertSame('', code_language::for_context(\context_system::instance())['scope']);
+    }
+
+    public function test_codelab_languages(): void {
+        $this->resetAfterTest();
+        $context = \context_system::instance();
+        // Without the right to run (not logged in), or without tiny_codelab: no Run button.
+        $this->assertSame([], code_language::codelab($context));
+        if (!class_exists('\tiny_codelab\local\jobe')) {
+            return;
+        }
+        $this->setAdminUser();
+        set_config('jobeserver', '', 'tiny_codelab');
+        $this->assertSame([], code_language::codelab($context), 'no Jobe server');
+
+        // A Jobe server with C and Python (its answer cached, so the test asks no server).
+        set_config('jobeserver', 'https://jobe.example.org', 'tiny_codelab');
+        set_config('languages', 'c,cpp,python', 'tiny_codelab');
+        $jobe = new \tiny_codelab\local\jobe();
+        \cache::make('tiny_codelab', 'languages')->set($jobe->cache_key(),
+            ['ok' => true, 'versions' => ['c' => '13', 'python' => '3.12'], 'error' => '', 'time' => time()]);
+        $this->assertSame(['python', 'c'], code_language::codelab($context));
+        $this->assertSame(['python', 'c'], code_language::for_context($context)['codelab']);
     }
 }

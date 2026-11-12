@@ -204,9 +204,22 @@ export class AlgorithmRunner {
             this.bar.append(this.codeToggle);
             const close = el('button', {type: 'button', 'class': 'btn btn-link btn-sm tiny_algorithm-code-close',
                 onclick: () => this.toggleCode(), title: this.t('hidecode'), 'aria-label': this.t('hidecode')}, '×');
+            // With the CodeLab plugins (tiny_codelab with Jobe): run the generated program and compare its output.
+            this.runCodeBtn = el('button', {type: 'button', 'class': 'btn btn-outline-primary btn-sm tiny_algorithm-runcode-btn',
+                title: this.t('runcodehint'), 'aria-expanded': 'false', onclick: () => this.toggleRunCode()},
+            '▶ ' + this.t('runcode'));
+            this.runCodeInput = el('textarea', {'class': 'form-control form-control-sm font-monospace', rows: '2',
+                spellcheck: 'false', 'aria-label': this.t('runcodeinput'), placeholder: this.t('runcodeinput')});
+            this.runCodeOutput = el('div', {'class': 'tiny_algorithm-runcode-output', 'aria-live': 'polite'});
+            this.runCodeBox = el('div', {'class': 'tiny_algorithm-runcode', hidden: true}, this.runCodeInput,
+                el('button', {type: 'button', 'class': 'btn btn-primary btn-sm my-1', onclick: () => this.runCode()},
+                    this.t('runcode')),
+                this.runCodeOutput);
             this.codePane = el('div', {'class': 'tiny_algorithm-view-code'},
                 el('div', {'class': 'tiny_algorithm-code-bar'}, el('strong', {}, this.t('code')), this.codeSelect,
-                    btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeText || '')), close),
+                    btn('copy', () => navigator.clipboard && navigator.clipboard.writeText(this.codeText || '')),
+                    this.runCodeBtn, close),
+                this.runCodeBox,
                 this.codeEl);
             this.root.append(this.codePane);
             this.renderCode();
@@ -402,7 +415,54 @@ export class AlgorithmRunner {
         this.watchToggle.title = this.t(hidden ? 'showwatch' : 'hidewatch');
     }
 
+    /**
+     * Whether the program of the code panel's language can run with the CodeLab plugins of the site.
+     *
+     * @returns {boolean}
+     */
+    canRunCode() {
+        return Array.isArray(this.codeConfig.codelab) && this.codeConfig.codelab.includes(this.codeLang);
+    }
+
+    toggleRunCode() {
+        const open = this.runCodeBox.hidden;
+        this.runCodeBox.hidden = !open;
+        this.runCodeBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) {
+            this.runCodeInput.focus();
+        }
+    }
+
+    /**
+     * Run the generated program on the Jobe server of CodeLab (tiny_codelab/runner) with the input of the box.
+     */
+    async runCode() {
+        if (!this.canRunCode()) {
+            return;
+        }
+        const output = this.runCodeOutput;
+        try {
+            const [runner, terminal] = await Promise.all([import('tiny_codelab/runner'), import('tiny_codelab/console')]);
+            await terminal.showRunning(output);
+            let stdin = this.runCodeInput.value;
+            if (stdin !== '' && !stdin.endsWith('\n')) {
+                stdin += '\n';
+            }
+            const result = await runner.run(this.codeLang, this.codeText || '', stdin);
+            await terminal.showResult(output, result);
+        } catch (err) {
+            output.textContent = errorText(err);
+        }
+    }
+
     renderCode() {
+        if (this.runCodeBtn) {
+            const can = this.canRunCode();
+            this.runCodeBtn.hidden = !can;
+            if (!can) {
+                this.runCodeBox.hidden = true;
+            }
+        }
         try {
             this.codeText = showCode(this.codeEl, this.codeLang, this.program);
         } catch (err) {
