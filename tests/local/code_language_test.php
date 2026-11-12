@@ -88,8 +88,8 @@ final class code_language_test extends \advanced_testcase {
         set_config('jobeserver', 'https://jobe.example.org', 'tiny_codelab');
         set_config('languages', 'c,cpp,python', 'tiny_codelab');
         $jobe = new \tiny_codelab\local\jobe();
-        \cache::make('tiny_codelab', 'languages')->set($jobe->cache_key(),
-            ['ok' => true, 'versions' => ['c' => '13', 'python' => '3.12'], 'error' => '', 'time' => time()]);
+        $answer = ['ok' => true, 'versions' => ['c' => '13', 'python' => '3.12'], 'error' => '', 'time' => time()];
+        \cache::make('tiny_codelab', 'languages')->set($jobe->cache_key(), $answer);
         $this->assertSame(['python', 'c'], code_language::codelab($context));
         $this->assertSame(['python', 'c'], code_language::for_context($context)['codelab']);
     }
