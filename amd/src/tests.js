@@ -103,16 +103,19 @@ export const runProgram = (program, inputs, lang = null, call = null) => {
     const pieces = [];
     let read = 0;
     let returned = null;
+    let steps = 0;
     const result = (error) => {
         const after = pieces.filter((p) => p.read >= read).map((p) => p.text).join('');
-        return {output: pieces.map((p) => p.text).join(''), after, error, call: call !== null, result: returned};
+        return {output: pieces.map((p) => p.text).join(''), after, error, call: call !== null, result: returned, steps};
     };
     try {
         const gen = execute(program, {maxSteps: MAX_STEPS, call, seed: RANDOM_SEED});
         let res = gen.next();
         while (!res.done) {
             const ev = res.value;
-            if (ev.event === 'output') {
+            if (ev.event === 'step') {
+                steps++;
+            } else if (ev.event === 'output') {
                 pieces.push({text: ev.text, read});
             } else if (ev.event === 'result') {
                 returned = ev.text;

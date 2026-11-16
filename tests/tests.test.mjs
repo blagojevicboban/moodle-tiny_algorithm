@@ -56,12 +56,13 @@ test('a line "" is an empty value', () => {
     assert.deepEqual(parseInputs('""'), ['']);
     assert.deepEqual(parseInputs('a\n""\nb'), ['a', '', 'b']);
     const len = prog(B('declare', {name: 's', varType: 'String'}), B('input', {target: 's'}), B('output', {expr: 'Len(s)'}));
-    assert.deepEqual(runProgram(len, '""'), {output: '0\n', after: '0\n', error: null, call: false, result: null});
+    assert.deepEqual(runProgram(len, '""'), {output: '0\n', after: '0\n', error: null, call: false, result: null, steps: 3});
 });
 
 test('runProgram returns the output, or the error with the output written so far', () => {
+    // The steps are those of the editor and of the PHP interpreter of qtype_algorithm (the parity fixture compares them).
     assert.deepEqual(runProgram(sum(), '10'), {output: 'Sum = 55\n', after: 'Sum = 55\n', error: null, call: false,
-        result: null});
+        result: null, steps: 38});
     const p = prog(B('output', {expr: '"start"'}), B('declare', {name: 'x'}), B('input', {target: 'x'}));
     const r = runProgram(p, '', 'en');
     assert.equal(r.output, 'start\n');
