@@ -452,6 +452,7 @@ $string['ui_up'] = 'Up';
 $string['ui_variables'] = 'Variables';
 $string['ui_watchempty'] = 'Run or step the algorithm to see the variables.';
 $string['ui_weight'] = 'Weight';
+$string['ui_workfromserver'] = 'Your newer version from another device was loaded.';
 $string['ui_zoomin'] = 'Zoom in';
 $string['ui_zoomout'] = 'Zoom out';
 $string['ui_zoomreset'] = 'Reset zoom (100%)';

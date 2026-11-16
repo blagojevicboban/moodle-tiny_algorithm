@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.19.0 – 2026-11-16 (stable)
+
+- **The copy follows the student** (with filter_algorithm 2.19): the workspace of an exercise gets a new option
+  loadMine; when the page opens it asks for the student's copy on the server and uses the newer of the two copies
+  (this browser keeps the time of its copy). A copy being edited is never replaced, and an older copy of this browser
+  without a time is kept. A short note says when the copy from another device was loaded.
+- The test runner (runProgram) reports the steps of a run, for the efficiency options of qtype_algorithm 2.18.
+- New string in English, Serbian Latin and Serbian Cyrillic.
+
 ## 2.17.0 – 2026-11-16 (stable)
 
 - **Call tree**: a new panel (a tab beside Arrays in the editor, below the console in pages) draws every call of a

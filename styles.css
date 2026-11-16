@@ -1179,6 +1179,11 @@ html.tiny_algorithm-noscroll body {
     font-size: .8rem;
 }
 
+.tiny_algorithm-workspace .tiny_algorithm-ws-note {
+    color: #065f46;
+    font-size: .8rem;
+}
+
 .tiny_algorithm-workspace .tiny_algorithm-ws-body .tiny_algorithm-viewer {
     margin-top: 0;
 }

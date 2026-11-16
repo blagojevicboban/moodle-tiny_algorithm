@@ -16,7 +16,8 @@
 /**
  * Student workspace (used by filter_algorithm when the teacher lets students edit): the reader view of the student's
  * own copy of the algorithm, an inline editor for that copy, the teacher's tests, full screen and, when allowed,
- * the teacher's solution. The copy is kept in the browser (localStorage) only.
+ * the teacher's solution. The copy is kept in the browser (localStorage) and, with filter_algorithm, on the server, so it
+ * follows the student to another device: the newer of the two copies is used.
  *
  * @module tiny_algorithm/workspace
  * @copyright  2026 Boban Blagojević
@@ -77,9 +78,11 @@ export class AlgorithmWorkspace {
      * @param {Function} [opts.share] sends the student's copy to the class view: (key, JSON or '' when it is back to the
      *     original) => Promise
      * @param {Function} [opts.loadClass] the copies of the class for the teacher: (key) => Promise of the copies
+     * @param {Function} [opts.loadMine] the student's own copy on the server: (key) => Promise of {program (JSON or ''),
+     *     timemodified (seconds)}
      */
     constructor(host, {starter, solution = null, tests = [], showCode = true, showWatch = true, showSolution = false,
-            lang = null, scope = '', codeConfig = {}, share = null, loadClass = null}) {
+            lang = null, scope = '', codeConfig = {}, share = null, loadClass = null, loadMine = null}) {
         this.starter = starter;
         this.solution = solution;
         this.tests = tests;
@@ -90,6 +93,7 @@ export class AlgorithmWorkspace {
         this.storageKey = `tiny_algorithm_work_${scope}_${this.workKey.slice(1)}`;
         this.share = share;
         this.loadClass = loadClass;
+        this.loadMine = loadMine;
         this.work = this.load() || cloneProgram(starter);
         this.editing = false;
         this.view = null;
@@ -99,6 +103,76 @@ export class AlgorithmWorkspace {
         // A copy changed before the class view existed (or on another page load) reaches the teacher too.
         if (this.isModified()) {
             this.shareSoon();
+        }
+        if (this.loadMine) {
+            this.ready = this.syncFromServer();
+        }
+    }
+
+    /**
+     * Use the copy the server keeps when it is newer than the copy of this browser (it was changed on another device),
+     * or when this browser has none. A copy is never replaced while the student is editing it.
+     *
+     * @returns {Promise<boolean>} whether the copy of the server was taken
+     */
+    async syncFromServer() {
+        let mine;
+        try {
+            mine = await this.loadMine(this.workKey);
+        } catch (e) {
+            return false; // Offline or no access: the copy of this browser stays.
+        }
+        let program = null;
+        try {
+            program = mine && mine.program ? JSON.parse(mine.program) : null;
+        } catch (e) {
+            program = null;
+        }
+        if (!program || !Array.isArray(program.functions) || this.editing || serialize(program) === serialize(this.work)) {
+            return false;
+        }
+        const time = Number(mine.timemodified) * 1000;
+        const local = this.localTime();
+        // A copy of this browser from before the times were kept (local 0) is kept as well.
+        if (this.isModified() && !(local && time > local)) {
+            return false;
+        }
+        this.work = cloneProgram(program);
+        this.store(time);
+        this.mount();
+        this.note.textContent = this.t('workfromserver');
+        this.note.hidden = false;
+        if (this.testsPanel) {
+            this.testsPanel.markStale();
+        }
+        return true;
+    }
+
+    /** @returns {number} when the copy of this browser was changed (ms), 0 when unknown */
+    localTime() {
+        try {
+            return Number(window.localStorage.getItem(`${this.storageKey}_t`)) || 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Keep the copy in this browser with its time (or forget both when it is back to the original).
+     *
+     * @param {number} time when it was changed (ms)
+     */
+    store(time) {
+        try {
+            if (this.isModified()) {
+                window.localStorage.setItem(this.storageKey, serialize(this.work));
+                window.localStorage.setItem(`${this.storageKey}_t`, String(time));
+            } else {
+                window.localStorage.removeItem(this.storageKey);
+                window.localStorage.removeItem(`${this.storageKey}_t`);
+            }
+        } catch (e) {
+            // Storage can be unavailable (private window, quota); the copy then only lasts for this page.
         }
     }
 
@@ -124,7 +198,9 @@ export class AlgorithmWorkspace {
         this.btnReset = btn('resetwork', () => this.resetWork());
         this.btnFull = btn('fullscreen', () => this.toggleFullscreen());
         this.badge = el('span', {'class': 'tiny_algorithm-ws-modified'}, this.t('modified'));
-        this.bar = el('div', {'class': 'tiny_algorithm-ws-bar'}, this.btnEdit, this.btnReset, this.btnFull, this.badge);
+        this.note = el('span', {'class': 'tiny_algorithm-ws-note', role: 'status', hidden: true});
+        this.bar = el('div', {'class': 'tiny_algorithm-ws-bar'}, this.btnEdit, this.btnReset, this.btnFull, this.badge,
+            this.note);
         this.body = el('div', {'class': 'tiny_algorithm-ws-body'});
         this.root = el('div', {'class': 'tiny_algorithm-workspace', onkeydown: (e) => {
             if (e.key === 'Escape' && this.root.classList.contains('tiny_algorithm-fullscreen') && !document.fullscreenElement) {
@@ -217,14 +293,11 @@ export class AlgorithmWorkspace {
         // The editor also draws again during Run and Step: only a real change makes the test results old.
         const changed = serialize(program) !== serialize(this.work);
         this.work = cloneProgram(program);
-        try {
-            if (this.isModified()) {
-                window.localStorage.setItem(this.storageKey, serialize(this.work));
-            } else {
-                window.localStorage.removeItem(this.storageKey);
-            }
-        } catch (e) {
-            // Storage can be unavailable (private window, quota); the copy then only lasts for this page.
+        if (changed || !this.isModified()) {
+            this.store(Date.now());
+        }
+        if (changed) {
+            this.note.hidden = true;
         }
         if (this.testsPanel && changed) {
             this.testsPanel.markStale();

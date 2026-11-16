@@ -452,6 +452,7 @@ $string['ui_up'] = 'Горе';
 $string['ui_variables'] = 'Променљиве';
 $string['ui_watchempty'] = 'Покрените алгоритам да видите променљиве.';
 $string['ui_weight'] = 'Тежина';
+$string['ui_workfromserver'] = 'Учитана је Ваша новија верзија са другог уређаја.';
 $string['ui_zoomin'] = 'Увећај';
 $string['ui_zoomout'] = 'Умањи';
 $string['ui_zoomreset'] = 'Врати зум на 100%';

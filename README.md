@@ -209,8 +209,9 @@ lib/editor/tiny/plugins/algorithm/
 - Flowgorithm `.fprg` files cannot hold matrices, also not as parameters (the export says so).
 - Break, Continue and a Return before the end of a function have no Flowgorithm block: the export writes the return
   variable and reports what it leaves out.
-- A student's edited copy lives in the browser (`localStorage`) and does not follow them to another device or browser. When the
-  teacher changes the diagram or its tests, students start again from the new version.
+- A student's edited copy lives in the browser (`localStorage`) and, with filter_algorithm 2.19 and the capability
+  `filter/algorithm:sharework`, on the server too, so it follows the student to another device (the newer copy wins).
+  When the teacher changes the diagram or its tests, students start again from the new version.
 
 ## 🌍 Languages
 

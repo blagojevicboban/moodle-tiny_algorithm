@@ -269,6 +269,7 @@ export const STR = {
             'the menu of a block.',
         edit: 'Edit', done: 'Done editing', resetwork: 'Restore original',
         resetconfirm: 'Discard your changes and restore the original algorithm?', modified: 'Your version',
+        workfromserver: 'Your newer version from another device was loaded.',
         fullscreen: 'Full screen', exitfullscreen: 'Exit full screen', showsolution: 'Show solution',
         hidesolution: 'Hide solution', solutionconfirm: "Show the teacher's solution?", solution: 'Solution', tests: 'Tests',
         runcode: 'Run the code',
