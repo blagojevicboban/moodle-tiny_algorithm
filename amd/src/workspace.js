@@ -209,6 +209,7 @@ export class AlgorithmWorkspace {
         }}, this.bar, this.body);
         if (this.tests.length) {
             this.testsPanel = new TestsPanel(this.root, {tests: this.tests, mode: 'student', lang: this.lang,
+                codeConfig: this.opts.codeConfig,
                 getProgram: () => this.current()});
         }
         if (this.loadClass) {

@@ -96,6 +96,8 @@ class code_language {
             }
         }
         $result['codelab'] = self::codelab($context);
+        // AI hints about errors and failed tests (site setting, an AI provider, the capability).
+        $result['ai'] = ai_hint::available($context);
         return $result;
     }
 

@@ -25,6 +25,17 @@
  */
 
 $capabilities = [
+    // Ask the AI of the site for a hint about an error or a failed test (only when AI hints are on in the site settings).
+    'tiny/algorithm:aihint' => [
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => [
+            'student' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+        ],
+    ],
     'tiny/algorithm:viewplugin' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,

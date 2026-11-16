@@ -24,6 +24,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['aihintfailed'] = 'Veštačka inteligencija nije mogla da odgovori: {$a}';
+$string['aihintlimit'] = 'AI pomoći po satu';
+$string['aihintlimit_desc'] = 'Najviše AI pomoći koje jedan korisnik može da zatraži za sat vremena (0: bez ograničenja).';
+$string['aihintlimitreached'] = 'U poslednjih sat vremena zatražili ste {$a} pomoći, koliko je najviše dozvoljeno. Pokušajte kasnije.';
+$string['aihintoff'] = 'AI pomoć ovde nije dostupna.';
+$string['aihintpolicy'] = 'Prvo prihvatite pravila korišćenja veštačke inteligencije na sajtu.';
+$string['aihints'] = 'AI pomoć';
+$string['aihints_desc'] = 'Uz AI provajdera sajta (Administracija sajta, Opšte, AI) učenici mogu da zatraže pomoć kada se njihov algoritam zaustavi sa greškom ili test ne prođe. Veštačka inteligencija dobija algoritam kao pseudo-kod i grešku ili test, uz uputstvo da nikada ne da rešenje. U kvizovima to dozvoljavaju samo pitanja sa uključenom opcijom AI pomoć. Podrazumevano isključeno.';
+$string['algorithm:aihint'] = 'Traženje pomoći od veštačke inteligencije za greške i neuspele testove';
 $string['algorithm:viewplugin'] = 'Korišćenje editora algoritama';
 $string['allowsolution'] = 'Učenici mogu da prikažu rešenje';
 $string['button'] = 'Algoritam';
@@ -46,6 +55,7 @@ $string['menuitem'] = 'Algoritam...';
 $string['onlyeditable'] = 'Koristi se samo kada je uključeno "Učenici mogu da menjaju i testiraju algoritam".';
 $string['pluginname'] = 'Algoritam (dijagram toka)';
 $string['privacy:metadata'] = 'Dodatak Algoritam ne čuva lične podatke na serveru. Pregledač u svom lokalnom skladištu čuva nekoliko podešavanja prikaza (da li su kod i promenljive prikazani) i, kod dijagrama koje učenici mogu da menjaju, učenikovu kopiju algoritma; ništa od toga se ne šalje Moodle-u.';
+$string['privacy:metadata:core_ai'] = 'Kada učenik zatraži AI pomoć, algoritam (kao pseudo-kod), greška ili neuspeli test i zadatak šalju se AI podsistemu Moodle-a, koji ih šalje AI provajderu sajta i čuva zapis o zahtevu.';
 $string['separatetemplate'] = 'Učenici počinju od posebnog šablona, a ne od rešenja';
 $string['showcode'] = 'Prikaži generisani kôd pored dijagrama';
 $string['showwatch'] = 'Prikaži praćenje promenljivih pored dijagrama';
@@ -57,6 +67,11 @@ $string['ui_actual'] = 'Vaš izlaz';
 $string['ui_addfn'] = '+ Funkcija';
 $string['ui_addnote'] = 'Dodaj komentar';
 $string['ui_addtest'] = '+ Test';
+$string['ui_aierror'] = 'Veštačka inteligencija nije mogla da odgovori: {$a->message}';
+$string['ui_aiexplain'] = 'Objasni uz AI';
+$string['ui_aitesthint'] = 'AI pomoć';
+$string['ui_aithinking'] = 'Pitam veštačku inteligenciju…';
+$string['ui_aiwarning'] = 'Odgovor veštačke inteligencije: može da pogreši, i ne daje rešenje.';
 $string['ui_arguments'] = 'Argumenti';
 $string['ui_argumentshint'] = 'Vrednosti argumenata, npr. 2, 3 ili jedna po redu; niz [1, 2, 3], matrica [[1, 2], [3, 4]]';
 $string['ui_arraycut'] = 'Prikazano je samo prvih {$a->shown} od {$a->length} elemenata.';

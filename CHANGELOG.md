@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.20.0 – 2026-11-17 (stable)
+
+- **AI hints** (optional, off by default; Site administration, Plugins, Text editors, TinyMCE, Algorithm, AI hints):
+  with an AI provider of the site that generates text, an error in the console gets an Explain with AI button and a
+  failed test a Hint from AI button. The AI gets the algorithm as pseudo-code, the error or the test (input, expected
+  and actual output) and, in a question, the question text, and is told to answer in the user's language in a few
+  sentences without the solution. The answer is shown as plain text with a note that it can be wrong.
+- Web service tiny_algorithm_ai_hint (AJAX) with the capability tiny/algorithm:aihint, the AI policy of Moodle (the
+  policy dialog opens once), a limit of requests per user and hour (setting AI hints per hour, 10 by default, cache
+  aihints) and, in a quiz, only for a question of that quiz whose option AI hints is on (qtype_algorithm 2.20).
+- code_language::for_context tells the widgets whether AI hints are available (ai). New modules aibox.js (button,
+  texts sent) and aihint.js (the request, loaded on the first click).
+- The privacy provider links the AI subsystem; PHPUnit tests/local/ai_hint_test.php and Node tests/aibox.test.mjs;
+  new strings in English, Serbian Latin and Serbian Cyrillic.
+
 ## 2.19.0 – 2026-11-16 (stable)
 
 - **The copy follows the student** (with filter_algorithm 2.19): the workspace of an exercise gets a new option

@@ -24,6 +24,7 @@
 import {RANDOM_SEED, execute} from './interpreter';
 import {decodeData, serialize} from './model';
 import {errorText, fill, t as tr} from './strings';
+import {aiBox, testProblem} from './aibox';
 
 /** Step limit for one test run, so that an endless loop fails the test instead of freezing the page. */
 export const MAX_STEPS = 200000;
@@ -305,10 +306,12 @@ export class TestsPanel {
      * @param {boolean} [opts.weightOption] the teacher can give a test a weight in the grade (question type)
      * @param {Function} [opts.onChange] (tests) => called when the teacher changes the tests
      * @param {Function} [opts.onRunInputs] (values) => step through the algorithm with the inputs of a failed test
+     * @param {Object} [opts.codeConfig] configuration of the page; with ai a failed test has a Hint from AI button
      */
     constructor(host, {tests = [], mode = 'student', lang = null, getProgram = null, getSolution = null, check = {},
-            hiddenOption = false, weightOption = false, onChange = null, onRunInputs = null} = {}) {
+            hiddenOption = false, weightOption = false, onChange = null, onRunInputs = null, codeConfig = {}} = {}) {
         this.onRunInputs = onRunInputs;
+        this.codeConfig = codeConfig || {};
         this.tests = tests.map((tc) => ({...tc}));
         this.mode = mode;
         this.lang = lang;
@@ -512,6 +515,14 @@ export class TestsPanel {
                 row.append(el('div', {'class': 'tiny_algorithm-error'}, `${tr('error', this.lang)}: ${r.error}`));
             } else if (r.diffLine >= 0) {
                 row.append(el('div', {'class': 'tiny_algorithm-test-note'}, this.t('difffirst', {n: r.diffLine + 1})));
+            }
+            if (this.codeConfig.ai && this.getProgram) {
+                // With AI hints on the site: a hint about this test (never the solution).
+                const program = this.getProgram();
+                const {button, box} = aiBox('aitesthint', () => ({kind: 'test', program,
+                    problem: testProblem(tc, r, callText(tc))}), this.codeConfig);
+                row.querySelector('.tiny_algorithm-test-head').append(button);
+                row.append(box);
             }
         }
         return row;

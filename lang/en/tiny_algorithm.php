@@ -24,6 +24,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['aihintfailed'] = 'The AI could not answer: {$a}';
+$string['aihintlimit'] = 'AI hints per hour';
+$string['aihintlimit_desc'] = 'Most AI hints one user can ask for in an hour (0: no limit).';
+$string['aihintlimitreached'] = 'You asked for {$a} hints in the last hour, the most allowed. Try again later.';
+$string['aihintoff'] = 'AI hints are not available here.';
+$string['aihintpolicy'] = 'Accept the AI policy of the site first.';
+$string['aihints'] = 'AI hints';
+$string['aihints_desc'] = 'With an AI provider of the site (Site administration, General, AI) students can ask for a hint when their algorithm stops with an error or a test fails. The AI gets the algorithm as pseudo-code and the error or the test, and is told never to give the solution. In quizzes only questions with the option AI hints allow it. Off by default.';
+$string['algorithm:aihint'] = 'Ask the AI for hints about errors and failed tests';
 $string['algorithm:viewplugin'] = 'Use the Algorithm editor plugin';
 $string['allowsolution'] = 'Students can show the solution';
 $string['button'] = 'Algorithm';
@@ -46,6 +55,7 @@ $string['menuitem'] = 'Algorithm...';
 $string['onlyeditable'] = 'Used only when "Students can edit and test the algorithm" is ticked.';
 $string['pluginname'] = 'Algorithm (flowchart)';
 $string['privacy:metadata'] = 'The Algorithm plugin does not store any personal data on the server. The browser keeps a few display settings (code and variables shown or hidden) and, in editable diagrams, the student\'s own copy of the algorithm in its local storage; nothing of it is sent to Moodle.';
+$string['privacy:metadata:core_ai'] = 'When a student asks for an AI hint, the algorithm (as pseudo-code), the error or the failed test and the task are sent to the AI subsystem of Moodle, which sends them to the AI provider of the site and keeps a record of the request.';
 $string['separatetemplate'] = 'Students start from a separate template, not from the solution';
 $string['showcode'] = 'Show generated code next to the diagram';
 $string['showwatch'] = 'Show variable watch next to the diagram';
@@ -57,6 +67,11 @@ $string['ui_actual'] = 'Your output';
 $string['ui_addfn'] = '+ Function';
 $string['ui_addnote'] = 'Add a comment';
 $string['ui_addtest'] = '+ Test';
+$string['ui_aierror'] = 'The AI could not answer: {$a->message}';
+$string['ui_aiexplain'] = 'Explain with AI';
+$string['ui_aitesthint'] = 'Hint from AI';
+$string['ui_aithinking'] = 'Asking the AI…';
+$string['ui_aiwarning'] = 'Answer of the AI: it can be wrong, and it does not give the solution.';
 $string['ui_arguments'] = 'Arguments';
 $string['ui_argumentshint'] = 'Values of the arguments, e.g. 2, 3 or one per line; an array [1, 2, 3], a matrix [[1, 2], [3, 4]]';
 $string['ui_arraycut'] = 'Only the first {$a->shown} of {$a->length} elements are shown.';

@@ -27,6 +27,7 @@ import {TurtleView, usesTurtle} from './turtle';
 import {FilesPanel, usesFiles} from './files';
 import {ArrayView, usesArrays} from './arrayview';
 import {CallTreeView, usesCalls} from './calltree';
+import {aiBox, errorProblem} from './aibox';
 import {markRun} from './runmarks';
 import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
@@ -731,8 +732,15 @@ export class AlgorithmRunner {
             output: (text) => this.write(text),
             info: (text) => this.log(text, 'tiny_algorithm-info'),
             error: (text, id) => {
-                this.log(`${this.t('error')}: ${text}`, 'tiny_algorithm-error');
+                const line = this.log(`${this.t('error')}: ${text}`, 'tiny_algorithm-error');
                 this.errorId = id;
+                if (this.codeConfig.ai && line) {
+                    // With AI hints on the site: explain the error (the answer goes below the line).
+                    const {button, box} = aiBox('aiexplain', () => ({kind: 'error', program: this.program,
+                        problem: errorProblem(this.program, text, id)}), this.codeConfig);
+                    line.append(' ', button);
+                    line.after(box);
+                }
             },
             ask: (ev, hint) => this.askInput(run, ev, hint),
             given: (ev, value) => this.log(`${ev.name} (${ev.type}) ? ${value}`),

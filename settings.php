@@ -42,4 +42,17 @@ if ($ADMIN->fulltree) {
         array_fill_keys(array_keys($names), 1),
         $names
     ));
+    $settings->add(new admin_setting_configcheckbox(
+        'tiny_algorithm/aihints',
+        get_string('aihints', 'tiny_algorithm'),
+        get_string('aihints_desc', 'tiny_algorithm'),
+        0
+    ));
+    $settings->add(new admin_setting_configtext(
+        'tiny_algorithm/aihintlimit',
+        get_string('aihintlimit', 'tiny_algorithm'),
+        get_string('aihintlimit_desc', 'tiny_algorithm'),
+        10,
+        PARAM_INT
+    ));
 }

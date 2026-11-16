@@ -856,6 +856,40 @@ html.tiny_algorithm-noscroll body {
     margin-top: .5rem;
 }
 
+/* AI hints: the button after an error or beside a failed test, and the answer as plain text */
+.tiny_algorithm-ai-btn {
+    margin-left: .35rem;
+    padding: 0 .4rem;
+    font-size: .8rem;
+}
+
+.tiny_algorithm-ai:empty {
+    display: none;
+}
+
+.tiny_algorithm-ai {
+    margin: .35rem 0;
+    padding: .5rem .75rem;
+    border-left: 3px solid #7c3aed;
+    border-radius: 4px;
+    background: #f5f3ff;
+    color: #1f2937;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: .85rem;
+    white-space: normal;
+}
+
+.tiny_algorithm-ai-note,
+.tiny_algorithm-ai-wait {
+    margin: 0 0 .25rem;
+    color: #6b7280;
+    font-size: .75rem;
+}
+
+.tiny_algorithm-ai-text {
+    white-space: pre-wrap;
+}
+
 /* Complexity: the steps for each size n, the reference curves n, n log n, n² and a table */
 .tiny_algorithm-cx-form {
     display: flex;

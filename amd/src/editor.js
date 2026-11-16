@@ -34,6 +34,7 @@ import {PEN_COLORS, TurtleView, usesTurtle} from './turtle';
 import {FilesPanel, usesFiles} from './files';
 import {ArrayView, usesArrays} from './arrayview';
 import {CallTreeView, usesCalls} from './calltree';
+import {aiBox, errorProblem} from './aibox';
 import {openTrace} from './trace';
 import {attachNotes} from './notes';
 import {markRun} from './runmarks';
@@ -1912,6 +1913,14 @@ export class AlgorithmEditor {
     showError(text, id) {
         const line = this.log(`${this.t('error')}: ${text}`, 'tiny_algorithm-error');
         this.errorId = id;
+        if (this.codeConfig.ai) {
+            // With AI hints on the site: explain the error (the answer goes below the line).
+            const program = cloneProgram(this.program);
+            const {button, box} = aiBox('aiexplain', () => ({kind: 'error', program, problem: errorProblem(program, text, id)}),
+                this.codeConfig);
+            line.append(' ', button);
+            line.after(box);
+        }
         if (!id) {
             return;
         }
