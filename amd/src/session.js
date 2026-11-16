@@ -154,7 +154,8 @@ const askValue = async(ui, run, ev) => {
  * The widget (ui) gives: program, breakpoints (a Set of block ids), delay(), highlight(id), branch(ev),
  * watch(vars, stack), output(text), info(text), error(text, id), ask(ev, hint) (a Promise of the text, null when
  * stopped), status(state, step) and announce(text); given(ev, value) (optional) shows an input value that a replay
- * entered by itself; arrays(ev) (optional) draws the arrays of a step (the interpreter then tracks them).
+ * entered by itself; arrays(ev) (optional) draws the arrays of a step (the interpreter then tracks them); calls(ev)
+ * (optional) takes the call and return events and draws the call tree on a step and at the end.
  *
  * Step back: the run is deterministic (Random has a seed, the input values are kept), so a run can be repeated up to
  * any step. A run with until = N goes through steps 1 to N - 1 at once, without pauses and without drawing (the
@@ -200,6 +201,9 @@ export const runSession = async(ui, run) => {
         ui.watch(ev.vars, ev.stack);
         if (ui.arrays) {
             ui.arrays(ev);
+        }
+        if (ui.calls) {
+            ui.calls(ev);
         }
         if (run.until && state.steps === run.until) {
             run.stepMode = true;
@@ -255,15 +259,20 @@ export const runSession = async(ui, run) => {
             if (ui.arrays) {
                 ui.arrays(ev);
             }
+            if (ui.calls) {
+                ui.calls(ev);
+            }
             trace.after = ev.vars;
         },
+        call: (ev) => ui.calls && ui.calls(ev),
+        'return': (ev) => ui.calls && ui.calls(ev),
         turtle: (ev) => ui.turtle && ui.turtle(ev),
         file: (ev) => ui.file && ui.file(ev),
     };
     ui.status('running', 0);
     checkProgram(program).forEach((message) => ui.info(`⚠ ${message}`));
     try {
-        const gen = execute(program, {seed: run.seed, track: Boolean(ui.arrays)});
+        const gen = execute(program, {seed: run.seed, track: Boolean(ui.arrays), calls: Boolean(ui.calls)});
         let res = gen.next();
         while (!res.done && !run.stopped) {
             const ev = res.value;

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.17.0 – 2026-11-16 (stable)
+
+- **Call tree**: a new panel (a tab beside Arrays in the editor, below the console in pages) draws every call of a
+  function under the call that made it while the algorithm runs or steps. The running call is blue, the calls waiting
+  for it light blue, a finished call shows the value it returned, and a call made again with the same arguments is
+  amber; the summary counts the calls, the repeated ones and the deepest level. Step back and the timeline rebuild it.
+  Big trees draw the first 200 calls and count the rest. Shown for algorithms with more than one function.
+- The interpreter has a new option calls: call and return events (only for the panel; grading is unchanged).
+- **Recursion templates**: Factorial, Fibonacci and Towers of Hanoi in a new Recursion category.
+- Code to diagram: the types of the parameters of a function come from the arguments of its calls (a string makes a
+  String parameter, a number with a decimal point a Real).
+- New module calltree.js and tests/calltree.test.mjs; new strings in English, Serbian Latin and Serbian Cyrillic.
+
 ## 2.16.0 – 2026-11-12 (stable)
 
 - **Run the code** (with the CodeLab plugins, optional): when tiny_codelab with a Jobe server can run the language of

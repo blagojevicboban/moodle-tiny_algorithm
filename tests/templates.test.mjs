@@ -23,17 +23,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {TEMPLATES} from '../amd/src/templates.js';
 
-test('templates list contains all 11 standard templates across expected categories', () => {
-    assert.equal(TEMPLATES.length, 11);
+test('templates list contains all 14 standard templates across expected categories', () => {
+    assert.equal(TEMPLATES.length, 14);
     const ids = TEMPLATES.map((t) => t.id);
     assert.deepEqual(ids, ['swap', 'rectangle', 'max2', 'evenodd', 'sum_n', 'factorial', 'gcd', 'linear_search',
-        'bubble_sort', 'selection_sort', 'binary_search']);
+        'bubble_sort', 'selection_sort', 'binary_search', 'factorial_rec', 'fibonacci_rec', 'hanoi']);
 
     const categories = new Set(TEMPLATES.map((t) => t.category));
     assert.ok(categories.has('linear'));
     assert.ok(categories.has('branching'));
     assert.ok(categories.has('loops'));
     assert.ok(categories.has('arrays'));
+    assert.ok(categories.has('recursion'));
 });
 
 test('every template generates a valid program model with a populated Main function', () => {

@@ -33,6 +33,7 @@ import {openHelp} from './help';
 import {PEN_COLORS, TurtleView, usesTurtle} from './turtle';
 import {FilesPanel, usesFiles} from './files';
 import {ArrayView, usesArrays} from './arrayview';
+import {CallTreeView, usesCalls} from './calltree';
 import {openTrace} from './trace';
 import {attachNotes} from './notes';
 import {markRun} from './runmarks';
@@ -274,6 +275,10 @@ export class AlgorithmEditor {
         // The arrays and matrices while the algorithm runs, only for an algorithm that has arrays.
         this.tabArrays = el('div', {'class': 'tiny_algorithm-pane', hidden: true}, paneTitle(this.t('arrays')),
             new ArrayView(this.program, this.lang).root);
+        // The tree of the calls while the algorithm runs, only for an algorithm with more than one function.
+        this.callTree = new CallTreeView(this.lang);
+        this.tabCalls = el('div', {'class': 'tiny_algorithm-pane', hidden: true}, paneTitle(this.t('calltree')),
+            this.callTree.root);
         // The files of the algorithm and the files it writes, only for an algorithm that uses files.
         this.filesPanel = new FilesPanel({lang: this.lang, editable: true, onChange: (files) => {
             if (Object.keys(files).length) {
@@ -290,14 +295,16 @@ export class AlgorithmEditor {
         // On a narrow screen the console, the variables and the code share the space below the diagram as tabs.
         const tab = (key) => el('button', {type: 'button', role: 'tab', 'class': 'btn btn-sm btn-link',
             'data-sidetab': key, onclick: () => this.showTab(key)}, this.t(key === 'watch' ? 'variables' : key));
+        this.callsTab = tab('calltree');
+        this.callsTab.hidden = true;
         this.turtleTab = tab('turtle');
         this.turtleTab.hidden = true;
         this.filesTab = tab('files');
         this.filesTab.hidden = true;
         this.arraysTab = tab('arrays');
         this.arraysTab.hidden = true;
-        this.tabBar = el('div', {'class': 'tiny_algorithm-tabbar', role: 'tablist'}, tab('console'), this.arraysTab, this.turtleTab,
-            this.filesTab,
+        this.tabBar = el('div', {'class': 'tiny_algorithm-tabbar', role: 'tablist'}, tab('console'), this.arraysTab,
+            this.callsTab, this.turtleTab, this.filesTab,
             tab('watch'),
             this.showCode ? tab('code') : []);
         this.tabConsole.dataset.sidepane = 'console';
@@ -305,9 +312,10 @@ export class AlgorithmEditor {
         this.tabTurtle.dataset.sidepane = 'turtle';
         this.tabFiles.dataset.sidepane = 'files';
         this.tabArrays.dataset.sidepane = 'arrays';
+        this.tabCalls.dataset.sidepane = 'calltree';
         this.tabCode.dataset.sidepane = 'code';
         this.side = el('div', {'class': 'tiny_algorithm-side', 'data-sidetab': 'console'}, this.props, this.tabBar, this.tabConsole,
-            this.tabArrays, this.tabTurtle, this.tabFiles, this.tabWatch, this.showCode ? this.tabCode : []);
+            this.tabArrays, this.tabCalls, this.tabTurtle, this.tabFiles, this.tabWatch, this.showCode ? this.tabCode : []);
         this.main = el('div', {'class': 'tiny_algorithm-main'}, this.canvasWrap, this.side);
         this.root = el('div', {'class': 'tiny_algorithm-editor', onkeydown: (e) => this.onRunKey(e)}, this.toolbar,
             this.emptyBar(), this.main, this.announcer);
@@ -427,6 +435,9 @@ export class AlgorithmEditor {
         const arrays = usesArrays(this.program);
         this.tabArrays.hidden = !arrays;
         this.arraysTab.hidden = !arrays;
+        const calling = usesCalls(this.program);
+        this.tabCalls.hidden = !calling;
+        this.callsTab.hidden = !calling;
         const filing = usesFiles(this.program);
         this.tabFiles.hidden = !filing;
         this.filesTab.hidden = !filing;
@@ -1465,6 +1476,7 @@ export class AlgorithmEditor {
             ['branching', 'templates_branching'],
             ['loops', 'templates_loops'],
             ['arrays', 'templates_arrays'],
+            ['recursion', 'templates_recursion'],
         ];
 
         const catNav = el('div', {'class': 'btn-group btn-group-sm mb-3 w-100', role: 'group'},
@@ -1853,6 +1865,8 @@ export class AlgorithmEditor {
         // A new panel for every run: the index variables come from the algorithm as it is now.
         this.arrayView = usesArrays(this.program) ? new ArrayView(this.program, this.lang) : null;
         this.tabArrays.replaceChildren(this.tabArrays.firstChild, ...(this.arrayView ? [this.arrayView.root] : []));
+        this.callTree.reset();
+        const calling = usesCalls(this.program);
         const ui = {
             program: this.program,
             breakpoints: this.breakpoints,
@@ -1863,6 +1877,7 @@ export class AlgorithmEditor {
             turtle: (ev) => this.turtle.apply(ev),
             file: (ev) => this.filesPanel.apply(ev),
             arrays: this.arrayView ? (ev) => this.arrayView.update(ev) : null,
+            calls: calling ? (ev) => this.callTree.update(ev) : null,
             output: (text) => this.flushOutput(text),
             info: (text) => this.log(text, 'tiny_algorithm-info'),
             error: (text, id) => this.showError(text, id),

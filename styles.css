@@ -786,6 +786,76 @@ html.tiny_algorithm-noscroll body {
     margin-top: .5rem;
 }
 
+/* The call tree: running call blue, waiting calls light blue, finished calls grey with their value, repeated calls amber */
+.tiny_algorithm-calltree-empty,
+.tiny_algorithm-calltree-summary {
+    margin: 0 0 .25rem;
+    color: #4b5563;
+    font-size: .85rem;
+}
+
+.tiny_algorithm-calltree-scroll {
+    overflow: auto;
+    max-height: 22rem;
+}
+
+.tiny_algorithm-calltree-svg {
+    display: block;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+}
+
+.tiny_algorithm-calltree-edge {
+    stroke: #94a3b8;
+    stroke-width: 1.2;
+}
+
+.tiny_algorithm-calltree-node rect {
+    fill: #fff;
+    stroke: #64748b;
+    stroke-width: 1.2;
+}
+
+.tiny_algorithm-calltree-node text {
+    fill: #1f2937;
+}
+
+.tiny_algorithm-calltree-done rect {
+    fill: #f1f5f9;
+}
+
+.tiny_algorithm-calltree-repeated rect {
+    fill: #fde68a;
+    stroke: #b45309;
+}
+
+.tiny_algorithm-calltree-waiting rect {
+    fill: #dbeafe;
+    stroke: #2563eb;
+}
+
+.tiny_algorithm-calltree-current rect {
+    fill: #2563eb;
+    stroke: #1e40af;
+    stroke-width: 2;
+}
+
+.tiny_algorithm-calltree-current text {
+    fill: #fff;
+}
+
+.tiny_algorithm-calltree-svg .tiny_algorithm-calltree-value {
+    fill: #047857;
+    font-size: 11px;
+    paint-order: stroke;
+    stroke: #fff;
+    stroke-width: 3px;
+}
+
+.tiny_algorithm-viewer .tiny_algorithm-view-calltree {
+    margin-top: .5rem;
+}
+
 /* Complexity: the steps for each size n, the reference curves n, n log n, n² and a table */
 .tiny_algorithm-cx-form {
     display: flex;
@@ -1640,7 +1710,14 @@ html.tiny_algorithm-noscroll body {
     .tiny_algorithm-side[data-sidetab="arrays"] [data-sidepane="watch"],
     .tiny_algorithm-side[data-sidetab="arrays"] [data-sidepane="code"],
     .tiny_algorithm-side[data-sidetab="arrays"] [data-sidepane="turtle"],
-    .tiny_algorithm-side[data-sidetab="arrays"] [data-sidepane="files"] {
+    .tiny_algorithm-side[data-sidetab="arrays"] [data-sidepane="files"],
+    .tiny_algorithm-side:not([data-sidetab="calltree"]) [data-sidepane="calltree"],
+    .tiny_algorithm-side[data-sidetab="calltree"] [data-sidepane="console"],
+    .tiny_algorithm-side[data-sidetab="calltree"] [data-sidepane="watch"],
+    .tiny_algorithm-side[data-sidetab="calltree"] [data-sidepane="code"],
+    .tiny_algorithm-side[data-sidetab="calltree"] [data-sidepane="turtle"],
+    .tiny_algorithm-side[data-sidetab="calltree"] [data-sidepane="files"],
+    .tiny_algorithm-side[data-sidetab="calltree"] [data-sidepane="arrays"] {
         display: none;
     }
 }

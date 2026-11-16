@@ -769,6 +769,7 @@ export const importPython = (code, {name = 'Imported'} = {}) => {
     }).filter(Boolean);
     heads.forEach((h) => {
         fns[h.name.toLowerCase()] = '';
+        h.types = argTypes(h, [...defs, ...top]);
     });
     heads.forEach((h) => {
         fns[h.name.toLowerCase()] = returnType(h, fns);
@@ -782,7 +783,8 @@ export const importPython = (code, {name = 'Imported'} = {}) => {
     const mainBody = mainHead ? [...mainHead.node.kids, ...top] : top;
     program.functions.push(makeFunction({name: 'Main', params: [], body: mainBody}, fns, warnings, true));
     heads.filter((h) => h !== mainHead).forEach((h) => {
-        program.functions.push(makeFunction({name: h.name, params: h.params, body: h.node.kids}, fns, warnings, false));
+        program.functions.push(makeFunction({name: h.name, params: h.params, types: h.types, body: h.node.kids}, fns, warnings,
+            false));
     });
     let blocks = 0;
     const count = (list) => (list || []).forEach((b) => {
@@ -795,6 +797,79 @@ export const importPython = (code, {name = 'Imported'} = {}) => {
 };
 
 /**
+ * The arguments of a call: the text from start up to the closing parenthesis, split at the commas outside brackets
+ * and strings.
+ *
+ * @param {string} text
+ * @param {number} start index after the opening parenthesis
+ * @returns {string[]}
+ */
+const callArgs = (text, start) => {
+    const args = [];
+    let depth = 0;
+    let quote = null;
+    let cur = '';
+    for (let i = start; i < text.length; i++) {
+        const c = text[i];
+        if (quote) {
+            quote = c === quote ? null : quote;
+        } else if (c === '"' || c === "'") {
+            quote = c;
+        } else if ('([{'.includes(c)) {
+            depth++;
+        } else if (')]}'.includes(c) && depth === 0) {
+            break;
+        } else if (')]}'.includes(c)) {
+            depth--;
+        } else if (c === ',' && depth === 0) {
+            args.push(cur.trim());
+            cur = '';
+            continue;
+        }
+        cur += c;
+    }
+    args.push(cur.trim());
+    return args;
+};
+
+/**
+ * The types of the parameters of a function from the arguments of its calls: a string literal makes a String, a
+ * number with a decimal point a Real, anything else stays an Integer.
+ *
+ * @param {Object} h head of the def
+ * @param {Array} nodes all lines of the program (with their nested lines)
+ * @returns {string[]} one type per parameter
+ */
+const argTypes = (h, nodes) => {
+    const types = h.params.map(() => 'Integer');
+    const re = new RegExp(`\\b${h.name}\\s*\\(`, 'g');
+    const typeArg = (a, k) => {
+        if (k >= types.length) {
+            return;
+        }
+        if (/^(["']).*\1$/.test(a) || /\bstr\(/.test(a)) {
+            types[k] = 'String';
+        } else if (/^-?\d+\.\d*$/.test(a) && types[k] === 'Integer') {
+            types[k] = 'Real';
+        }
+    };
+    const visit = (list) => list.forEach((n) => {
+        if (!/^def\s/.test(n.text)) {
+            // Strings are emptied first, so "Fib(" in a text is not a call.
+            const text = n.text.replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, '""');
+            let m;
+            re.lastIndex = 0;
+            while ((m = re.exec(text))) {
+                callArgs(text, m.index + m[0].length).forEach(typeArg);
+            }
+        }
+        visit(n.kids || []);
+    });
+    visit(nodes);
+    return types;
+};
+
+/**
  * The type a function returns ('' for none), from its return statements.
  *
  * @param {Object} h head of the def
@@ -803,8 +878,8 @@ export const importPython = (code, {name = 'Imported'} = {}) => {
  */
 const returnType = (h, fns) => {
     const types = Object.create(null);
-    h.params.forEach((p) => {
-        types[p.toLowerCase()] = {type: 'Integer'};
+    h.params.forEach((p, i) => {
+        types[p.toLowerCase()] = {type: (h.types && h.types[i]) || 'Integer'};
     });
     const tr = new Translator(types, fns);
     let found = '';
@@ -836,7 +911,7 @@ const returnType = (h, fns) => {
 /**
  * Make one function: its declarations (from the values given to its variables) and its blocks.
  *
- * @param {{name: string, params: string[], body: Array}} def
+ * @param {{name: string, params: string[], types: ?string[], body: Array}} def
  * @param {Object} fns return types of the functions
  * @param {Array} warnings lines that became comments
  * @param {boolean} isMain
@@ -847,7 +922,7 @@ const makeFunction = (def, fns, warnings, isMain) => {
     const declared = new Set();
     const tr = new Translator(types, fns);
     // Arrays used as parameters: a[i] or m[i][j] in the body.
-    const params = def.params.map((p) => {
+    const params = def.params.map((p, i) => {
         const uses = JSON.stringify(def.body.map(function flat(n) {
             return [n.text, ...n.kids.map(flat)];
         }));
@@ -857,9 +932,10 @@ const makeFunction = (def, fns, warnings, isMain) => {
         if (m) {
             dims = m[1] ? 2 : 1;
         }
-        types[p.toLowerCase()] = {type: 'Integer', dims};
+        const type = (!m && def.types && def.types[i]) || 'Integer';
+        types[p.toLowerCase()] = {type, dims};
         declared.add(p.toLowerCase());
-        return {name: p, type: 'Integer', ...(m ? {array: true} : {}), ...(m && m[1] ? {matrix: true} : {})};
+        return {name: p, type, ...(m ? {array: true} : {}), ...(m && m[1] ? {matrix: true} : {})};
     });
     // The variables the generated code declares at the start (n = 0, s = "") give their types.
     const body = [...def.body];

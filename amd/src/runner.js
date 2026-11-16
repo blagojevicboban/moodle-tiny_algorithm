@@ -26,6 +26,7 @@ import {attachNotes, notesList} from './notes';
 import {TurtleView, usesTurtle} from './turtle';
 import {FilesPanel, usesFiles} from './files';
 import {ArrayView, usesArrays} from './arrayview';
+import {CallTreeView, usesCalls} from './calltree';
 import {markRun} from './runmarks';
 import {renderProgram, showBranch} from './render';
 import {errorText, t as tr} from './strings';
@@ -145,6 +146,12 @@ export class AlgorithmRunner {
         if (this.arrayView) {
             mainParts.push(el('div', {'class': 'tiny_algorithm-view-arrays'}, el('strong', {}, this.t('arrays')),
                 this.arrayView.root));
+        }
+        // The tree of the calls, only for an algorithm with more than one function.
+        this.callTree = usesCalls(this.program) ? new CallTreeView(this.lang) : null;
+        if (this.callTree) {
+            mainParts.push(el('div', {'class': 'tiny_algorithm-view-calltree'}, el('strong', {}, this.t('calltree')),
+                this.callTree.root));
         }
         // The files the algorithm reads, and those it writes.
         this.filesPanel = usesFiles(this.program) ? new FilesPanel({lang: this.lang}) : null;
@@ -620,6 +627,9 @@ export class AlgorithmRunner {
         if (this.arrayView) {
             this.arrayView.reset();
         }
+        if (this.callTree) {
+            this.callTree.reset();
+        }
         if (this.filesPanel) {
             this.filesPanel.reset();
         }
@@ -701,6 +711,9 @@ export class AlgorithmRunner {
         if (this.arrayView) {
             this.arrayView.reset();
         }
+        if (this.callTree) {
+            this.callTree.reset();
+        }
         if (this.filesPanel) {
             this.filesPanel.reset();
         }
@@ -714,6 +727,7 @@ export class AlgorithmRunner {
             turtle: (ev) => this.turtle && this.turtle.apply(ev),
             file: (ev) => this.filesPanel && this.filesPanel.apply(ev),
             arrays: this.arrayView ? (ev) => this.arrayView.update(ev) : null,
+            calls: this.callTree ? (ev) => this.callTree.update(ev) : null,
             output: (text) => this.write(text),
             info: (text) => this.log(text, 'tiny_algorithm-info'),
             error: (text, id) => {

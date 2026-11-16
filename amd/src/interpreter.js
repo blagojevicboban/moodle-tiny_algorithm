@@ -271,8 +271,11 @@ const checkLoops = (program) => {
  * @param {Object|null} [options.files] files to start with (name => text), else the files of the algorithm
  * @param {boolean} [options.track] for the array panel: every step (and the end) also has the arrays of the call
  *     (arrays) and the elements the block before it read and wrote (access: {name, i, j, kind: 'r' or 'w'})
+ * @param {boolean} [options.calls] for the call tree: every call of a function is also an event
+ *     {event: 'call', name, args (texts), depth} and its end {event: 'return', value (text or null)}
  */
-export function* execute(program, {maxSteps = 1000000, call = null, seed = null, files = null, track = false} = {}) {
+export function* execute(program, {maxSteps = 1000000, call = null, seed = null, files = null, track = false,
+    calls = false} = {}) {
     checkLoops(program);
     const cache = new Map();
     const ast = (s) => {
@@ -902,7 +905,13 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         stack.push(`${fn.name}(${args.map(argText).join(', ')})`);
         let r;
         try {
+            if (calls) {
+                yield {event: 'call', name: fn.name, args: args.map(argText), depth};
+            }
             r = yield* runList(fn.body, env);
+            if (calls) {
+                yield {event: 'return', value: r && r[1] !== undefined ? argText(r[1]) : null};
+            }
         } catch (e) {
             // A very deep recursion can fill the browser's own stack before the limit; it is the same error.
             if (e instanceof RangeError) {

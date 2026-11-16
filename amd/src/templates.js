@@ -382,5 +382,81 @@ export const TEMPLATES = [
             ];
             return prog;
         }
+    },
+    {
+        id: 'factorial_rec',
+        category: 'recursion',
+        title: 'Factorial (recursive)',
+        desc: 'n! = n * (n - 1)! with a function that calls itself; the call tree shows the calls going down and back.',
+        fallbackTitle: 'Factorial (recursive)',
+        fallbackDesc: 'n! = n * (n - 1)! with a function that calls itself; the call tree shows the calls going down and back.',
+        build: () => {
+            const prog = createProgram('FactorialRec');
+            prog.functions[0].body = [
+                createBlock('declare', {name: 'n', varType: 'Integer'}),
+                createBlock('output', {expr: '"Enter n:"', newline: true}),
+                createBlock('input', {target: 'n'}),
+                createBlock('output', {expr: 'n & "! = " & Fact(n)', newline: true}),
+            ];
+            prog.functions.push({name: 'Fact', params: [{name: 'n', type: 'Integer'}], returnType: 'Integer', body: [
+                createBlock('if', {cond: 'n <= 1', then: [
+                    createBlock('return', {expr: '1'}),
+                ], 'else': [
+                    createBlock('return', {expr: 'n * Fact(n - 1)'}),
+                ]}),
+            ]});
+            return prog;
+        }
+    },
+    {
+        id: 'fibonacci_rec',
+        category: 'recursion',
+        title: 'Fibonacci (recursive)',
+        desc: 'Fib(n) = Fib(n - 1) + Fib(n - 2); the call tree marks the calls made again with the same n.',
+        fallbackTitle: 'Fibonacci (recursive)',
+        fallbackDesc: 'Fib(n) = Fib(n - 1) + Fib(n - 2); the call tree marks the calls made again with the same n.',
+        build: () => {
+            const prog = createProgram('FibonacciRec');
+            prog.functions[0].body = [
+                createBlock('declare', {name: 'n', varType: 'Integer'}),
+                createBlock('output', {expr: '"Enter n:"', newline: true}),
+                createBlock('input', {target: 'n'}),
+                createBlock('output', {expr: '"Fib(" & n & ") = " & Fib(n)', newline: true}),
+            ];
+            prog.functions.push({name: 'Fib', params: [{name: 'n', type: 'Integer'}], returnType: 'Integer', body: [
+                createBlock('if', {cond: 'n < 2', then: [
+                    createBlock('return', {expr: 'n'}),
+                ], 'else': [
+                    createBlock('return', {expr: 'Fib(n - 1) + Fib(n - 2)'}),
+                ]}),
+            ]});
+            return prog;
+        }
+    },
+    {
+        id: 'hanoi',
+        category: 'recursion',
+        title: 'Towers of Hanoi',
+        desc: 'Move n disks from A to C: first n - 1 disks to B, then the largest disk, then the n - 1 disks onto it.',
+        fallbackTitle: 'Towers of Hanoi',
+        fallbackDesc: 'Move n disks from A to C: first n - 1 disks to B, then the largest disk, then the n - 1 disks onto it.',
+        build: () => {
+            const prog = createProgram('Hanoi');
+            prog.functions[0].body = [
+                createBlock('declare', {name: 'n', varType: 'Integer'}),
+                createBlock('output', {expr: '"Number of disks:"', newline: true}),
+                createBlock('input', {target: 'n'}),
+                createBlock('call', {expr: 'Move(n, "A", "C", "B")'}),
+            ];
+            prog.functions.push({name: 'Move', params: [{name: 'n', type: 'Integer'}, {name: 'src', type: 'String'},
+                {name: 'dst', type: 'String'}, {name: 'aux', type: 'String'}], returnType: null, body: [
+                createBlock('if', {cond: 'n > 0', then: [
+                    createBlock('call', {expr: 'Move(n - 1, src, aux, dst)'}),
+                    createBlock('output', {expr: '"Disk " & n & ": " & src & " -> " & dst', newline: true}),
+                    createBlock('call', {expr: 'Move(n - 1, aux, dst, src)'}),
+                ], 'else': []}),
+            ]});
+            return prog;
+        }
     }
 ];
