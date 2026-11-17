@@ -46,7 +46,7 @@ without leaving the editor.
 | 🧪 **Tests from the Solution** | The teacher enters only the inputs; the expected outputs are computed from the teacher's solution. A test can also call one function with arguments and check the value it returns |
 | 🧩 **Starting Template** | Students can start from an empty or partial template instead of the solution; the solution can be shown on request |
 | ⚙️ **Per-diagram Options** | *Interactive*, *Show generated code*, *Show variable watch* (turn code off in quiz questions) |
-| 🌐 **Languages** | English, Serbian Latin and Serbian Cyrillic |
+| 🌐 **Languages** | English, Serbian Latin and Serbian Cyrillic, German, French, Spanish, Italian, Portuguese, Polish, Croatian, Bosnian, Slovenian, Macedonian, Slovak and Czech |
 | 🔒 **Privacy** | GDPR compliant (Privacy API, no personal data on the server; display settings and students' edited copies stay in the browser) |
 
 ## 🖼️ Screenshots
@@ -197,7 +197,7 @@ lib/editor/tiny/plugins/algorithm/
 │   └── build/        # Compiled modules
 ├── classes/          # plugininfo, privacy provider
 ├── db/               # Capabilities
-├── lang/             # en, sr_lt, sr_cr
+├── lang/             # en, sr_lt, sr_cr and 12 more
 ├── tests/            # Node tests
 ├── styles.css
 └── version.php       # Plugin metadata
@@ -220,6 +220,11 @@ lib/editor/tiny/plugins/algorithm/
 - 🇬🇧 English
 - 🇷🇸 Srpski (Serbian, Latin: sr_lt)
 - 🇷🇸 Српски (Serbian, Cyrillic: sr_cr)
+- 🇩🇪 Deutsch (de), 🇫🇷 Français (fr), 🇪🇸 Español (es), 🇮🇹 Italiano (it), 🇵🇹 Português (pt), 🇵🇱 Polski (pl)
+- 🇭🇷 Hrvatski (hr), 🇧🇦 Bosanski (bs), 🇸🇮 Slovenščina (sl), 🇲🇰 Македонски (mk), 🇸🇰 Slovenčina (sk), 🇨🇿 Čeština (cs)
+
+The twelve translations of 2.23 were made with the help of AI and checked for the Moodle placeholders; corrections are
+welcome as issues or on [AMOS](https://lang.moodle.org).
 
 ## 📝 Changelog
 

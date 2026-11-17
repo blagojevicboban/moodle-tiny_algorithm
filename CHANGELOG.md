@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.23.0 – 2026-11-17 (stable)
+
+- **Twelve new languages:** German, French, Spanish, Italian, Portuguese, Polish, Croatian, Bosnian, Slovenian,
+  Macedonian, Slovak and Czech (lang/de, fr, es, it, pt, pl, hr, bs, sl, mk, sk, cs), every string of the plugin. A
+  language works once the site has its Moodle language pack. The translations were made with the help of AI and
+  checked for the placeholders and HTML of every string; they will also be offered to AMOS (lang.moodle.org).
+- Bosnian and Croatian start from the Serbian translation (ijekavian, Croatian words and infinitives).
+
 ## 2.22.0 – 2026-11-17 (stable)
 
 - **TypeScript and PHP:** two new languages in the code panel, the File menu and the language settings (thirteen in
