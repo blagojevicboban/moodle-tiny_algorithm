@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.21.0 – 2026-11-17 (stable)
+
+- **Records:** an algorithm can have record types (File, Records…, or the button in the panel of a function): a name
+  and fields of the types Integer, Real, String and Boolean, for example Student with name: String and avg: Real. A
+  Declare block of the type Student makes a record or an array of records; fields are read and set with s.name,
+  a[i].avg and F(x).y, Input fills one field, Output writes a record as Student(name = Ana, avg = 4.5). Records are
+  values: an assignment, an argument and a parameter get a copy; arrays of records are passed by reference like other
+  arrays. Comparing records, arithmetic and built-in functions on a whole record, matrices of records and Input into a
+  whole record stop with a clear error. Renaming a type renames it in the declarations, parameters and return types.
+- The code of every language has the record types: Python dataclasses (replace for copies), C structs, C++ structs,
+  Java and C# classes with a copy method, JavaScript classes, Pascal records, Visual Basic classes, Go structs, Rust
+  structs with Clone and Default, Kotlin data classes; pseudo-code starts with RECORD … END RECORD. The tests compile
+  and run the Students template and a program with copies in all eleven languages.
+- A truth value in a text or in the output is written true or false in Python, C and C# too, as the interpreter does.
+- Code to diagram reads Python dataclasses: the fields make a record type, Student() a Declare, [Student() for _ in
+  range(n)] an array of records, replace(x) the record itself, and the fields a function reads give its parameters
+  their record type.
+- Flowgorithm files cannot hold records: the export says so and does not start.
+- New template Students (records) in a new Records category; new module records.js; tests/records.test.mjs; new
+  strings in English, Serbian Latin and Serbian Cyrillic.
+
 ## 2.20.0 – 2026-11-17 (stable)
 
 - **AI hints** (optional, off by default; Site administration, Plugins, Text editors, TinyMCE, Algorithm, AI hints):

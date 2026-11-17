@@ -35,6 +35,7 @@ import {FilesPanel, usesFiles} from './files';
 import {ArrayView, usesArrays} from './arrayview';
 import {CallTreeView, usesCalls} from './calltree';
 import {aiBox, errorProblem} from './aibox';
+import {openRecords, renameRecordType, usesRecords} from './records';
 import {openTrace} from './trace';
 import {attachNotes} from './notes';
 import {markRun} from './runmarks';
@@ -547,7 +548,7 @@ export class AlgorithmEditor {
                 onpointerdown: (e) => e.stopPropagation(),
                 onclick: (e) => e.stopPropagation(),
                 onchange: () => onInput(input.value),
-            }, ['Integer', 'Real', 'String', 'Boolean'].map((v) => el('option', {value: v, selected: v === value}, v)));
+            }, this.typeNames(value).map((v) => el('option', {value: v, selected: v === value}, v)));
         } else {
             input = el('input', {id, type: 'text', 'class': 'form-control form-control-sm', value: value ?? '', spellcheck: 'false',
                 onkeydown: (e) => {
@@ -603,6 +604,8 @@ export class AlgorithmEditor {
                 this.field(this.t('returns'), 'text', this.fn.returnType || '', (v) => this.commit(() => {
                     this.fn.returnType = v.trim() || null;
                 })),
+                el('p', {'class': 'small mb-1'}, el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm',
+                    onclick: () => this.showRecords()}, `${this.t('records')} (${(this.program.records || []).length})`)),
                 el('p', {'class': 'text-muted small'}, this.t('hint')),
                 el('p', {'class': 'text-muted small'}, el('button', {type: 'button', 'class': 'btn btn-link btn-sm p-0',
                     onclick: () => openShortcuts(this.root)}, `${this.t('shortcuts')} (?)`)));
@@ -1326,6 +1329,10 @@ export class AlgorithmEditor {
             this.log(this.t('fprgmatrix'), 'tiny_algorithm-error'); // Flowgorithm has no matrices.
             return;
         }
+        if (usesRecords(this.program)) {
+            this.log(this.t('fprgrecord'), 'tiny_algorithm-error'); // Flowgorithm has no records.
+            return;
+        }
         const warnings = [];
         this.download(`${this.program.name || 'algorithm'}.fprg`, exportFprg(this.program, warnings), 'application/xml');
         if (warnings.length) {
@@ -1478,6 +1485,7 @@ export class AlgorithmEditor {
             ['loops', 'templates_loops'],
             ['arrays', 'templates_arrays'],
             ['recursion', 'templates_recursion'],
+            ['records', 'templates_records'],
         ];
 
         const catNav = el('div', {'class': 'btn-group btn-group-sm mb-3 w-100', role: 'group'},
@@ -1588,7 +1596,8 @@ export class AlgorithmEditor {
                 ev.preventDefault();
                 items[(at + (ev.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
             }
-        }}, ...files, item('trace', () => this.showTrace()), item('complexity', () => this.showComplexity()),
+        }}, ...files, ...(this.parsons ? [] : [item('records', () => this.showRecords())]),
+            item('trace', () => this.showTrace()), item('complexity', () => this.showComplexity()),
             item('exprhelp', () => openHelp(this.root)),
             item('shortcuts', () => openShortcuts(this.root)));
         this.btnFile.after(this.fileMenu);
@@ -1693,6 +1702,29 @@ export class AlgorithmEditor {
     }
 
     /** How fast the algorithm grows: its steps for several sizes n, beside a template to compare with. */
+    /**
+     * The types a Declare block can have: the basic types, the record types of the algorithm, and the type it has.
+     *
+     * @param {string} value the type of the block
+     * @returns {string[]}
+     */
+    typeNames(value) {
+        const names = ['Integer', 'Real', 'String', 'Boolean', ...(this.program.records || []).map((r) => r.name)];
+        return value && !names.includes(value) ? [...names, value] : names;
+    }
+
+    /** The dialog of the record types; renaming a type renames it in the algorithm too. */
+    showRecords() {
+        openRecords(this.root, this.program, (records, renames) => this.commit(() => {
+            renames.forEach(([from, to]) => renameRecordType(this.program, from, to));
+            if (records.length) {
+                this.program.records = records;
+            } else {
+                delete this.program.records;
+            }
+        }));
+    }
+
     showComplexity() {
         openComplexity(this.root, cloneProgram(this.program), {others: TEMPLATES.map((tmpl) => ({
             label: tmpl.title || tmpl.fallbackTitle, build: tmpl.build}))});

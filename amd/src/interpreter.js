@@ -174,7 +174,69 @@ const coerce = (type, value, name) => {
 
 const defaultValue = (type) => ({Integer: 0, Real: 0, String: '', Boolean: false}[type]);
 
-const fmt = (v) => (typeof v === 'number' && !Number.isInteger(v) ? String(Math.round(v * 1e10) / 1e10) : String(v));
+/** The basic types; a field of a record has one of them. */
+export const BASIC_TYPES = ['Integer', 'Real', 'String', 'Boolean'];
+
+/**
+ * The value of a record: its type (the definition of the algorithm) and the values of its fields (by lower case name).
+ * Records are values: an assignment, an argument and a parameter get a copy.
+ */
+export class Rec {
+    /**
+     * @param {Object} def {name, fields: [{name, type}]}
+     * @param {Object} [values] values by lower case field name (defaults when left out)
+     */
+    constructor(def, values = null) {
+        this.def = def;
+        this.values = Object.create(null);
+        def.fields.forEach((f) => {
+            const key = f.name.toLowerCase();
+            this.values[key] = values ? values[key] : defaultValue(f.type);
+        });
+    }
+
+    /** @returns {Rec} a copy */
+    copy() {
+        return new Rec(this.def, this.values);
+    }
+}
+
+/**
+ * A value as the output writes it: a fraction rounded to 10 decimals, a record as Type(field = value, ...).
+ *
+ * @param {*} v value
+ * @returns {string}
+ */
+const fmt = (v) => {
+    if (v instanceof Rec) {
+        return `${v.def.name}(${v.def.fields.map((f) => `${f.name} = ${fmt(v.values[f.name.toLowerCase()])}`).join(', ')})`;
+    }
+    return typeof v === 'number' && !Number.isInteger(v) ? String(Math.round(v * 1e10) / 1e10) : String(v);
+};
+
+/**
+ * The record types of an algorithm, checked: names of letters, digits and _, not a basic type, unique; at least one
+ * field, each with a basic type and a unique name.
+ *
+ * @param {Object} program
+ * @returns {Map<string, Object>} lower case name => definition
+ */
+export const recordTypes = (program) => {
+    const types = new Map();
+    const name = /^[A-Za-z_][A-Za-z0-9_]*$/;
+    for (const def of Array.isArray(program.records) ? program.records : []) {
+        const key = String(def && def.name).toLowerCase();
+        const fields = Array.isArray(def && def.fields) ? def.fields : [];
+        const keys = new Set(fields.map((f) => String(f.name).toLowerCase()));
+        if (!name.test(String(def && def.name)) || BASIC_TYPES.some((t) => t.toLowerCase() === key) || types.has(key) ||
+                !fields.length || keys.size !== fields.length ||
+                fields.some((f) => !name.test(String(f.name)) || !BASIC_TYPES.includes(f.type))) {
+            throw new AlgorithmError('badrecord', {name: String(def && def.name)});
+        }
+        types.set(key, {name: def.name, fields: fields.map((f) => ({name: f.name, type: f.type}))});
+    }
+    return types;
+};
 
 /**
  * A value as a function test shows it: arrays as [1, 2, 3], matrices as [[1, 2], [3, 4]].
@@ -183,6 +245,14 @@ const fmt = (v) => (typeof v === 'number' && !Number.isInteger(v) ? String(Math.
  * @returns {string}
  */
 const show = (v) => (Array.isArray(v) ? `[${v.map(show).join(', ')}]` : fmt(v));
+
+/**
+ * A value for the watch panel and the trace table: a record as its text.
+ *
+ * @param {*} x value
+ * @returns {*}
+ */
+const plain = (x) => (x instanceof Rec ? fmt(x) : x);
 
 /**
  * Names declared by a declare block ("a, b, p" declares three variables).
@@ -219,7 +289,7 @@ const head = (a, f = (x) => x) => {
  */
 const snapshot = (env) => Object.values(env || {}).map((v) => ({
     name: v.name, type: v.type,
-    value: Array.isArray(v.value) ? head(v.value, (x) => (Array.isArray(x) ? head(x) : x)) : v.value,
+    value: Array.isArray(v.value) ? head(v.value, (x) => (Array.isArray(x) ? head(x, plain) : plain(x))) : plain(v.value),
 }));
 
 /** Most elements of an array (and rows of a matrix) the array panel gets with every step. */
@@ -237,7 +307,7 @@ export const ARRAY_VIEW_COLUMNS = 50;
  */
 const arraysOf = (env) => Object.values(env || {}).filter((v) => Array.isArray(v.value)).map((v) => ({
     name: v.name, type: v.type, dims: v.dims || 1, length: v.value.length,
-    value: v.value.slice(0, ARRAY_VIEW_ITEMS).map((x) => (Array.isArray(x) ? x.slice(0, ARRAY_VIEW_COLUMNS) : x)),
+    value: v.value.slice(0, ARRAY_VIEW_ITEMS).map((x) => (Array.isArray(x) ? x.slice(0, ARRAY_VIEW_COLUMNS).map(plain) : plain(x))),
 }));
 
 const hasText = (s) => s !== undefined && s !== null && String(s).trim() !== '';
@@ -285,6 +355,26 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         return cache.get(s);
     };
     const funcs = new Map(program.functions.map((f) => [f.name.toLowerCase(), f]));
+    const records = recordTypes(program);
+    const recordOf = (type) => records.get(String(type).toLowerCase()) || null;
+    // A value of a type: a record type gets a copy of a record of that type.
+    const typed = (type, value, name) => {
+        const def = recordOf(type);
+        if (!def) {
+            if (value instanceof Rec) {
+                throw new AlgorithmError('recordvalue', {name, type: String(type)});
+            }
+            return coerce(type, value, name);
+        }
+        if (!(value instanceof Rec) || value.def.name.toLowerCase() !== def.name.toLowerCase()) {
+            throw new AlgorithmError('assignrecord', {value: fmt(value), name, type: def.name});
+        }
+        return value.copy();
+    };
+    const initial = (type) => {
+        const def = recordOf(type);
+        return def ? new Rec(def) : defaultValue(type);
+    };
     let steps = 0;
     let depth = 0;
     let written = 0;
@@ -320,7 +410,12 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
     let topArgs = [];
     // Calls running now, as the variables panel shows them: Main(), Fact(5), ...
     const stack = [];
-    const argText = (v) => (Array.isArray(v) ? '[…]' : fmt(v));
+    const argText = (v) => {
+        if (Array.isArray(v)) {
+            return '[…]';
+        }
+        return v instanceof Rec ? `${v.def.name}(…)` : fmt(v);
+    };
     // Arrays written in the call of a function test ([1, 2]); their elements get the type of the parameter.
     const literals = new WeakSet();
     const random = seed === null ? Math.random : seededRandom(seed);
@@ -387,7 +482,13 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         return s;
     };
 
+    // eslint-disable-next-line complexity
     const binary = (op, l, r) => {
+        // A record only joins a text (& or + with a string).
+        if ((l instanceof Rec || r instanceof Rec) && op !== '&' && !(op === '+' && (typeof l === 'string' ||
+                typeof r === 'string'))) {
+            throw new AlgorithmError('recordop', {op});
+        }
         switch (op) {
             case '+': return typeof l === 'string' || typeof r === 'string' ? text(fmt(l) + fmt(r)) : l + r;
             case '&': return text(fmt(l) + fmt(r));
@@ -436,6 +537,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
      * @param {Object} n AST node
      * @param {Object} env environment
      */
+    // eslint-disable-next-line complexity
     function* evalNode(n, env) {
         switch (n.k) {
             case 'num':
@@ -448,8 +550,15 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
                 const [, list, i] = yield* arrayIndex(n, env);
                 return list[i];
             }
+            case 'fld': {
+                const [rec, key] = yield* fieldOf(n, env);
+                return rec.values[key];
+            }
             case 'un': {
                 const e = yield* evalNode(n.e, env);
+                if (e instanceof Rec && n.op !== '+') {
+                    throw new AlgorithmError('recordop', {op: n.op});
+                }
                 if (n.op === '-') {
                     return -e;
                 }
@@ -480,6 +589,9 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
                     return stateCall(lname, args);
                 }
                 if (Object.hasOwn(BUILTINS, lname)) {
+                    if (args.some((a) => a instanceof Rec)) {
+                        throw new AlgorithmError('recordop', {op: n.name});
+                    }
                     return BUILTINS[lname](...args);
                 }
                 throw new AlgorithmError('unknownfunction', {name: n.name});
@@ -489,6 +601,40 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         }
     }
     const evalStr = (s, env) => evalNode(ast(s), env);
+
+    /**
+     * The record a field belongs to and the key of the field (p.x, a[i].x).
+     *
+     * @param {Object} n fld node
+     * @param {Object} env environment
+     * @returns {Array} [record, lower case field name, field definition]
+     */
+    function* fieldOf(n, env) {
+        const rec = yield* evalNode(n.e, env);
+        if (!(rec instanceof Rec)) {
+            throw new AlgorithmError('notrecord', {name: n.e.name || ''});
+        }
+        const key = n.name.toLowerCase();
+        const field = rec.def.fields.find((f) => f.name.toLowerCase() === key);
+        if (!field) {
+            throw new AlgorithmError('nofield', {name: n.name, record: rec.def.name});
+        }
+        return [rec, key, field];
+    }
+
+    /**
+     * The type of an assignment target (a variable, an element or a field).
+     *
+     * @param {Object} t node
+     * @param {Object} env environment
+     * @returns {string}
+     */
+    function* targetType(t, env) {
+        if (t.k === 'fld') {
+            return (yield* fieldOf(t, env))[2].type;
+        }
+        return lookup(env, t.name).type;
+    }
 
     /**
      * Store a value in a variable or array element.
@@ -501,10 +647,13 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         const t = ast(targetStr);
         if (t.k === 'var') {
             const v = lookup(env, t.name);
-            v.value = coerce(v.type, value, t.name);
+            v.value = typed(v.type, value, t.name);
         } else if (t.k === 'idx') {
             const [v, list, i] = yield* arrayIndex(t, env, 'w');
-            list[i] = coerce(v.type, value, t.name);
+            list[i] = typed(v.type, value, t.name);
+        } else if (t.k === 'fld') {
+            const [rec, key, field] = yield* fieldOf(t, env);
+            rec.values[key] = coerce(field.type, value, `${rec.def.name}.${field.name}`);
         } else {
             throw new AlgorithmError('badtarget');
         }
@@ -587,9 +736,12 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
      */
     function* runInput(b, env) {
         const t = ast(b.target);
-        const decl = lookup(env, t.name);
-        const text = yield {event: 'input', name: b.target, type: decl.type};
-        yield* assign(b.target, parseInputValue(text, decl.type), env);
+        const type = yield* targetType(t, env);
+        if (recordOf(type)) {
+            throw new AlgorithmError('inputrecord', {name: b.target});
+        }
+        const text = yield {event: 'input', name: b.target, type};
+        yield* assign(b.target, parseInputValue(text, type), env);
     }
 
     /**
@@ -742,14 +894,20 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
                     throw new AlgorithmError('arraysize', {size: size2 === null ? String(size) : `${size} x ${size2}`,
                         max: String(MAX_ARRAY_SIZE)});
                 }
-                const row = () => Array.from({length: size2}, () => defaultValue(b.varType));
+                if (hasText(b.varType) && !BASIC_TYPES.includes(b.varType) && !recordOf(b.varType)) {
+                    throw new AlgorithmError('unknowntype', {type: String(b.varType)});
+                }
+                if (size2 !== null && recordOf(b.varType)) {
+                    throw new AlgorithmError('recordmatrix', {type: String(b.varType)});
+                }
+                const row = () => Array.from({length: size2}, () => initial(b.varType));
                 const length = (n) => (Number.isNaN(Number(n)) || Number(n) < 0 ? 0 : Math.trunc(Number(n)));
                 const count = size === null ? 0 : length(size) * (size2 === null ? 1 : length(size2) + ROW_CELLS);
                 for (const nm of declaredNames(b)) {
                     reserve(env[nm.toLowerCase()], count);
-                    let value = defaultValue(b.varType);
+                    let value = initial(b.varType);
                     if (size !== null) {
-                        value = Array.from({length: size}, () => (size2 === null ? defaultValue(b.varType) : row()));
+                        value = Array.from({length: size}, () => (size2 === null ? initial(b.varType) : row()));
                     }
                     let dims = size === null ? 0 : 1;
                     if (size2 !== null) {
@@ -884,7 +1042,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
                 if (Array.isArray(args[i])) {
                     throw new AlgorithmError('argshape', {name: p.name});
                 }
-                env[p.name.toLowerCase()] = {name: p.name, type: p.type, value: coerce(p.type, args[i], p.name)};
+                env[p.name.toLowerCase()] = {name: p.name, type: p.type, value: typed(p.type, args[i], p.name)};
                 return;
             }
             if (literals.has(args[i])) {

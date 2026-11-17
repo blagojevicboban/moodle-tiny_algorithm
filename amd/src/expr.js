@@ -80,7 +80,7 @@ const tokenize = (src) => {
             if (['<=', '>=', '<>', '!=', '==', '&&', '||'].includes(two)) {
                 tokens.push({t: 'op', v: two});
                 i += 2;
-            } else if ('+-*/^%<>=&!(),[]'.includes(c)) {
+            } else if ('+-*/^%<>=&!(),[].'.includes(c)) {
                 tokens.push({t: 'op', v: c});
                 i++;
             } else {
@@ -179,8 +179,21 @@ export const parseExpr = (src, {literals = false} = {}) => {
         }
         throw new AlgorithmError('unexpected', {token: String(t.v)});
     };
+    // A field of a record: p.x, a[i].x (after a name or an element of an array).
+    const member = () => {
+        let base = primary();
+        while (isOp('.') && ['var', 'idx', 'fld', 'call'].includes(base.k)) {
+            p++;
+            const t = toks[p++];
+            if (!t || t.t !== 'id') {
+                throw new AlgorithmError('expected', {op: 'field name'});
+            }
+            base = {k: 'fld', e: base, name: t.v};
+        }
+        return base;
+    };
     const power = () => {
-        const base = primary();
+        const base = member();
         if (isOp('^')) {
             p++;
             return {k: 'bin', op: '^', l: base, r: unary()};

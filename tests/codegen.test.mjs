@@ -17,6 +17,7 @@
  * @copyright  2026 Boban Blagojević
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+import {TEMPLATES} from '../amd/src/templates.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -594,4 +595,39 @@ for (const lang of ['vb', 'go', 'rust', 'kotlin']) {
             assert.equal(out.replace(/\r\n/g, '\n'), runSync(program, input.split('\n').filter(Boolean)));
         }
     });
+}
+
+// Records (2.21): an array of records sorted with a record parameter, and the copies of records.
+const recordsCopy = () => {
+    const p = createProgram('Copies');
+    p.records = [{name: 'Point', fields: [{name: 'x', type: 'Integer'}, {name: 'y', type: 'Real'}, {name: 'ok', type: 'Boolean'},
+        {name: 'label', type: 'String'}]}];
+    p.functions[0].body = [
+        B('declare', {name: 'p, q', varType: 'Point'}),
+        B('input', {target: 'p.label'}), B('input', {target: 'p.x'}), B('assign', {target: 'p.y', expr: 'p.x / 4'}),
+        B('assign', {target: 'p.ok', expr: 'p.x > 3'}),
+        B('assign', {target: 'q', expr: 'p'}), B('assign', {target: 'q.x', expr: '1'}), B('assign', {target: 'q.label', expr: '"q"'}),
+        B('call', {expr: 'Move(p)'}),
+        B('output', {expr: 'p'}), B('output', {expr: '"q: " & q'}), B('output', {expr: 'Twice(q).x'}),
+    ];
+    p.functions.push({name: 'Move', params: [{name: 'r', type: 'Point'}], returnType: null, body: [
+        B('assign', {target: 'r.x', expr: '100'}), B('assign', {target: 'r.label', expr: '"moved"'}), B('output', {expr: 'r.label & r.x'})]});
+    p.functions.push({name: 'Twice', params: [{name: 'r', type: 'Point'}], returnType: 'Point', body: [
+        B('assign', {target: 'r.x', expr: 'r.x * 2'}), B('return', {expr: 'r'})]});
+    return p;
+};
+
+for (const lang of languages.filter((l) => l !== 'pseudo')) {
+    test(`${lang}: records (an array of records, fields, copies, record parameters) match the interpreter`,
+        {timeout: 600000}, (t) => {
+            const students = TEMPLATES.find((tmpl) => tmpl.id === 'students').build();
+            for (const [program, input] of [[students, '3\nAna\n4.5\nMilan\n4.75\nJovan\n3.5\n'], [recordsCopy(), 'p\n7\n']]) {
+                const out = runAny(lang, program, input);
+                if (out === null) {
+                    t.skip(`no ${lang} compiler`);
+                    return;
+                }
+                assert.equal(out.replace(/\r\n/g, '\n'), runSync(program, input.split('\n').filter(Boolean)));
+            }
+        });
 }

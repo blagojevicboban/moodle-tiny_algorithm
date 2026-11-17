@@ -29,7 +29,8 @@ import {TEMPLATES} from '../amd/src/templates.js';
 
 const INPUTS = {swap: ['3', '9'], rectangle: ['2', '3.5'], max2: ['4', '7'], evenodd: ['7'], sum_n: ['10'], factorial: ['6'],
     gcd: ['48', '18'], linear_search: ['23'], bubble_sort: [], selection_sort: [], binary_search: ['27'],
-    factorial_rec: ['5'], fibonacci_rec: ['6'], hanoi: ['3']};
+    factorial_rec: ['5'], fibonacci_rec: ['6'], hanoi: ['3'],
+    students: ['3', 'Ana', '4.5', 'Milan', '4.75', 'Jovan', '3.5']};
 
 /** Block types of an algorithm, in order (nested ones too). */
 const types = (program) => {

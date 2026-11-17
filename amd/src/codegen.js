@@ -154,6 +154,10 @@ const typeOf = (n, syms, fns) => {
             }
             return own(syms, n.name) ? syms[n.name].type : 'Integer';
         case 'idx': return own(syms, n.name) ? syms[n.name].type : 'Integer';
+        case 'fld': {
+            const f = fieldDef(recOf(typeOf(n.e, syms, fns)), n);
+            return f ? f.type : 'Integer';
+        }
         case 'un': return n.op === '!' ? 'Boolean' : typeOf(n.e, syms, fns);
         case 'call': {
             const f = own(fns, n.name.toLowerCase());
@@ -204,12 +208,47 @@ const precOf = (n) => {
 // Functions whose code needs a helper in some languages (C++ str(), rand_below()).
 let needs = {};
 
+// The record types of the algorithm being generated (lower case name => {name, fields}).
+let recDefs = new Map();
+
+/**
+ * The record types of an algorithm (not checked: the interpreter reports a wrong one).
+ *
+ * @param {Object} program
+ * @returns {Map<string, Object>}
+ */
+const recordMap = (program) => new Map((Array.isArray(program.records) ? program.records : [])
+    .filter((r) => r && r.name && Array.isArray(r.fields)).map((r) => [String(r.name).toLowerCase(), r]));
+
+/**
+ * The record type of a type name, or null for a basic type.
+ *
+ * @param {*} type
+ * @returns {?Object}
+ */
+const recOf = (type) => (typeof type === 'string' && recDefs.get(type.toLowerCase())) || null;
+
+/**
+ * The field of a record type that a field node reads.
+ *
+ * @param {?Object} def record type
+ * @param {Object} n fld node (field: the name as written)
+ * @returns {?Object}
+ */
+const fieldDef = (def, n) => (def ? def.fields.find((f) => f.name.toLowerCase() === String(n.field || n.name).toLowerCase()) :
+    null) || null;
+
 const LANGS = {
     python: {
         ext: 'py', label: 'Python',
         and: 'and', or: 'or', not: 'not ', pow: (l, r) => `${l} ** ${r}`, powInfix: true, div: (l, r) => `${l} / ${r}`,
         bool: (v) => (v ? 'True' : 'False'),
-        concat: (parts) => parts.map((p) => (p.type === 'String' ? p.code : `str(${p.code})`)).join(' + '),
+        concat: (parts) => parts.map((p) => {
+            if (p.type === 'Boolean') {
+                return `str(${p.code}).lower()`;
+            }
+            return p.type === 'String' ? p.code : `str(${p.code})`;
+        }).join(' + '),
         eq: (l, r, op) => `${l} ${op} ${r}`,
         call: (name, args) => {
             const m = {sqrt: 'math.sqrt', abs: 'abs', sin: 'math.sin', cos: 'math.cos', tan: 'math.tan', log: 'math.log',
@@ -353,7 +392,12 @@ const LANGS = {
         div: (l, r, t) => (t === 'Integer' ? `(double) ${l} / ${r}` : `${l} / ${r}`),
         bool: (v) => (v ? 'true' : 'false'),
         concatWrap: true,
-        concat: (parts) => parts.map((p, i) => (i === 0 && p.type !== 'String' ? `"" + ${p.code}` : p.code)).join(' + '),
+        concat: (parts) => parts.map((p, i) => {
+            if (p.type === 'Boolean') {
+                return `(${p.code} ? "true" : "false")`;
+            }
+            return i === 0 && p.type !== 'String' ? `"" + ${p.code}` : p.code;
+        }).join(' + '),
         eq: (l, r, op) => `${l} ${op} ${r}`,
         call: (name, args) => {
             const m = {sqrt: 'Math.Sqrt', abs: 'Math.Abs', sin: 'Math.Sin', cos: 'Math.Cos', tan: 'Math.Tan', log: 'Math.Log',
@@ -519,6 +563,7 @@ export const generateLines = (lang, program) => {
         throw new Error(`Unsupported language ${lang}`);
     }
     needs = {};
+    recDefs = recordMap(program);
     const pascal = lang === 'pascal';
     const semi = lang === 'python' ? '' : ';';
     const fns = Object.assign(Object.create(null), Object.fromEntries(program.functions.map((f) => [f.name.toLowerCase(), f])));
@@ -563,6 +608,9 @@ export const generateLines = (lang, program) => {
     const fixNames = (n) => {
         if (n.k === 'var' || n.k === 'idx') {
             n.name = nameOf(n.name);
+        } else if (n.k === 'fld') {
+            n.field = n.field || n.name;
+            n.name = safe(n.field);
         } else if (n.k === 'call' && own(fns, n.name.toLowerCase())) {
             n.user = true;
             n.name = fnName(fns[n.name.toLowerCase()]);
@@ -573,6 +621,45 @@ export const generateLines = (lang, program) => {
         return n;
     };
     const parse = (src) => fixNames(parseExpr(src));
+    // The name of a type in the code: a record type keeps its name (Pascal: T + name), a basic type its word.
+    const typeName = (type) => {
+        const def = recOf(type);
+        if (def) {
+            return pascal ? `T${def.name}` : def.name;
+        }
+        return TYPE_NAMES[lang][type];
+    };
+    // A record value that is stored or passed: a copy where the language would share the object.
+    const copyRec = (code, node) => {
+        const def = recOf(typeOf(node, syms, fns));
+        if (!def || node.k === 'call') {
+            return code;
+        }
+        return {python: `replace(${code})`, java: `${code}.copy()`, csharp: `${code}.Copy()`,
+            javascript: `Object.assign(new ${def.name}(), ${code})`}[lang] || code;
+    };
+    // A record in a text: Type(field = value, ...) as the interpreter writes it.
+    const recText = (n) => {
+        const def = recOf(typeOf(n, syms, fns));
+        if (!def) {
+            return n;
+        }
+        const parts = [];
+        def.fields.forEach((f, i) => {
+            parts.push({k: 'str', v: `${i ? ', ' : `${def.name}(`}${f.name} = `});
+            parts.push({k: 'fld', e: n, name: safe(f.name), field: f.name});
+        });
+        parts.push({k: 'str', v: ')'});
+        return parts.reduce((l, r) => ({k: 'bin', op: '&', l, r}));
+    };
+    // Records joined to a text become their text.
+    const expandRecords = (n) => {
+        if (n.k === 'bin' && (n.op === '&' || (n.op === '+' && typeOf(n, syms, fns) === 'String'))) {
+            n.l = recText(expandRecords(n.l));
+            n.r = recText(expandRecords(n.r));
+        }
+        return n;
+    };
     // The function of the algorithm a generated name belongs to.
     const userFn = (name) => program.functions.find((f) => fnName(f) === name) || null;
 
@@ -586,6 +673,7 @@ export const generateLines = (lang, program) => {
                 case 'bool': code = L.bool(n.v); break;
                 case 'var': code = !own(syms, n.name) && n.name.toLowerCase() === 'pi' ? L.call('pi', [], []) : n.name; break;
                 case 'idx': code = indexCode(n); break;
+                case 'fld': code = `${walk(n.e, 9)}.${n.name}`; break;
                 case 'un': code = n.op === '!' ? `${L.not}${walk(n.e, 8)}` : `${n.op}${walk(n.e, 8)}`; break;
                 case 'call': code = callCode(n); break;
                 case 'bin': code = walkBin(n); break;
@@ -649,7 +737,7 @@ export const generateLines = (lang, program) => {
             return n.args.flatMap((a, i) => {
                 const p = f && f.params[i];
                 if (lang !== 'c' || !p || !p.matrix || a.k !== 'var') {
-                    return [walk(a)];
+                    return [p && !p.array ? copyRec(walk(a), a) : walk(a)];
                 }
                 const m = a.name;
                 if (own(syms, m) && syms[m].param) {
@@ -666,15 +754,18 @@ export const generateLines = (lang, program) => {
             return lang === 'csharp' ? `${n.name}[${walk(n.index)}, ${walk(n.index2)}]` :
                 `${n.name}[${walk(n.index)}][${walk(n.index2)}]`;
         };
-        const node = parse(src);
+        const node = expandRecords(parse(src));
         // The code is built on demand: building it may mark helpers as needed (C++ str()).
         return {node, walk, get code() {
             return walk(node);
         }};
     };
     const ex = (src) => expr(src).code;
+    const exText = ex;
 
-    const fmtSpec = {Integer: '%d', Real: '%g', String: '%s', Boolean: '%d'};
+    const fmtSpec = {Integer: '%d', Real: '%g', String: '%s', Boolean: '%s'};
+    // An argument of C's printf: a truth value is written as true or false.
+    const cArg = (p, walk) => (typeOf(p, syms, fns) === 'Boolean' ? `(${walk(p)}) ? "true" : "false"` : walk(p));
 
     const out = [];
     // The block whose code is being written; every line remembers it.
@@ -686,16 +777,23 @@ export const generateLines = (lang, program) => {
     };
 
     const printStmt = (b, ind) => {
-        const {node, walk} = expr(b.expr);
+        const {node: whole, walk} = expr(b.expr);
+        const node = recText(whole);
+        if (node !== whole) {
+            // A whole record: write its text.
+            b = {...b, expr: null};
+        }
+        const ex = (src) => (src === null ? walk(node) : exText(src));
         const nl = b.newline !== false;
         const parts = concatParts(node, syms, fns);
+        const bool = parts.length === 1 && typeOf(node, syms, fns) === 'Boolean';
         if (lang === 'python') {
-            emit(ind, `print(${ex(b.expr)}${nl ? '' : ', end=""'})`);
+            emit(ind, `print(${bool ? `str(${ex(b.expr)}).lower()` : ex(b.expr)}${nl ? '' : ', end=""'})`);
         } else if (lang === 'java') {
             const code = typeOf(node, syms, fns) === 'Real' ? `fmt(${walk(node)})` : walk(node);
             emit(ind, `System.out.print${nl ? 'ln' : ''}(${code});`);
         } else if (lang === 'csharp') {
-            emit(ind, `Console.Write${nl ? 'Line' : ''}(${ex(b.expr)});`);
+            emit(ind, `Console.Write${nl ? 'Line' : ''}(${bool ? `(${ex(b.expr)} ? "true" : "false")` : ex(b.expr)});`);
         } else if (lang === 'javascript') {
             emit(ind, nl ? `console.log(${ex(b.expr)});` : `process.stdout.write(String(${ex(b.expr)}));`);
         } else if (lang === 'cpp') {
@@ -709,13 +807,13 @@ export const generateLines = (lang, program) => {
             emit(ind, `${nl ? 'writeln' : 'write'}(${items.join(', ')});`);
         } else {
             const fmt = parts.map((p) => fmtSpec[typeOf(p, syms, fns)]).join('');
-            const args = parts.map((p) => walk(p)).join(', ');
+            const args = parts.map((p) => cArg(p, walk)).join(', ');
             emit(ind, `printf("${fmt}${nl ? '\\n' : ''}", ${args});`);
         }
     };
     const inputStmt = (b, ind) => {
         const t = parse(b.target);
-        const sym = own(syms, t.name) || {type: 'Integer'};
+        const sym = t.k === 'fld' ? {type: typeOf(t, syms, fns)} : own(syms, t.name) || {type: 'Integer'};
         const target = ex(b.target);
         if (lang === 'python') {
             if (sym.type === 'Boolean') {
@@ -750,6 +848,11 @@ export const generateLines = (lang, program) => {
 
     const assignStmt = (b, ind) => {
         const target = ex(b.target);
+        if (recOf(typeOf(parse(b.target), syms, fns))) {
+            const {node, code} = expr(b.expr);
+            emit(ind, `${target} ${pascal ? ':=' : '='} ${copyRec(code, node)}${semi}`);
+            return;
+        }
         // Python keeps a division real; the algorithm stores a whole number in an Integer (mid = (low + high) / 2).
         if (lang === 'python' && typeOf(parse(b.target), syms, fns) === 'Integer' &&
                 typeOf(parse(b.expr), syms, fns) === 'Real') {
@@ -769,7 +872,7 @@ export const generateLines = (lang, program) => {
             return;
         }
         const fmt = parts.map((p) => fmtSpec[typeOf(p, syms, fns)]).join('');
-        const args = parts.map((p) => walk(p)).join(', ');
+        const args = parts.map((p) => cArg(p, walk)).join(', ');
         emit(ind, '{');
         emit(ind + 1, 'char tmp[256];');
         emit(ind + 1, `snprintf(tmp, sizeof tmp, "${fmt}", ${args});`);
@@ -786,6 +889,10 @@ export const generateLines = (lang, program) => {
         syms[b.name] = {type: b.varType, array: Boolean(String(b.size || '').trim())};
         const arr = syms[b.name].array;
         const dv = DEFAULTS[lang] && DEFAULTS[lang][b.varType];
+        if (recOf(b.varType)) {
+            declareRecord(b, ind, arr);
+            return;
+        }
         if (arr && isMatrix(b)) {
             declareMatrix(b, ind, dv);
         } else if (lang === 'python') {
@@ -817,6 +924,93 @@ export const generateLines = (lang, program) => {
     };
 
     const pyFactor = (code) => (/^[\w.]+$/.test(code) ? code : `(${code})`);
+
+    // A record, or an array of records (each element a new record with the start values of its fields).
+    const declareRecord = (b, ind, arr) => {
+        const tn = typeName(b.varType);
+        const n = arr ? ex(b.size) : '';
+        if (lang === 'python') {
+            emit(ind, arr ? `${b.name} = [${tn}() for _ in range(${n})]` : `${b.name} = ${tn}()`);
+        } else if (lang === 'java' || lang === 'csharp') {
+            emit(ind, arr ? `${tn}[] ${b.name} = new ${tn}[${n}];` : `${tn} ${b.name} = new ${tn}();`);
+            if (arr) {
+                const len = lang === 'java' ? 'length' : 'Length';
+                emit(ind, `for (int k_ = 0; k_ < ${b.name}.${len}; k_++) {`);
+                emit(ind + 1, `${b.name}[k_] = new ${tn}();`);
+                emit(ind, '}');
+            }
+        } else if (lang === 'cpp') {
+            emit(ind, arr ? `vector<${tn}> ${b.name}(${n});` : `${tn} ${b.name}{};`);
+        } else if (lang === 'javascript') {
+            emit(ind, arr ? `let ${b.name} = Array.from({length: ${n}}, () => new ${tn}());` : `let ${b.name} = new ${tn}();`);
+        } else if (pascal) {
+            emit(ind, arr ? `SetLength(${b.name}, ${n});` : `${b.name} := Default(${tn});`);
+        } else if (arr) {
+            emit(ind, `${tn} ${b.name}[${n}];`);
+            emit(ind, `memset(${b.name}, 0, sizeof ${b.name});`);
+        } else {
+            emit(ind, `${tn} ${b.name} = {0};`);
+        }
+    };
+
+    // The definitions of the record types, in the syntax of the language.
+    const recordTypes = (ind) => {
+        const fieldType = (type) => ({python: {Integer: 'int', Real: 'float', String: 'str', Boolean: 'bool'}[type],
+            javascript: null}[lang] ?? TYPE_NAMES[lang][type]);
+        [...recDefs.values()].forEach((def) => {
+            const tn = typeName(def.name);
+            const fields = def.fields.map((f) => ({name: safe(f.name), type: f.type, dv: (DEFAULTS[lang] || {})[f.type]}));
+            if (lang === 'python') {
+                emit(ind, '@dataclass');
+                emit(ind, `class ${tn}:`);
+                fields.forEach((f) => emit(ind + 1, `${f.name}: ${fieldType(f.type)} = ${f.dv}`));
+                emit(ind, '');
+                emit(ind, '');
+            } else if (lang === 'java') {
+                emit(ind, `static class ${tn} {`);
+                fields.forEach((f) => emit(ind + 1, `${fieldType(f.type)} ${f.name} = ${f.dv};`));
+                emit(ind + 1, `${tn} copy() {`);
+                emit(ind + 2, `${tn} c = new ${tn}();`);
+                fields.forEach((f) => emit(ind + 2, `c.${f.name} = ${f.name};`));
+                emit(ind + 2, 'return c;');
+                emit(ind + 1, '}');
+                emit(ind, '}');
+                emit(ind, '');
+            } else if (lang === 'csharp') {
+                emit(ind, `class ${tn} {`);
+                fields.forEach((f) => emit(ind + 1, `public ${fieldType(f.type)} ${f.name} = ${f.dv};`));
+                emit(ind + 1, `public ${tn} Copy() {`);
+                emit(ind + 2, `return (${tn}) MemberwiseClone();`);
+                emit(ind + 1, '}');
+                emit(ind, '}');
+                emit(ind, '');
+            } else if (lang === 'cpp') {
+                emit(ind, `struct ${tn} {`);
+                fields.forEach((f) => emit(ind + 1, `${fieldType(f.type)} ${f.name} = ${f.dv};`));
+                emit(ind, '};');
+                emit(ind, '');
+            } else if (lang === 'javascript') {
+                emit(ind, `class ${tn} {`);
+                emit(ind + 1, 'constructor() {');
+                fields.forEach((f) => emit(ind + 2, `this.${f.name} = ${f.dv};`));
+                emit(ind + 1, '}');
+                emit(ind, '}');
+                emit(ind, '');
+            } else if (pascal) {
+                emit(ind, 'type');
+                emit(ind + 1, `${tn} = record`);
+                fields.forEach((f) => emit(ind + 2, `${f.name}: ${TYPE_NAMES.pascal[f.type]};`));
+                emit(ind + 1, 'end;');
+                emit(ind, '');
+            } else {
+                emit(ind, 'typedef struct {');
+                fields.forEach((f) => emit(ind + 1, f.type === 'String' ? `char ${f.name}[256];` :
+                    `${TYPE_NAMES.c[f.type]} ${f.name};`));
+                emit(ind, `} ${tn};`);
+                emit(ind, '');
+            }
+        });
+    };
 
     // A matrix: rows b.size, columns b.size2.
     const declareMatrix = (b, ind, dv) => {
@@ -1045,7 +1239,7 @@ export const generateLines = (lang, program) => {
                 const arr = Boolean(String(b.size || '').trim());
                 const of = arr ? 'array of ' : '';
                 String(b.name).split(',').map((s) => s.trim()).filter(Boolean).forEach((name) => {
-                    vars.set(nameOf(name), isMatrix(b) ? pascalMatrix(b.varType) : `${of}${TYPE_NAMES.pascal[b.varType]}`);
+                    vars.set(nameOf(name), isMatrix(b) ? pascalMatrix(b.varType) : `${of}${typeName(b.varType)}`);
                 });
             } else if (b.type === 'for' && !vars.has(nameOf(b.variable))) {
                 vars.set(nameOf(b.variable), 'Integer');
@@ -1057,10 +1251,10 @@ export const generateLines = (lang, program) => {
     const pascalHead = (f) => {
         const ps = f.params
             .map((p) => `${p.array ? 'var ' : ''}${safe(p.name)}: ` +
-                (p.matrix ? pascalMatrix(p.type) : `${p.array ? 'array of ' : ''}${TYPE_NAMES.pascal[p.type]}`))
+                (p.matrix ? pascalMatrix(p.type) : `${p.array ? 'array of ' : ''}${typeName(p.type)}`))
             .join('; ');
         const args = ps ? `(${ps})` : '';
-        return f.returnType ? `function ${fnName(f)}${args}: ${TYPE_NAMES.pascal[f.returnType]};` :
+        return f.returnType ? `function ${fnName(f)}${args}: ${typeName(f.returnType)};` :
             `procedure ${fnName(f)}${args};`;
     };
 
@@ -1073,7 +1267,7 @@ export const generateLines = (lang, program) => {
         if (lang === 'javascript') {
             return `function ${isMain ? 'main' : f.name}(${params.join(', ')})`;
         }
-        const tn = TYPE_NAMES[lang];
+        const tn = new Proxy({}, {get: (o, type) => typeName(type)});
         const ret = f.returnType ? tn[f.returnType] : 'void';
         const ps = f.params.map((p) => {
             if (p.matrix) {
@@ -1162,7 +1356,14 @@ export const generateLines = (lang, program) => {
                 // The turtle looks up at the start, as in the editor.
                 emit(0, 'turtle.setheading(90)');
             }
+            if (recDefs.size) {
+                emit(0, 'from dataclasses import dataclass, replace');
+            }
             emit(0, '');
+            if (recDefs.size) {
+                emit(0, '');
+                recordTypes(0);
+            }
             if (usesFiles(program)) {
                 // The file open for reading and the one open for writing, and EOF() of the first.
                 emit(0, '_files = {}');
@@ -1183,6 +1384,7 @@ export const generateLines = (lang, program) => {
             }
             ['stdio.h', 'stdlib.h', 'string.h', 'math.h'].forEach((h) => emit(0, `#include <${h}>`));
             emit(0, '');
+            recordTypes(0);
             emit(0, 'static int rand_below(int n) { return rand() % n; }');
             emit(0, '');
             if (needs.toFixed) {
@@ -1219,6 +1421,7 @@ export const generateLines = (lang, program) => {
             emit(0, '');
             emit(0, 'using namespace std;');
             emit(0, '');
+            recordTypes(0);
             if (needs.str) {
                 // Text of a number or truth value, printed the way cout prints it.
                 emit(0, 'template <typename T> string str(T value) {');
@@ -1252,6 +1455,7 @@ export const generateLines = (lang, program) => {
             emit(0, 'let nextLine = 0;');
             emit(0, 'const input = () => lines[nextLine++] ?? \'\';');
             emit(0, '');
+            recordTypes(0);
         },
         pascal: () => {
             emit(0, 'program Main;');
@@ -1265,12 +1469,13 @@ export const generateLines = (lang, program) => {
                 [...needs.pascalMatrix].sort().forEach((t) => emit(1, `T${t}Matrix = array of array of ${TYPE_NAMES.pascal[t]};`));
                 emit(0, '');
             }
+            recordTypes(0);
             if (/isnumeric\s*\(/i.test(JSON.stringify(program.functions))) {
                 emit(0, 'var');
                 emit(1, 'Dummy: Double;');
                 emit(0, '');
             }
-            if (/"varType":"Boolean"/.test(JSON.stringify(program.functions))) {
+            if (/"(varType|type)":"Boolean"/.test(JSON.stringify([program.functions, program.records || []]))) {
                 emit(0, 'function ReadBoolean: Boolean;');
                 emit(0, 'var');
                 emit(1, 'S: string;');
@@ -1294,6 +1499,7 @@ export const generateLines = (lang, program) => {
             emit(0, 'class Program {');
             emit(1, 'static Random rnd = new Random();');
             emit(1, '');
+            recordTypes(1);
         },
         java: () => {
             emit(0, 'import java.util.*;');
@@ -1310,6 +1516,7 @@ export const generateLines = (lang, program) => {
             emit(2, 'return java.math.BigDecimal.valueOf(Math.round(v * 1e10) / 1e10).stripTrailingZeros().toPlainString();');
             emit(1, '}');
             emit(1, '');
+            recordTypes(1);
         },
     };
     const emitHeader = () => (own(headers, lang) || headers.java)();
@@ -1512,7 +1719,18 @@ const typedBuiltin = (lang, l, a, real, whole, needs) => {
  * @returns {{text: string, owners: Array}}
  */
 const generateTyped = (lang, program) => {
-    const L = TYPED[lang];
+    recDefs = recordMap(program);
+    const base0 = TYPED[lang];
+    // Record types are types of the language too: their names, and a new record as the start value.
+    const L = {...base0,
+        types: new Proxy(base0.types, {get: (o, type) => (recOf(type) ? recOf(type).name : o[type])}),
+        defaults: new Proxy(base0.defaults, {get: (o, type) => {
+            const def = recOf(type);
+            if (!def) {
+                return o[type];
+            }
+            return {go: `${def.name}{}`, rust: `${def.name}::default()`, kotlin: `${def.name}()`}[lang] || `New ${def.name}()`;
+        }})};
     const vb = lang === 'vb';
     const semi = L.semi || '';
     const need = {};
@@ -1559,13 +1777,40 @@ const generateTyped = (lang, program) => {
         } else if (n.k === 'call' && own(fns, n.name.toLowerCase())) {
             n.fn = fns[n.name.toLowerCase()];
             n.name = fnName(n.fn);
+        } else if (n.k === 'fld') {
+            n.field = n.field || n.name;
+            n.name = safe(n.field);
         } else if (n.k === 'call' && Object.hasOwn(ALIASES, n.name.toLowerCase())) {
             n.name = ALIASES[n.name.toLowerCase()];
         }
         [n.e, n.l, n.r, n.index, n.index2, ...(n.args || [])].forEach((c) => c && fixNames(c));
         return n;
     };
-    const parse = (src) => fixNames(parseExpr(src));
+    // A record in a text: Type(field = value, ...) as the interpreter writes it.
+    const recText = (n) => {
+        const def = recOf(typeOf(n, syms, fns));
+        if (!def) {
+            return n;
+        }
+        const parts = [];
+        def.fields.forEach((f, i) => {
+            parts.push({k: 'str', v: `${i ? ', ' : `${def.name}(`}${f.name} = `});
+            parts.push({k: 'fld', e: n, name: safe(f.name), field: f.name});
+        });
+        parts.push({k: 'str', v: ')'});
+        return parts.reduce((l, r) => ({k: 'bin', op: '&', l, r}));
+    };
+    const expandRecords = (n) => {
+        if (n.k === 'bin' && (n.op === '&' || (n.op === '+' && typeOf(n, syms, fns) === 'String'))) {
+            n.l = recText(expandRecords(n.l));
+            n.r = recText(expandRecords(n.r));
+        }
+        return n;
+    };
+    const parse = (src) => expandRecords(fixNames(parseExpr(src)));
+    // A record that is stored or passed: a copy where the language would share the object (Rust clones when it reads).
+    const copyRec = (code, n) => (recOf(typeOf(n, syms, fns)) && n.k !== 'call' ?
+        {vb: `${code}.Copy()`, kotlin: `${code}.copy()`}[lang] || code : code);
 
     // ---- Expressions: every code knows its type.
     const conv = (e, to) => {
@@ -1605,8 +1850,8 @@ const generateTyped = (lang, program) => {
                     return {code: typedBuiltin(lang, 'pi', [], () => '', () => '', need), type: 'Real'};
                 }
                 const type = s ? s.type : 'Integer';
-                return {code: lang === 'rust' && type === 'String' && !lvalue && !(s && s.array) ? `${n.name}.clone()` : n.name,
-                    type};
+                const clone = (type === 'String' || recOf(type)) && !lvalue && !(s && s.array);
+                return {code: lang === 'rust' && clone ? `${n.name}.clone()` : n.name, type};
             }
             case 'idx': {
                 const s = sym(n.name);
@@ -1622,6 +1867,17 @@ const generateTyped = (lang, program) => {
                 } else {
                     code = j === null ? `${n.name}[${i}]` : `${n.name}[${i}][${j}]`;
                 }
+                return {code: lang === 'rust' && (type === 'String' || recOf(type)) && !lvalue ? `${code}.clone()` : code, type};
+            }
+            case 'fld': {
+                // The record itself is not copied to read or set one of its fields.
+                const outer = lvalue;
+                lvalue = true;
+                const rec = walk(n.e, 9);
+                lvalue = outer;
+                const f = fieldDef(recOf(rec.type), n);
+                const type = f ? f.type : 'Integer';
+                const code = `${rec.code}.${n.name}`;
                 return {code: lang === 'rust' && type === 'String' && !lvalue ? `${code}.clone()` : code, type};
             }
             case 'un': {
@@ -1720,7 +1976,7 @@ const generateTyped = (lang, program) => {
                     const s = sym(a.name);
                     return lang === 'rust' && !(s && s.param) ? `&mut ${a.name}` : a.name;
                 }
-                return p ? conv(walk(a), p.type) : walk(a).code;
+                return p ? copyRec(conv(walk(a), p.type), a) : walk(a).code;
             });
             return {code: `${n.name}(${args.join(', ')})`, type: n.fn.returnType || 'Integer'};
         }
@@ -1752,7 +2008,8 @@ const generateTyped = (lang, program) => {
         lvalue = true;
         try {
             const n = parse(src);
-            return {code: walk(n).code, type: n.k === 'var' || n.k === 'idx' ? (sym(n.name) || {type: 'Integer'}).type : 'Integer'};
+            const w = walk(n);
+            return {code: w.code, type: n.k === 'var' || n.k === 'idx' ? (sym(n.name) || {type: 'Integer'}).type : w.type};
         } finally {
             lvalue = false;
         }
@@ -1768,7 +2025,9 @@ const generateTyped = (lang, program) => {
     };
 
     const printStmt = (b, ind) => {
-        const text = toText([walk(parse(b.expr))]);
+        const whole = parse(b.expr);
+        const rec = recText(whole);
+        const text = rec === whole ? toText([walk(whole)]) : walk(rec).code;
         const nl = b.newline !== false;
         if (lang === 'go') {
             need.goFmt = true;
@@ -1805,17 +2064,35 @@ const generateTyped = (lang, program) => {
     };
     const assignStmt = (b, ind) => {
         const t = target(b.target);
+        if (recOf(t.type)) {
+            const n = parse(b.expr);
+            emit(ind, `${t.code} = ${copyRec(walk(n).code, n)}${semi}`);
+            return;
+        }
         emit(ind, `${t.code} = ${ex(b.expr, t.type)}${semi}`);
     };
 
     const declare = (b, ind) => String(b.name).split(',').map((x) => x.trim()).filter(Boolean)
         .forEach((name) => declareOne({...b, name: nameOf(name)}, ind));
+    // eslint-disable-next-line complexity
     const declareOne = (b, ind) => {
         const size = String(b.size || '').trim() ? ex(b.size, 'Integer') : null;
         const size2 = size !== null && isMatrix(b) ? ex(b.size2, 'Integer') : null;
         syms[b.name] = {type: b.varType, array: size !== null, matrix: size2 !== null};
         const tn = L.types[b.varType];
         const dv = L.defaults[b.varType];
+        if (recOf(b.varType) && size !== null && lang === 'kotlin') {
+            emit(ind, `var ${b.name}: Array<${tn}> = Array(${size}) { ${dv} }`);
+            return;
+        }
+        if (recOf(b.varType) && size !== null && vb) {
+            const last = /^\d+$/.test(size) ? String(Number(size) - 1) : `${atom(size)} - 1`;
+            emit(ind, `Dim ${b.name}(${last}) As ${tn}`);
+            emit(ind, `For k_ As Integer = 0 To ${b.name}.Length - 1`);
+            emit(ind + 1, `${b.name}(k_) = ${dv}`);
+            emit(ind, 'Next');
+            return;
+        }
         if (lang === 'go') {
             if (size === null) {
                 emit(ind, `var ${b.name} ${tn} = ${dv}`);
@@ -1998,7 +2275,7 @@ const generateTyped = (lang, program) => {
             return `${name}: &mut ${p.matrix ? `Vec<Vec<${tn}>>` : `Vec<${tn}>`}`;
         }
         if (lang === 'kotlin') {
-            const arr = KOTLIN_ARRAYS[p.type];
+            const arr = KOTLIN_ARRAYS[p.type] || `Array<${tn}>`;
             if (p.matrix) {
                 return `${name}: Array<${arr}>`;
             }
@@ -2072,6 +2349,31 @@ const generateTyped = (lang, program) => {
     });
     const body = out.splice(0);
     const bodyOwners = owners.splice(0);
+
+    // The definitions of the record types.
+    const recordTypes = (ind) => [...recDefs.values()].forEach((def) => {
+        const fields = def.fields.map((f) => ({name: safe(f.name), type: base0.types[f.type], dv: base0.defaults[f.type]}));
+        if (lang === 'go') {
+            emit(ind, `type ${def.name} struct {`);
+            fields.forEach((f) => emit(ind + 1, `${f.name} ${f.type}`));
+            emit(ind, '}');
+        } else if (lang === 'rust') {
+            emit(ind, '#[derive(Clone, Default)]');
+            emit(ind, `struct ${def.name} {`);
+            fields.forEach((f) => emit(ind + 1, `${f.name}: ${f.type},`));
+            emit(ind, '}');
+        } else if (lang === 'kotlin') {
+            emit(ind, `data class ${def.name}(${fields.map((f) => `var ${f.name}: ${f.type} = ${f.dv}`).join(', ')})`);
+        } else {
+            emit(ind, `Class ${def.name}`);
+            fields.forEach((f) => emit(ind + 1, `Public ${f.name} As ${f.type} = ${f.dv}`));
+            emit(ind + 1, `Public Function Copy() As ${def.name}`);
+            emit(ind + 2, `Return CType(MemberwiseClone(), ${def.name})`);
+            emit(ind + 1, 'End Function');
+            emit(ind, 'End Class');
+        }
+        emit(ind, '');
+    });
 
     // ---- Start and end of the program.
     const helperLines = {
@@ -2224,6 +2526,11 @@ const generateTyped = (lang, program) => {
     if (vb) {
         emit(0, 'End Module');
     }
+    if (recDefs.size) {
+        // The record types after the program (all four languages allow types there).
+        emit(0, '');
+        recordTypes(0);
+    }
     const lineOwners = out.flatMap((piece, i) => piece.split('\n').map(() => owners[i]));
     const text = out.join('\n').replace(/\n*$/, '\n');
     return {text, owners: lineOwners.slice(0, text.split('\n').length - 1)};
@@ -2294,6 +2601,13 @@ const generatePseudo = (program) => {
             emit(ind, kw('endfor'));
         }
     };
+    // The record types first: RECORD Student / name: String / avg: Real / END RECORD.
+    (Array.isArray(program.records) ? program.records : []).forEach((def) => {
+        emit(0, `${kw('record')} ${def.name}`);
+        (def.fields || []).forEach((f) => emit(1, `${f.name}: ${f.type}`));
+        emit(0, kw('endrecord'));
+        emit(0, '');
+    });
     program.functions.forEach((f, i) => {
         if (i) {
             emit(0, '');

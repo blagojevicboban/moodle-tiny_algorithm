@@ -458,5 +458,47 @@ export const TEMPLATES = [
             ]});
             return prog;
         }
+    },
+    {
+        id: 'students',
+        category: 'records',
+        title: 'Students (records)',
+        desc: 'A record Student with a name and an average: read the students, sort them from the best and write them.',
+        fallbackTitle: 'Students (records)',
+        fallbackDesc: 'A record Student with a name and an average: read the students, sort them from the best and write them.',
+        build: () => {
+            const prog = createProgram('Students');
+            prog.records = [{name: 'Student', fields: [{name: 'name', type: 'String'}, {name: 'avg', type: 'Real'}]}];
+            prog.functions[0].body = [
+                createBlock('declare', {name: 'n, i, j', varType: 'Integer'}),
+                createBlock('output', {expr: '"Number of students:"', newline: true}),
+                createBlock('input', {target: 'n'}),
+                createBlock('declare', {name: 's', varType: 'Student', size: 'n'}),
+                createBlock('declare', {name: 't', varType: 'Student'}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('output', {expr: '"Name and average:"', newline: true}),
+                    createBlock('input', {target: 's[i].name'}),
+                    createBlock('input', {target: 's[i].avg'}),
+                ]}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 2', step: '1', body: [
+                    createBlock('for', {variable: 'j', start: '0', end: 'n - 2 - i', step: '1', body: [
+                        createBlock('if', {cond: 'Better(s[j + 1], s[j])', then: [
+                            createBlock('assign', {target: 't', expr: 's[j]'}),
+                            createBlock('assign', {target: 's[j]', expr: 's[j + 1]'}),
+                            createBlock('assign', {target: 's[j + 1]', expr: 't'}),
+                        ], 'else': []}),
+                    ]}),
+                ]}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('output', {expr: '(i + 1) & ". " & s[i].name & " " & s[i].avg', newline: true}),
+                ]}),
+                createBlock('output', {expr: '"Best: " & s[0]', newline: true}),
+            ];
+            prog.functions.push({name: 'Better', params: [{name: 'a', type: 'Student'}, {name: 'b', type: 'Student'}],
+                returnType: 'Boolean', body: [
+                    createBlock('return', {expr: 'a.avg > b.avg'}),
+                ]});
+            return prog;
+        }
     }
 ];

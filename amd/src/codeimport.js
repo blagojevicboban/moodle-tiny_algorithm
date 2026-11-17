@@ -58,6 +58,31 @@ const FUNC_TYPES = Object.assign(Object.create(null), {
  */
 class Unsupported extends Error {}
 
+// The record types of the code being imported (@dataclass classes): lower case name => {name, fields}.
+let records = new Map();
+
+/** Python types of the fields of a dataclass. */
+const PY_TYPES = {'int': 'Integer', 'float': 'Real', 'str': 'String', 'bool': 'Boolean'};
+
+/**
+ * The record type of a type name, or null.
+ *
+ * @param {*} type
+ * @returns {?Object}
+ */
+const recordOf = (type) => (typeof type === 'string' && records.get(type.toLowerCase())) || null;
+
+/**
+ * The record type that has a field of this name (when only one has it).
+ *
+ * @param {string} field
+ * @returns {?Object}
+ */
+const recordWithField = (field) => {
+    const found = [...records.values()].filter((r) => r.fields.some((f) => f.name.toLowerCase() === field.toLowerCase()));
+    return found.length === 1 ? found[0] : null;
+};
+
 /**
  * The tokens of a Python expression (or of the start of a statement).
  *
@@ -397,7 +422,14 @@ class Translator {
                 const v = this.types[n.v.toLowerCase()];
                 return v ? v.type : 'Integer';
             }
-            case 'attr': return dotted(n) === 'math.pi' ? 'Real' : 'Integer';
+            case 'attr': {
+                if (dotted(n) === 'math.pi') {
+                    return 'Real';
+                }
+                const rec = recordOf(this.typeOf(n.e));
+                const field = rec && rec.fields.find((f) => f.name.toLowerCase() === n.name.toLowerCase());
+                return field ? field.type : 'Integer';
+            }
             case 'idx': {
                 const base = this.root(n);
                 const v = base && this.types[base.toLowerCase()];
@@ -433,6 +465,12 @@ class Translator {
         const name = dotted(n.f) || '';
         if (name === 'input') {
             return 'String';
+        }
+        if (recordOf(name)) {
+            return recordOf(name).name;
+        }
+        if (name === 'replace' && n.args.length === 1) {
+            return this.typeOf(n.args[0]);
         }
         if (name.startsWith('random.')) {
             return name === 'random.random' ? 'Real' : 'Integer';
@@ -489,6 +527,9 @@ class Translator {
                 if (dotted(n) === 'math.pi') {
                     return 'Pi()';
                 }
+                if (recordOf(this.typeOf(n.e))) {
+                    return `${this.expr(n.e, 10)}.${n.name}`;
+                }
                 throw new Unsupported(dotted(n) || 'attribute');
             }
             case 'idx': return this.index(n);
@@ -497,7 +538,11 @@ class Translator {
                     return wrap(`not ${this.expr(n.e, PREC.not)}`, PREC.not);
                 }
                 return wrap(`-${this.expr(n.e, PREC.neg + 1)}`, PREC.neg);
-            case 'call': return this.call(n);
+            case 'call':
+                if (dotted(n.f) === 'replace' && n.args.length === 1 && recordOf(this.typeOf(n.args[0]))) {
+                    return this.expr(n.args[0], outer);
+                }
+                return this.call(n);
             case 'bin': return this.binary(n, outer);
             default: throw new Unsupported(n.k);
         }
@@ -704,7 +749,7 @@ export const nest = (lines) => {
  * @returns {?{head: string, rest: string}}
  */
 const headerSplit = (text) => {
-    if (!/^(if|elif|else|while|for|def)\b/.test(text)) {
+    if (!/^(if|elif|else|while|for|def|class)\b/.test(text)) {
         return null;
     }
     let depth = 0;
@@ -744,7 +789,26 @@ export const importPython = (code, {name = 'Imported'} = {}) => {
     const warnings = [];
     const defs = [];
     const top = [];
+    records = new Map();
+    const recordList = [];
     tree.forEach((node) => {
+        const cls = /^class\s+([A-Za-z_]\w*)\s*(\(\s*\))?\s*:$/.exec(node.text);
+        if (/^@dataclass\b/.test(node.text)) {
+            return;
+        }
+        if (cls) {
+            // A dataclass: its fields "name: str = \"\"" make a record type.
+            const fields = node.kids.map((k) => /^([A-Za-z_]\w*)\s*:\s*(int|float|str|bool)\b/.exec(k.text))
+                .filter(Boolean).map((m) => ({name: m[1], type: PY_TYPES[m[2]]}));
+            if (fields.length) {
+                const def = {name: cls[1], fields};
+                records.set(cls[1].toLowerCase(), def);
+                recordList.push(def);
+            } else {
+                warnings.push({line: node.line, text: node.text});
+            }
+            return;
+        }
         if (/^def\s/.test(node.text)) {
             defs.push(node);
         } else if (/^(import|from)\s/.test(node.text) || /^if\s+__name__\s*==/.test(node.text)) {
@@ -778,6 +842,9 @@ export const importPython = (code, {name = 'Imported'} = {}) => {
         fns[h.name.toLowerCase()] = returnType(h, fns);
     });
     const program = createProgram(name);
+    if (recordList.length) {
+        program.records = recordList;
+    }
     program.functions = [];
     const mainHead = heads.find((h) => h.name.toLowerCase() === 'main');
     const mainBody = mainHead ? [...mainHead.node.kids, ...top] : top;
@@ -932,7 +999,9 @@ const makeFunction = (def, fns, warnings, isMain) => {
         if (m) {
             dims = m[1] ? 2 : 1;
         }
-        const type = (!m && def.types && def.types[i]) || 'Integer';
+        const field = new RegExp(`\\b${p}\\s*(?:\\[[^\\]]*\\]\\s*)*\\.([A-Za-z_]\\w*)`).exec(uses);
+        const rec = field ? recordWithField(field[1]) : null;
+        const type = (rec && rec.name) || (!m && def.types && def.types[i]) || 'Integer';
         types[p.toLowerCase()] = {type, dims};
         declared.add(p.toLowerCase());
         return {name: p, type, ...(m ? {array: true} : {}), ...(m && m[1] ? {matrix: true} : {})};
@@ -1036,9 +1105,14 @@ const scanTypes = (nodes, types, tr) => nodes.forEach((n) => {
  * @param {Translator} tr
  * @returns {?{type: string, dims: number, size: ?Object, size2: ?Object, items: ?Array}}
  */
+// eslint-disable-next-line complexity
 const arrayShape = (v, tr) => {
     if (v.k === 'bin' && v.op === '*' && v.l.k === 'list' && v.l.items.length === 1) {
         return {type: tr.typeOf(v.l.items[0]), dims: 1, size: v.r, fill: v.l.items[0]};
+    }
+    if (v.k === 'comp' && v.range.k === 'call' && dotted(v.range.f) === 'range' && v.range.args.length === 1 &&
+            v.item.k === 'call' && !v.item.args.length && recordOf(dotted(v.item.f))) {
+        return {type: recordOf(dotted(v.item.f)).name, dims: 1, size: v.range.args[0], fill: null, record: true};
     }
     if (v.k === 'comp' && v.range.k === 'call' && dotted(v.range.f) === 'range' && v.range.args.length === 1) {
         const inner = arrayShape(v.item, tr);
@@ -1197,7 +1271,9 @@ const statement = (n, ctx) => {
         const value = parse(`(${m[1]}) ${m[2]} (${m[3]})`);
         return [createBlock('assign', {target, expr: tr.expr(value)})];
     }
-    if ((m = /^([A-Za-z_]\w*(?:\s*\[.*\])*)\s*=\s*(.+)$/.exec(text)) && !/^[^=]*==/.test(text.slice(0, text.indexOf('=') + 2))) {
+    // A name, an element or a field (s[i].name) gets a value.
+    if ((m = /^([A-Za-z_]\w*(?:\s*\[.*?\])*(?:\.[A-Za-z_]\w*)?)\s*=\s*(.+)$/.exec(text)) &&
+            !/^[^=]*==/.test(text.slice(0, text.indexOf('=') + 2))) {
         return assignment(m[1], parse(m[2]), ctx);
     }
     const value = parse(text);
@@ -1315,6 +1391,9 @@ const assignTarget = (text, ctx) => {
     if (t.k === 'idx') {
         return ctx.tr.index(t);
     }
+    if (t.k === 'attr' && recordOf(ctx.tr.typeOf(t.e))) {
+        return ctx.tr.expr(t);
+    }
     throw new Unsupported(text);
 };
 
@@ -1334,6 +1413,12 @@ const assignment = (targetText, value, ctx) => {
     // A Declare fills a new list with 0, 0.0, "" or false; another value has no block of its own.
     if (shape && shape.fill && !['0', '0.0', '""', 'false'].includes(tr.expr(shape.fill))) {
         throw new Unsupported('fill');
+    }
+    if (plain && value.k === 'call' && !value.args.length && recordOf(dotted(value.f))) {
+        const key = target.toLowerCase();
+        types[key] = {...types[key], type: recordOf(dotted(value.f)).name, dims: 0, name: target};
+        declared.add(key);
+        return [createBlock('declare', {name: target, varType: recordOf(dotted(value.f)).name})];
     }
     if (shape) {
         const key = target.toLowerCase();

@@ -1811,3 +1811,16 @@ html.tiny_algorithm-noscroll body {
 .tiny_algorithm-btn-codelab {
     font-weight: 500;
 }
+
+/* The dialog of the record types: a name and its fields on each row */
+.tiny_algorithm-record-row {
+    display: grid;
+    grid-template-columns: minmax(6rem, 1fr) 3fr auto;
+    gap: .35rem;
+    align-items: center;
+    margin-bottom: .35rem;
+}
+
+.tiny_algorithm-record-head {
+    margin-bottom: .1rem;
+}
