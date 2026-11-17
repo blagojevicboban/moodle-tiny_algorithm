@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.22.0 – 2026-11-17 (stable)
+
+- **TypeScript and PHP:** two new languages in the code panel, the File menu and the language settings (thirteen in
+  all). TypeScript is the JavaScript code with types: number, string, boolean, arrays such as number[] and Student[],
+  typed parameters and return values, record types as classes with typed fields; it passes tsc --strict. PHP 8: $
+  variables, arrays passed by reference (array &$a), typed parameters and return values, records as classes copied with
+  clone, input with read_line(), real numbers written as the interpreter writes them (fmt), truth values as true and
+  false, texts compared as texts (=== and strcmp), a real number stored in an Integer cut with (int).
+- Sites that offered every language offer TypeScript and PHP too (an upgrade step); other sites add them in the
+  settings.
+- JavaScript: a real number stored in an Integer is cut with Math.trunc, as in the interpreter (mid = (low + high) / 2).
+- The tests compile and run the TypeScript (tsc --strict) and PHP code of the test programs, the records and the names
+  that are words of a language, and compare them with the interpreter; the CI installs the TypeScript compiler.
+
 ## 2.21.0 – 2026-11-17 (stable)
 
 - **Records:** an algorithm can have record types (File, Records…, or the button in the panel of a function): a name

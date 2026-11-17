@@ -516,6 +516,19 @@ const runAny = (lang, program, input) => {
         case 'javascript':
             writeFileSync(join(dir, 'main.js'), code);
             return run(process.execPath, [join(dir, 'main.js')]);
+        case 'typescript': {
+            // Type checked in strict mode, then run as JavaScript (TSC: the compiler when it is not on the path).
+            writeFileSync(join(dir, 'main.ts'), code);
+            const tsc = process.env.TSC || (process.platform === 'win32' ? 'tsc.cmd' : 'tsc');
+            return tryRun(tsc, ['--strict', '--target', 'es2022', '--outDir', join(dir, 'out'),
+                join(dir, 'main.ts')], {shell: process.platform === 'win32'}) ?
+                run(process.execPath, [join(dir, 'out', 'main.js')]) : null;
+        }
+        case 'php':
+            // Every notice and deprecation is written into the output, so it fails the comparison.
+            writeFileSync(join(dir, 'main.php'), code);
+            return tryRun('php', ['-l', join(dir, 'main.php')]) ?
+                run('php', ['-d', 'display_errors=stdout', '-d', 'error_reporting=-1', join(dir, 'main.php')]) : null;
         case 'c':
             writeFileSync(join(dir, 'main.c'), code);
             if (!tryRun('gcc', [join(dir, 'main.c'), '-o', exe, '-lm']) &&
@@ -583,7 +596,7 @@ for (const lang of languages.filter((l) => l !== 'pseudo')) {
         });
 }
 
-for (const lang of ['vb', 'go', 'rust', 'kotlin']) {
+for (const lang of ['vb', 'go', 'rust', 'kotlin', 'typescript', 'php']) {
     test(`${lang} output matches the interpreter`, {timeout: 900000}, (t) => {
         for (const [program, input] of [[sample(), ''], [strings(), ''], [rich(), richInput], [matrix(), matrixInput],
             [mixedCase(), ''], [matrixParam(), '3\n']]) {
@@ -631,3 +644,28 @@ for (const lang of languages.filter((l) => l !== 'pseudo')) {
             }
         });
 }
+
+test('TypeScript and PHP generators have the expected shape', () => {
+    const ts = generate('typescript', rich());
+    assert.match(ts, /let a: number\[\] = new Array\(5\)\.fill\(0\);/);
+    assert.match(ts, /function Total\(x: number\[\], m: number\): number \{/);
+    assert.match(ts, /let name: string = "";/);
+    assert.match(ts, /function main\(\): void \{/);
+    const php = generate('php', rich());
+    assert.match(php, /^<\?php\n/);
+    assert.match(php, /function Total\(array &\$x, int \$m\): int \{/);
+    assert.match(php, /\$a = array_fill\(0, 5, 0\);/);
+    assert.match(php, /\$name = read_line\(\);/);
+    assert.match(php, /echo "Hi " \. \$name \. ", avg = " \. fmt\(\$avg\) \. ", ok = " \. \(\$ok \? "true" : "false"\), "\\n";/);
+    assert.match(php, /\nmain\(\);\n$/);
+    // Texts are compared as texts, a $ in a text is not a variable, a whole number keeps no fraction.
+    const p = createProgram();
+    p.functions[0].body = [B('declare', {name: 's', varType: 'String'}), B('declare', {name: 'n'}),
+        B('assign', {target: 's', expr: '"10 $x"'}), B('assign', {target: 'n', expr: '7 / 2'}),
+        B('if', {cond: 's < "9" and s = "10"', then: [], else: []})];
+    const code = generate('php', p);
+    assert.match(code, /\$s = "10 \\\$x";/);
+    assert.match(code, /\$n = \(int\) \(7 \/ 2\);/);
+    assert.match(code, /strcmp\(\$s, "9"\) < 0 && \$s === "10"/);
+    assert.match(generate('javascript', p), /n = Math\.trunc\(7 \/ 2\);/);
+});

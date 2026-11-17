@@ -26,11 +26,13 @@ namespace tiny_algorithm\local;
  */
 class code_language {
     /** Languages of the code panel (as languages in tiny_algorithm/codegen), pseudo-code first. */
-    const LANGUAGES = ['pseudo', 'python', 'c', 'cpp', 'java', 'csharp', 'javascript', 'pascal', 'vb', 'go', 'rust', 'kotlin'];
+    const LANGUAGES = ['pseudo', 'python', 'c', 'cpp', 'java', 'csharp', 'javascript', 'typescript', 'php', 'pascal', 'vb', 'go',
+        'rust', 'kotlin'];
 
     /** Names of the programming languages (pseudo-code is translated). */
     const NAMES = ['python' => 'Python', 'c' => 'C', 'cpp' => 'C++', 'java' => 'Java', 'csharp' => 'C#',
-        'javascript' => 'JavaScript', 'pascal' => 'Pascal', 'vb' => 'Visual Basic', 'go' => 'Go', 'rust' => 'Rust',
+        'javascript' => 'JavaScript', 'typescript' => 'TypeScript', 'php' => 'PHP', 'pascal' => 'Pascal',
+        'vb' => 'Visual Basic', 'go' => 'Go', 'rust' => 'Rust',
         'kotlin' => 'Kotlin'];
 
     /**

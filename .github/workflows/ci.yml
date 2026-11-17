@@ -31,6 +31,9 @@ jobs:
           curl -sSL -o /tmp/kotlin.zip https://github.com/JetBrains/kotlin/releases/download/v2.4.21/kotlin-compiler-2.4.21.zip
           unzip -q /tmp/kotlin.zip -d "$HOME"
           echo "$HOME/kotlinc/bin" >> "$GITHUB_PATH"
+      - name: TypeScript and PHP
+        # PHP is on the runner; the TypeScript compiler checks the generated code in strict mode.
+        run: npm install -g typescript@5.9.3 && php --version
       - name: Node tests
         run: node --import ./tests/register.mjs --test "tests/*.test.mjs"
 

@@ -97,6 +97,13 @@ const RESERVED = {
         'throw true try typealias typeof val var when while by catch constructor delegate dynamic field file finally get ' +
         'import init param property receiver set setparam where Int Double String Boolean Math IntArray DoubleArray ' +
         'BooleanArray Array println print readln fmt main java kotlin',
+    php: 'abstract and array as break callable case catch class clone const continue declare default die do echo else ' +
+        'elseif empty enddeclare endfor endforeach endif endswitch endwhile eval exit extends final finally fn for foreach ' +
+        'function global goto if implements include include_once instanceof insteadof interface isset list match ' +
+        'namespace new or print private protected public readonly require require_once return static switch throw trait ' +
+        'try unset use var while xor yield this true false null self parent int float bool string void mixed iterable ' +
+        'object never read_line fmt sqrt abs sin cos tan log log10 exp floor ceil round fmod strlen count random_int chr ' +
+        'ord number_format is_numeric strcmp strtolower trim rtrim fgets array_fill asin acos atan pi sprintf',
     vb: 'addhandler addressof alias and andalso as boolean byref byte byval call case catch cbool cbyte cchar cdate cdbl ' +
         'cdec char cint class clng cobj const continue csbyte cshort csng cstr ctype cuint culng cushort date decimal ' +
         'declare default delegate dim directcast do double each else elseif end endif enum erase error event exit false ' +
@@ -109,8 +116,13 @@ const RESERVED = {
         'variant wend when while widening with withevents writeonly xor console math rnd fmt boolstr program main fix ' +
         'len chrw ascw array cultureinfo numberstyles fill_r fill_c vblf vbtab',
 };
+// TypeScript also checks the names against the global functions of the browser (tsc main.ts knows them).
+RESERVED.typescript = `${RESERVED.javascript} print close open stop alert confirm prompt focus blur fetch scroll scrollTo ` +
+    'scrollBy find postMessage moveTo moveBy resizeTo resizeBy setTimeout setInterval clearTimeout clearInterval atob btoa ' +
+    'queueMicrotask structuredClone reportError getComputedStyle matchMedia requestAnimationFrame cancelAnimationFrame ' +
+    'captureEvents releaseEvents getSelection type number string boolean any unknown never declare namespace module';
 const RESERVED_SETS = Object.fromEntries(Object.entries(RESERVED).map(([lang, words]) => [lang,
-    new Set(words.split(' ').map((w) => (lang === 'pascal' || lang === 'vb' ? w.toLowerCase() : w)))]));
+    new Set(words.split(' ').map((w) => (lang === 'pascal' || lang === 'vb' || lang === 'php' ? w.toLowerCase() : w)))]));
 
 // Wrap generated code in parentheses unless it is a plain name.
 const atom = (code) => (/^[\w.]+$/.test(code) ? code : `(${code})`);
@@ -237,6 +249,75 @@ const recOf = (type) => (typeof type === 'string' && recDefs.get(type.toLowerCas
  */
 const fieldDef = (def, n) => (def ? def.fields.find((f) => f.name.toLowerCase() === String(n.field || n.name).toLowerCase()) :
     null) || null;
+
+/**
+ * A PHP string literal (in double quotes: $ is escaped, control characters are written as \\x..).
+ *
+ * @param {string} v text
+ * @returns {string}
+ */
+const phpString = (v) => `"${[...String(v)].map((c) => own(PHP_ESCAPES, c) ??
+    (c < ' ' ? `\\x${c.charCodeAt(0).toString(16).padStart(2, '0')}` : c)).join('')}"`;
+const PHP_ESCAPES = {'\\': '\\\\', '"': '\\"', '$': '\\$', '\n': '\\n', '\t': '\\t', '\r': '\\r'};
+
+// PHP code that needs no parentheses before a cast: a variable, a number.
+const phpAtom = (code) => (/^\$?[\w.]+$/.test(code) ? code : `(${code})`);
+
+// Marks the PHP helper fmt() as needed.
+let phpNeeds = {};
+
+/**
+ * PHP text of a value, as the interpreter writes it: a truth value true or false, a real number with fmt().
+ *
+ * @param {string} code generated expression
+ * @param {string} type Integer, Real, String or Boolean
+ * @param {boolean} cast a whole number as a string too
+ * @returns {string}
+ */
+const phpText = (code, type, cast = false) => {
+    if (type === 'Boolean') {
+        return `(${code} ? "true" : "false")`;
+    }
+    if (type === 'Real') {
+        phpNeeds.fmt = true;
+        return `fmt(${code})`;
+    }
+    return cast && type !== 'String' ? `(string) ${phpAtom(code)}` : code;
+};
+
+const JAVASCRIPT = {
+    ext: 'js', label: 'JavaScript',
+    and: '&&', or: '||', not: '!', pow: (l, r) => `${l} ** ${r}`, powInfix: true, div: (l, r) => `${l} / ${r}`,
+    bool: (v) => (v ? 'true' : 'false'),
+    concatWrap: true,
+    concat: (parts) => parts.map((p, i) => (p.type === 'String' || i > 0 ? p.code : `String(${p.code})`)).join(' + '),
+    eq: (l, r, op) => `${l} ${op === '==' ? '===' : '!=='} ${r}`,
+    call: (name, args) => {
+        const m = {sqrt: 'Math.sqrt', abs: 'Math.abs', sin: 'Math.sin', cos: 'Math.cos', tan: 'Math.tan', log: 'Math.log',
+            exp: 'Math.exp', floor: 'Math.floor', ceiling: 'Math.ceil', round: 'Math.round', 'int': 'Math.trunc',
+            sign: 'Math.sign', toint: 'parseInt', toreal: 'parseFloat', tostring: 'String', arcsin: 'Math.asin',
+            arccos: 'Math.acos', arctan: 'Math.atan', log10: 'Math.log10'};
+        const l = name.toLowerCase();
+        if (l === 'tofixed') {
+            return `${atom(args[0])}.toFixed(${args[1]})`;
+        }
+        if (l === 'len') {
+            return `${atom(args[0])}.length`;
+        }
+        if (l === 'random') {
+            return `Math.floor(Math.random() * ${atom(args[0])})`;
+        }
+        if (l === 'isnumeric') {
+            return `!isNaN(parseFloat(${args[0]}))`;
+        }
+        const ch = charCall(l, args, {at: (t, i) => `${t}[${i}]`, fromCode: (n) => `String.fromCharCode(${n})`,
+            code: (t) => `${t}.charCodeAt(0)`});
+        if (ch) {
+            return ch;
+        }
+        return l === 'pi' ? 'Math.PI' : `${own(m, l) || name}(${args.join(', ')})`;
+    },
+};
 
 const LANGS = {
     python: {
@@ -423,37 +504,52 @@ const LANGS = {
             return l === 'pi' ? 'Math.PI' : `${own(m, l) || name}(${args.join(', ')})`;
         },
     },
-    javascript: {
-        ext: 'js', label: 'JavaScript',
+    javascript: JAVASCRIPT,
+    typescript: {...JAVASCRIPT, ext: 'ts', label: 'TypeScript'},
+    php: {
+        ext: 'php', label: 'PHP',
         and: '&&', or: '||', not: '!', pow: (l, r) => `${l} ** ${r}`, powInfix: true, div: (l, r) => `${l} / ${r}`,
         bool: (v) => (v ? 'true' : 'false'),
+        str: (v) => phpString(v),
         concatWrap: true,
-        concat: (parts) => parts.map((p, i) => (p.type === 'String' || i > 0 ? p.code : `String(${p.code})`)).join(' + '),
-        eq: (l, r, op) => `${l} ${op === '==' ? '===' : '!=='} ${r}`,
-        call: (name, args) => {
-            const m = {sqrt: 'Math.sqrt', abs: 'Math.abs', sin: 'Math.sin', cos: 'Math.cos', tan: 'Math.tan', log: 'Math.log',
-                exp: 'Math.exp', floor: 'Math.floor', ceiling: 'Math.ceil', round: 'Math.round', 'int': 'Math.trunc',
-                sign: 'Math.sign', toint: 'parseInt', toreal: 'parseFloat', tostring: 'String', arcsin: 'Math.asin',
-                arccos: 'Math.acos', arctan: 'Math.atan', log10: 'Math.log10'};
+        concat: (parts) => parts.map((p) => phpText(p.code, p.type)).join(' . '),
+        // === for texts: == compares texts that look like numbers as numbers.
+        eq: (l, r, op, t) => (t === 'String' ? `${l} ${op === '==' ? '===' : '!=='} ${r}` : `${l} ${op} ${r}`),
+        cmp: (l, r, op) => `strcmp(${l}, ${r}) ${op} 0`,
+        mod: (l, r, t) => (t === 'Real' ? `fmod(${l}, ${r})` : null),
+        call: (name, args, types) => {
+            const m = {sqrt: 'sqrt', abs: 'abs', sin: 'sin', cos: 'cos', tan: 'tan', log: 'log', exp: 'exp',
+                arcsin: 'asin', arccos: 'acos', arctan: 'atan', log10: 'log10', len: 'strlen', isnumeric: 'is_numeric'};
             const l = name.toLowerCase();
-            if (l === 'tofixed') {
-                return `${atom(args[0])}.toFixed(${args[1]})`;
+            if (l === 'floor' || l === 'ceiling') {
+                return `(int) ${l === 'floor' ? 'floor' : 'ceil'}(${args[0]})`;
             }
-            if (l === 'len') {
-                return `${atom(args[0])}.length`;
+            if (l === 'round') {
+                return `(int) floor(${args[0]} + 0.5)`; // Halves up, as in the interpreter (PHP's round goes away from 0).
+            }
+            if (l === 'int' || l === 'toint') {
+                return `(int) ${phpAtom(args[0])}`;
+            }
+            if (l === 'toreal') {
+                return `(float) ${phpAtom(args[0])}`;
+            }
+            if (l === 'tostring') {
+                return types[0] === 'String' ? args[0] : phpText(args[0], types[0], true);
+            }
+            if (l === 'sign') {
+                return `(${args[0]} <=> 0)`;
             }
             if (l === 'random') {
-                return `Math.floor(Math.random() * ${atom(args[0])})`;
+                return `random_int(0, ${args[0]} - 1)`;
             }
-            if (l === 'isnumeric') {
-                return `!isNaN(parseFloat(${args[0]}))`;
+            if (l === 'tofixed') {
+                return `number_format(${args[0]}, ${args[1]}, ".", "")`;
             }
-            const ch = charCall(l, args, {at: (t, i) => `${t}[${i}]`, fromCode: (n) => `String.fromCharCode(${n})`,
-                code: (t) => `${t}.charCodeAt(0)`});
+            const ch = charCall(l, args, {at: (t, i) => `${t}[${i}]`, fromCode: (n) => `chr(${n})`, code: (t) => `ord(${t})`});
             if (ch) {
                 return ch;
             }
-            return l === 'pi' ? 'Math.PI' : `${own(m, l) || name}(${args.join(', ')})`;
+            return l === 'pi' ? 'M_PI' : `${own(m, l) || name}(${args.join(', ')})`;
         },
     },
     pascal: {
@@ -508,6 +604,8 @@ const TYPE_NAMES = {
     java: {Integer: 'int', Real: 'double', String: 'String', Boolean: 'boolean'},
     csharp: {Integer: 'int', Real: 'double', String: 'string', Boolean: 'bool'},
     pascal: {Integer: 'Integer', Real: 'Real', String: 'string', Boolean: 'Boolean'},
+    typescript: {Integer: 'number', Real: 'number', String: 'string', Boolean: 'boolean'},
+    php: {Integer: 'int', Real: 'float', String: 'string', Boolean: 'bool'},
 };
 const DEFAULTS = {
     python: {Integer: '0', Real: '0.0', String: '""', Boolean: 'False'},
@@ -515,6 +613,7 @@ const DEFAULTS = {
     csharp: {Integer: '0', Real: '0.0', String: '""', Boolean: 'false'},
     cpp: {Integer: '0', Real: '0.0', String: '""', Boolean: 'false'},
     javascript: {Integer: '0', Real: '0', String: '""', Boolean: 'false'},
+    php: {Integer: '0', Real: '0.0', String: '""', Boolean: 'false'},
     pascal: {Integer: '0', Real: '0.0', String: "''", Boolean: 'False'},
 };
 
@@ -547,22 +646,32 @@ export const generate = (lang, program) => generateLines(lang, program).text;
 /**
  * Generate the program and tell which block every line of the code comes from (for marking the running block).
  *
- * @param {string} lang python, c, cpp, java, csharp, javascript or pascal
+ * @param {string} language python, c, cpp, java, csharp, javascript, typescript, php or pascal
  * @param {Object} program the algorithm
  * @returns {{text: string, owners: Array}} source code, and per line the id of its block or null
  */
-export const generateLines = (lang, program) => {
-    if (lang === 'pseudo') {
+export const generateLines = (language, program) => {
+    if (language === 'pseudo') {
         return generatePseudo(program);
     }
-    if (Object.hasOwn(TYPED, lang)) {
-        return generateTyped(lang, program);
+    if (Object.hasOwn(TYPED, language)) {
+        return generateTyped(language, program);
     }
-    const L = own(LANGS, lang);
+    const L = own(LANGS, language);
     if (!L) {
-        throw new Error(`Unsupported language ${lang}`);
+        throw new Error(`Unsupported language ${language}`);
     }
+    // TypeScript is the JavaScript code with the types of the variables, parameters and fields.
+    const ts = language === 'typescript';
+    const php = language === 'php';
+    const lang = ts ? 'javascript' : language;
+    // PHP variables start with $.
+    const vn = (name) => (php ? `$${name}` : name);
+    // The TypeScript type of a variable or parameter.
+    const tsType = (type, array, matrix) => `${recOf(type) ? recOf(type).name : TYPE_NAMES.typescript[type]}` +
+        `${array ? '[]' : ''}${matrix ? '[]' : ''}`;
     needs = {};
+    phpNeeds = {};
     recDefs = recordMap(program);
     const pascal = lang === 'pascal';
     const semi = lang === 'python' ? '' : ';';
@@ -570,8 +679,8 @@ export const generateLines = (lang, program) => {
     let syms = Object.create(null);
     // The interpreter ignores the case of names, the languages (but Pascal) do not: every name is written as declared,
     // and a name that is a word of the language gets "_" added.
-    const reserved = RESERVED_SETS[lang] || new Set();
-    const caseless = lang === 'pascal' || lang === 'vb';
+    const reserved = RESERVED_SETS[language] || new Set();
+    const caseless = lang === 'pascal' || lang === 'vb' || php;
     const used = new Set();
     program.functions.forEach((f) => {
         used.add(f.name.toLowerCase());
@@ -603,8 +712,13 @@ export const generateLines = (lang, program) => {
     const fnName = (f) => safe(f.name);
     let canon = Object.create(null);
     // Pi that is not a variable stays Pi: it is the number pi.
-    const nameOf = (name) => own(canon, String(name).toLowerCase()) ||
-        (String(name).toLowerCase() === 'pi' ? String(name) : safe(String(name)));
+    const nameOf = (name) => {
+        const known = own(canon, String(name).toLowerCase());
+        if (known) {
+            return vn(known);
+        }
+        return String(name).toLowerCase() === 'pi' ? String(name) : vn(safe(String(name)));
+    };
     const fixNames = (n) => {
         if (n.k === 'var' || n.k === 'idx') {
             n.name = nameOf(n.name);
@@ -636,7 +750,7 @@ export const generateLines = (lang, program) => {
             return code;
         }
         return {python: `replace(${code})`, java: `${code}.copy()`, csharp: `${code}.Copy()`,
-            javascript: `Object.assign(new ${def.name}(), ${code})`}[lang] || code;
+            javascript: `Object.assign(new ${def.name}(), ${code})`, php: `clone ${code}`}[lang] || code;
     };
     // A record in a text: Type(field = value, ...) as the interpreter writes it.
     const recText = (n) => {
@@ -673,7 +787,7 @@ export const generateLines = (lang, program) => {
                 case 'bool': code = L.bool(n.v); break;
                 case 'var': code = !own(syms, n.name) && n.name.toLowerCase() === 'pi' ? L.call('pi', [], []) : n.name; break;
                 case 'idx': code = indexCode(n); break;
-                case 'fld': code = `${walk(n.e, 9)}.${n.name}`; break;
+                case 'fld': code = `${walk(n.e, 9)}${php ? '->' : '.'}${n.name}`; break;
                 case 'un': code = n.op === '!' ? `${L.not}${walk(n.e, 8)}` : `${n.op}${walk(n.e, 8)}`; break;
                 case 'call': code = callCode(n); break;
                 case 'bin': code = walkBin(n); break;
@@ -681,6 +795,7 @@ export const generateLines = (lang, program) => {
             }
             return precOf(n) < ctx ? `(${code})` : code;
         };
+        // eslint-disable-next-line complexity
         const walkBin = (n) => {
             const p = PREC[n.op] ?? 4;
             const t = typeOf(n.l, syms, fns);
@@ -702,6 +817,16 @@ export const generateLines = (lang, program) => {
             }
             if (n.op === '==' || n.op === '!=') {
                 return L.eq(walk(n.l, 3.5), walk(n.r, 3.5), n.op, t);
+            }
+            if (L.cmp && CMP.includes(n.op) && t === 'String') {
+                return L.cmp(walk(n.l), walk(n.r), n.op);
+            }
+            if (L.mod && n.op === '%') {
+                const real = t === 'Real' || typeOf(n.r, syms, fns) === 'Real';
+                const code = L.mod(walk(n.l), walk(n.r), real ? 'Real' : 'Integer');
+                if (code) {
+                    return code;
+                }
             }
             const op = (L.ops && L.ops[n.op]) || n.op;
             return `${walk(n.l, CMP.includes(n.op) ? p + 0.5 : p)} ${op} ${walk(n.r, p + 0.5)}`;
@@ -727,6 +852,7 @@ export const generateLines = (lang, program) => {
             return L.call(n.name, callArgs(n), n.args.map((x) => typeOf(x, syms, fns)));
         };
         const arrayLength = (name) => ({python: `len(${name})`, java: `${name}.length`, javascript: `${name}.length`,
+            php: `count(${name})`,
             csharp: syms[name].matrix ? `${name}.GetLength(0)` : `${name}.Length`, cpp: `(int) ${name}.size()`,
             pascal: `Length(${name})`, c: syms[name].param ? `${name}_rows` : `(int) (sizeof ${name} / sizeof ${name}[0])`,
         }[lang] || `len(${name})`);
@@ -736,6 +862,9 @@ export const generateLines = (lang, program) => {
             const f = n.user ? own(fns, String(n.origName || '').toLowerCase()) || userFn(n.name) : null;
             return n.args.flatMap((a, i) => {
                 const p = f && f.params[i];
+                if (php && p && !p.array && p.type === 'Integer' && typeOf(a, syms, fns) === 'Real') {
+                    return [`(int) ${phpAtom(walk(a))}`];
+                }
                 if (lang !== 'c' || !p || !p.matrix || a.k !== 'var') {
                     return [p && !p.array ? copyRec(walk(a), a) : walk(a)];
                 }
@@ -776,6 +905,7 @@ export const generateLines = (lang, program) => {
         owners.push(owner);
     };
 
+    // eslint-disable-next-line complexity
     const printStmt = (b, ind) => {
         const {node: whole, walk} = expr(b.expr);
         const node = recText(whole);
@@ -796,6 +926,9 @@ export const generateLines = (lang, program) => {
             emit(ind, `Console.Write${nl ? 'Line' : ''}(${bool ? `(${ex(b.expr)} ? "true" : "false")` : ex(b.expr)});`);
         } else if (lang === 'javascript') {
             emit(ind, nl ? `console.log(${ex(b.expr)});` : `process.stdout.write(String(${ex(b.expr)}));`);
+        } else if (php) {
+            const code = phpText(walk(node), typeOf(node, syms, fns));
+            emit(ind, nl ? `echo ${code}, "\\n";` : `echo ${code};`);
         } else if (lang === 'cpp') {
             const items = parts.map((p) => (typeOf(p, syms, fns) === 'Boolean' ? `(${walk(p)} ? "true" : "false")` : walk(p, 3.5)));
             emit(ind, `cout << ${items.join(' << ')}${nl ? ' << endl' : ''};`);
@@ -835,6 +968,11 @@ export const generateLines = (lang, program) => {
             const conv = {Integer: 'parseInt(input())', Real: 'parseFloat(input())', String: 'input()',
                 Boolean: 'input().trim().toLowerCase() === "true"'}[sym.type];
             emit(ind, `${target} = ${conv};`);
+        } else if (php) {
+            phpNeeds.input = true;
+            const conv = {Integer: '(int) read_line()', Real: '(float) read_line()', String: 'read_line()',
+                Boolean: 'strtolower(trim(read_line())) === "true"'}[sym.type];
+            emit(ind, `${target} = ${conv};`);
         } else if (lang === 'cpp') {
             emit(ind, {String: `getline(cin >> ws, ${target});`, Boolean: `cin >> boolalpha >> ${target};`}[sym.type] ||
                 `cin >> ${target};`);
@@ -857,6 +995,11 @@ export const generateLines = (lang, program) => {
         if (lang === 'python' && typeOf(parse(b.target), syms, fns) === 'Integer' &&
                 typeOf(parse(b.expr), syms, fns) === 'Real') {
             emit(ind, `${target} = int(${ex(b.expr)})`);
+            return;
+        }
+        if ((php || lang === 'javascript') && typeOf(parse(b.target), syms, fns) === 'Integer' &&
+                typeOf(parse(b.expr), syms, fns) === 'Real') {
+            emit(ind, php ? `${target} = (int) ${phpAtom(ex(b.expr))};` : `${target} = Math.trunc(${ex(b.expr)});`);
             return;
         }
         if (lang !== 'c' || typeOf(parse(b.target), syms, fns) !== 'String') {
@@ -907,7 +1050,10 @@ export const generateLines = (lang, program) => {
             const tn = TYPE_NAMES.cpp[b.varType];
             emit(ind, arr ? `vector<${tn}> ${b.name}(${ex(b.size)});` : `${tn} ${b.name} = ${dv};`);
         } else if (lang === 'javascript') {
-            emit(ind, arr ? `let ${b.name} = new Array(${ex(b.size)}).fill(${dv});` : `let ${b.name} = ${dv};`);
+            const tn = ts ? `: ${tsType(b.varType, arr)}` : '';
+            emit(ind, arr ? `let ${b.name}${tn} = new Array(${ex(b.size)}).fill(${dv});` : `let ${b.name}${tn} = ${dv};`);
+        } else if (php) {
+            emit(ind, arr ? `${b.name} = array_fill(0, ${ex(b.size)}, ${dv});` : `${b.name} = ${dv};`);
         } else if (pascal) {
             // Declared in the var section; here the array gets its size and the variable its start value.
             emit(ind, arr ? `SetLength(${b.name}, ${ex(b.size)});` : `${b.name} := ${dv};`);
@@ -942,7 +1088,18 @@ export const generateLines = (lang, program) => {
         } else if (lang === 'cpp') {
             emit(ind, arr ? `vector<${tn}> ${b.name}(${n});` : `${tn} ${b.name}{};`);
         } else if (lang === 'javascript') {
-            emit(ind, arr ? `let ${b.name} = Array.from({length: ${n}}, () => new ${tn}());` : `let ${b.name} = new ${tn}();`);
+            const t = ts ? `: ${tsType(b.varType, arr)}` : '';
+            emit(ind, arr ? `let ${b.name}${t} = Array.from({length: ${n}}, () => new ${tn}());` :
+                `let ${b.name}${t} = new ${tn}();`);
+        } else if (php) {
+            if (arr) {
+                emit(ind, `${b.name} = [];`);
+                emit(ind, `for ($k_ = 0; $k_ < ${n}; $k_++) {`);
+                emit(ind + 1, `${b.name}[] = new ${tn}();`);
+                emit(ind, '}');
+            } else {
+                emit(ind, `${b.name} = new ${tn}();`);
+            }
         } else if (pascal) {
             emit(ind, arr ? `SetLength(${b.name}, ${n});` : `${b.name} := Default(${tn});`);
         } else if (arr) {
@@ -989,6 +1146,16 @@ export const generateLines = (lang, program) => {
                 fields.forEach((f) => emit(ind + 1, `${fieldType(f.type)} ${f.name} = ${f.dv};`));
                 emit(ind, '};');
                 emit(ind, '');
+            } else if (ts) {
+                emit(ind, `class ${tn} {`);
+                fields.forEach((f) => emit(ind + 1, `${f.name}: ${TYPE_NAMES.typescript[f.type]} = ${f.dv};`));
+                emit(ind, '}');
+                emit(ind, '');
+            } else if (php) {
+                emit(ind, `class ${tn} {`);
+                fields.forEach((f) => emit(ind + 1, `public $${f.name} = ${f.dv};`));
+                emit(ind, '}');
+                emit(ind, '');
             } else if (lang === 'javascript') {
                 emit(ind, `class ${tn} {`);
                 emit(ind + 1, 'constructor() {');
@@ -1030,7 +1197,10 @@ export const generateLines = (lang, program) => {
             const tn = TYPE_NAMES.cpp[b.varType];
             emit(ind, `vector<vector<${tn}>> ${b.name}(${n}, vector<${tn}>(${m}));`);
         } else if (lang === 'javascript') {
-            emit(ind, `let ${b.name} = Array.from({length: ${n}}, () => new Array(${m}).fill(${dv}));`);
+            const tn = ts ? `: ${tsType(b.varType, true, true)}` : '';
+            emit(ind, `let ${b.name}${tn} = Array.from({length: ${n}}, () => new Array(${m}).fill(${dv}));`);
+        } else if (php) {
+            emit(ind, `${b.name} = array_fill(0, ${n}, array_fill(0, ${m}, ${dv}));`);
         } else if (pascal) {
             emit(ind, `SetLength(${b.name}, ${n}, ${m});`);
         } else if (b.varType === 'String') {
@@ -1089,7 +1259,7 @@ export const generateLines = (lang, program) => {
             close(ind);
             return;
         } else {
-            const decl = own(syms, b.variable) ? '' : {javascript: 'let '}[lang] || 'int ';
+            const decl = own(syms, b.variable) || php ? '' : {javascript: 'let '}[lang] || 'int ';
             open(`for (${decl}${b.variable} = ${ex(b.start)}; ${b.variable} ${neg ? '>=' : '<='} ${ex(b.end)}; ` +
                 `${b.variable} += ${ex(step)})`, ind);
         }
@@ -1151,7 +1321,10 @@ export const generateLines = (lang, program) => {
             case 'output': printStmt(b, ind); break;
             case 'call': emit(ind, `${ex(b.expr)}${semi}`); break;
             case 'return': {
-                const value = String(b.expr || '').trim() ? ex(b.expr) : '';
+                let value = String(b.expr || '').trim() ? ex(b.expr) : '';
+                if (php && value && current && current.returnType === 'Integer' && typeOf(parse(b.expr), syms, fns) === 'Real') {
+                    value = `(int) ${phpAtom(value)}`;
+                }
                 if (pascal) {
                     emit(ind, value ? `exit(${value});` : 'exit;');
                 } else {
@@ -1264,8 +1437,19 @@ export const generateLines = (lang, program) => {
         if (lang === 'python') {
             return `def ${isMain ? 'main' : f.name}(${params.join(', ')})`;
         }
+        if (ts) {
+            const ps = f.params.map((p) => `${p.name}: ${tsType(p.type, p.array, p.matrix)}`).join(', ');
+            const ret = f.returnType ? tsType(f.returnType) : 'void';
+            return `function ${isMain ? 'main' : f.name}(${isMain ? '' : ps}): ${isMain ? 'void' : ret}`;
+        }
         if (lang === 'javascript') {
             return `function ${isMain ? 'main' : f.name}(${params.join(', ')})`;
+        }
+        if (php) {
+            const phpType = (type) => (recOf(type) ? recOf(type).name : TYPE_NAMES.php[type]);
+            const ps = f.params.map((p) => (p.array ? `array &$${p.name}` : `${phpType(p.type)} $${p.name}`)).join(', ');
+            const ret = f.returnType ? phpType(f.returnType) : 'void';
+            return `function ${isMain ? 'main' : f.name}(${isMain ? '' : ps}): ${isMain ? 'void' : ret}`;
         }
         const tn = new Proxy({}, {get: (o, type) => typeName(type)});
         const ret = f.returnType ? tn[f.returnType] : 'void';
@@ -1296,11 +1480,13 @@ export const generateLines = (lang, program) => {
     const base = lang === 'java' || lang === 'csharp' ? 1 : 0;
 
     // Function bodies first: the C++ and Pascal headers depend on what the code needs.
+    let current = null;
     funcs.forEach((f) => {
         const isMain = f.name.toLowerCase() === mainName;
+        current = f;
         syms = Object.create(null);
         f.params.forEach((p) => {
-            syms[safe(p.name)] = {type: p.type, array: Boolean(p.array), matrix: Boolean(p.matrix), param: true};
+            syms[vn(safe(p.name))] = {type: p.type, array: Boolean(p.array), matrix: Boolean(p.matrix), param: true};
         });
         // The first spelling wins: parameters, then declarations and For variables in the order of the diagram.
         canon = Object.create(null);
@@ -1450,6 +1636,17 @@ export const generateLines = (lang, program) => {
             }
         },
         javascript: () => {
+            if (ts) {
+                emit(0, '// Run with Node.js: npx tsc main.ts && node main.js');
+                emit(0, 'declare const require: any;');
+                emit(0, 'declare const process: any;');
+                emit(0, "const lines: string[] = require('fs').readFileSync(0, 'utf8').split(/\\r?\\n/);");
+                emit(0, 'let nextLine = 0;');
+                emit(0, 'const input = (): string => lines[nextLine++] ?? \'\';');
+                emit(0, '');
+                recordTypes(0);
+                return;
+            }
             emit(0, '// Run with Node.js: node main.js');
             emit(0, "const lines = require('fs').readFileSync(0, 'utf8').split(/\\r?\\n/);");
             emit(0, 'let nextLine = 0;');
@@ -1492,6 +1689,27 @@ export const generateLines = (lang, program) => {
                 emit(0, '');
             }
         },
+        php: () => {
+            emit(0, '<?php');
+            emit(0, '// Run with PHP: php main.php');
+            emit(0, '');
+            if (phpNeeds.input) {
+                emit(0, 'function read_line(): string {');
+                emit(1, '$line = fgets(STDIN);');
+                emit(1, 'return $line === false ? "" : rtrim($line, "\\r\\n");');
+                emit(0, '}');
+                emit(0, '');
+            }
+            if (phpNeeds.fmt) {
+                // Reals as the algorithm writes them: 7 for a whole number, otherwise rounded to 10 decimals.
+                emit(0, 'function fmt($v): string {');
+                emit(1, '$s = rtrim(rtrim(sprintf("%.10F", $v), "0"), ".");');
+                emit(1, 'return $s === "-0" ? "0" : $s;');
+                emit(0, '}');
+                emit(0, '');
+            }
+            recordTypes(0);
+        },
         csharp: () => {
             emit(0, 'using System;');
             emit(0, 'using System.Globalization;');
@@ -1519,7 +1737,7 @@ export const generateLines = (lang, program) => {
             recordTypes(1);
         },
     };
-    const emitHeader = () => (own(headers, lang) || headers.java)();
+    const emitHeader = () => (own(headers, php ? 'php' : lang) || headers.java)();
     const emitFooter = () => {
         if (lang === 'java' || lang === 'csharp') {
             emit(0, '}');
@@ -1531,6 +1749,8 @@ export const generateLines = (lang, program) => {
             }
         } else if (lang === 'javascript') {
             emit(0, `${mainName === 'main' ? 'main' : mainName}();`);
+        } else if (php) {
+            emit(0, 'main();');
         }
     };
     emitHeader();

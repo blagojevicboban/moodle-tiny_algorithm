@@ -44,7 +44,7 @@ test('order: the algorithm, then the student in this course, then the course or 
     assert.equal(pickLanguage({}, {...site, scope: '8', default: 'csharp'}).lang, 'csharp');
     // No settings at all: every language, Python first.
     assert.equal(pickLanguage({}, {}).lang, 'python');
-    assert.equal(pickLanguage({}, {}).allowed.length, 12);
+    assert.equal(pickLanguage({}, {}).allowed.length, 14);
 });
 
 test('a course can force its language and lock it; an algorithm can lock its own', () => {
