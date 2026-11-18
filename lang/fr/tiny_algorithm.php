@@ -104,6 +104,7 @@ $string['ui_anatimes'] = '{$a->count}×';
 $string['ui_anawrong'] = 'Sorties fausses les plus fréquentes';
 $string['ui_arguments'] = 'Arguments';
 $string['ui_argumentshint'] = 'Valeurs des arguments, p. ex. 2, 3 ou une par ligne ; un tableau [1, 2, 3], une matrice [[1, 2], [3, 4]]';
+$string['ui_arraycounts'] = 'Comparaisons : {$a->compares} · Échanges : {$a->swaps} · Lectures d’éléments : {$a->reads} · Écritures d’éléments : {$a->writes}';
 $string['ui_arraycut'] = 'Seuls les {$a->shown} premiers des {$a->length} éléments sont affichés.';
 $string['ui_arrays'] = 'Tableaux';
 $string['ui_arraysempty'] = 'Les tableaux apparaissent ici quand l\'algorithme s\'exécute ou avance pas à pas.';

@@ -782,6 +782,52 @@ html.tiny_algorithm-noscroll body {
     transition: background-color .25s ease;
 }
 
+.tiny_algorithm-array-box.tiny_algorithm-heat1 {
+    background: #dbeafe;
+}
+
+.tiny_algorithm-array-box.tiny_algorithm-heat2 {
+    background: #bfdbfe;
+}
+
+.tiny_algorithm-array-box.tiny_algorithm-heat3 {
+    background: #93c5fd;
+}
+
+.tiny_algorithm-array-box.tiny_algorithm-heat4 {
+    background: #60a5fa;
+}
+
+/* An array of records: a table, a row for each element */
+.tiny_algorithm-array-table {
+    border-collapse: collapse;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .75rem;
+}
+
+.tiny_algorithm-array-table th,
+.tiny_algorithm-array-table td {
+    padding: .1rem .4rem;
+    border: 1px solid #cbd5e1;
+    text-align: left;
+    transition: background-color .25s ease;
+}
+
+.tiny_algorithm-array-table tr.tiny_algorithm-array-read td {
+    background: #fef3c7;
+}
+
+.tiny_algorithm-array-table tr.tiny_algorithm-array-written td {
+    background: #dcfce7;
+}
+
+.tiny_algorithm-array-counts {
+    margin: .4rem 0 0;
+    font-size: .75rem;
+    color: #374151;
+    font-variant-numeric: tabular-nums;
+}
+
 .tiny_algorithm-viewer .tiny_algorithm-view-arrays {
     margin-top: .5rem;
 }

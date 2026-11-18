@@ -104,6 +104,7 @@ $string['ui_anatimes'] = '{$a->count}×';
 $string['ui_anawrong'] = 'Најчести погрешни излези';
 $string['ui_arguments'] = 'Аргументи';
 $string['ui_argumentshint'] = 'Вредности на аргументите, на пр. 2, 3 или по една во ред; низа [1, 2, 3], матрица [[1, 2], [3, 4]]';
+$string['ui_arraycounts'] = 'Споредби: {$a->compares} · Замени: {$a->swaps} · Читања на елементи: {$a->reads} · Запишувања во елементи: {$a->writes}';
 $string['ui_arraycut'] = 'Прикажани се само првите {$a->shown} од {$a->length} елементи.';
 $string['ui_arrays'] = 'Низи';
 $string['ui_arraysempty'] = 'Низите се појавуваат тука кога алгоритмот се извршува или оди чекор по чекор.';

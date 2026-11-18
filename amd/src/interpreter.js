@@ -180,6 +180,9 @@ const defaultValue = (type) => ({Integer: 0, Real: 0, String: '', Boolean: false
  */
 export const NO_VALUE = Object.freeze({toString: () => '?'});
 
+/** Operators counted as comparisons by the array panel. */
+const COMPARISONS = new Set(['<', '>', '<=', '>=', '==', '!=', '<>', '=']);
+
 /** The basic types; a field of a record has one of them. */
 export const BASIC_TYPES = ['Integer', 'Real', 'String', 'Boolean'];
 
@@ -318,8 +321,17 @@ export const ARRAY_VIEW_COLUMNS = 50;
  */
 const arraysOf = (env) => Object.values(env || {}).filter((v) => Array.isArray(v.value)).map((v) => ({
     name: v.name, type: v.type, dims: v.dims || 1, length: v.value.length,
-    value: v.value.slice(0, ARRAY_VIEW_ITEMS).map((x) => (Array.isArray(x) ? x.slice(0, ARRAY_VIEW_COLUMNS).map(plain) : plain(x))),
+    value: v.value.slice(0, ARRAY_VIEW_ITEMS).map((x) => (Array.isArray(x) ? x.slice(0, ARRAY_VIEW_COLUMNS).map(plain) : cell(x))),
 }));
+
+/**
+ * An element for the array panel: a record as {fields, values} (drawn as a row of a table), else as the watch shows it.
+ *
+ * @param {*} x value
+ * @returns {*}
+ */
+const cell = (x) => (x instanceof Rec ? {fields: x.def.fields.map((f) => f.name),
+    values: x.def.fields.map((f) => plain(x.values[f.name.toLowerCase()]))} : plain(x));
 
 const hasText = (s) => s !== undefined && s !== null && String(s).trim() !== '';
 
@@ -399,6 +411,11 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
     let lastEnv = Object.create(null);
     // Elements of arrays read and written since the last step (only with track).
     let accesses = [];
+    // For the array panel (only with track): comparisons, element reads and writes, and swaps since the start.
+    const counts = {compares: 0, reads: 0, writes: 0, swaps: 0};
+    // The last element written (its list, index and old value), to find a swap: the next write to the same list puts
+    // the old value there and the first element got the old value of the second.
+    let lastWrite = null;
     // Turtle graphics: the turtle starts at the centre and looks up (heading in degrees, counter-clockwise).
     const turtle = {x: 0, y: 0, heading: 90, color: 'black'};
     const turtleNumber = function* (text, env) {
@@ -467,6 +484,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         if (!n.index2) {
             if (track) {
                 accesses.push({name: v.name, i, kind});
+                counts[kind === 'w' ? 'writes' : 'reads']++;
             }
             return [v, v.value, i, String(i)];
         }
@@ -480,6 +498,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         }
         if (track) {
             accesses.push({name: v.name, i, j, kind});
+            counts[kind === 'w' ? 'writes' : 'reads']++;
         }
         return [v, row, j, `${i}, ${j}`];
     };
@@ -620,6 +639,9 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
                 if (n.op === '||') {
                     return l ? true : Boolean(yield* evalNode(n.r, env));
                 }
+                if (track && COMPARISONS.has(n.op)) {
+                    counts.compares++;
+                }
                 return binary(n.op, l, yield* evalNode(n.r, env));
             }
             case 'arr': {
@@ -698,7 +720,11 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
             v.value = typed(v.type, value, t.name);
         } else if (t.k === 'idx') {
             const [v, list, i] = yield* arrayIndex(t, env, 'w');
+            const old = list[i];
             list[i] = typed(v.type, value, t.name);
+            if (track) {
+                noteWrite(list, i, old);
+            }
         } else if (t.k === 'fld') {
             const [rec, key, field] = yield* fieldOf(t, env);
             rec.values[key] = coerce(field.type, value, `${rec.def.name}.${field.name}`);
@@ -706,6 +732,24 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
             throw new AlgorithmError('badtarget');
         }
     }
+
+    /**
+     * Count a swap: this write to an element puts back the old value of the element written just before, which got the
+     * old value of this one (t = a[j]; a[j] = a[j + 1]; a[j + 1] = t); equal values are not a swap.
+     *
+     * @param {Array} list the list of the element
+     * @param {number} i its index
+     * @param {*} old its value before the write
+     */
+    const noteWrite = (list, i, old) => {
+        const w = lastWrite;
+        if (w && w.list === list && w.i !== i && old !== w.old && list[i] === w.old && list[w.i] === old) {
+            counts.swaps++;
+            lastWrite = null;
+            return;
+        }
+        lastWrite = {list, i, old};
+    };
 
     /**
      * Count the elements of a new array (the old array of the same variable is freed) and the steps they cost.
@@ -743,6 +787,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         if (track) {
             ev.arrays = arraysOf(env);
             ev.access = accesses;
+            ev.counts = {...counts};
             accesses = [];
         }
         return ev;
@@ -1152,7 +1197,8 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         const main = funcs.get('main') || program.functions[0];
         yield* callFunction(main, []);
     }
-    yield {event: 'done', vars: snapshot(lastEnv), ...(track ? {arrays: arraysOf(lastEnv), access: accesses} : {})};
+    const tracked = track ? {arrays: arraysOf(lastEnv), access: accesses, counts: {...counts}} : {};
+    yield {event: 'done', vars: snapshot(lastEnv), ...tracked};
 }
 
 /**

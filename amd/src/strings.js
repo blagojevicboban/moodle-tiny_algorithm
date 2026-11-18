@@ -285,6 +285,7 @@ export const STR = {
         calltreesummary: 'Calls: {calls} · repeated: {repeated} · deepest: {depth}',
         calltreemore: '{count} more calls are not drawn',
         arraycut: 'Only the first {shown} of {length} elements are shown.', arrayvalues: '{name}: {values}',
+        arraycounts: 'Comparisons: {compares} · Swaps: {swaps} · Element reads: {reads} · Element writes: {writes}',
         statusstopped: 'Stopped · step {step}', statuserror: 'Error · step {step}', showblock: 'Show the block',
         callstack: 'Calls running now', inputhintinteger: 'Enter a whole number, for example 4.',
         inputhintreal: 'Enter a number, for example 2.5.', inputok: 'Confirm the value', inputhintboolean: 'Enter true or false.',

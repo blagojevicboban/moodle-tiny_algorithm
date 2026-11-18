@@ -104,6 +104,7 @@ $string['ui_anatimes'] = '{$a->count}×';
 $string['ui_anawrong'] = 'Najczęstsze błędne wyniki';
 $string['ui_arguments'] = 'Argumenty';
 $string['ui_argumentshint'] = 'Wartości argumentów, np. 2, 3 lub po jednej w wierszu; tablica [1, 2, 3], macierz [[1, 2], [3, 4]]';
+$string['ui_arraycounts'] = 'Porównania: {$a->compares} · Zamiany: {$a->swaps} · Odczyty elementów: {$a->reads} · Zapisy elementów: {$a->writes}';
 $string['ui_arraycut'] = 'Pokazano tylko pierwsze {$a->shown} z {$a->length} elementów.';
 $string['ui_arrays'] = 'Tablice';
 $string['ui_arraysempty'] = 'Tablice pojawiają się tutaj, gdy algorytm działa lub przechodzi krok po kroku.';

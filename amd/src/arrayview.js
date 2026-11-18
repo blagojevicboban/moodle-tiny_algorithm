@@ -101,12 +101,43 @@ const el = (tag, cls, text) => {
 };
 
 /**
+ * Is an element a record (sent as {fields, values} by the interpreter)?
+ *
+ * @param {*} v
+ * @returns {boolean}
+ */
+export const isRecord = (v) => Boolean(v && typeof v === 'object' && Array.isArray(v.fields) && Array.isArray(v.values));
+
+/**
+ * The shade of a number of a matrix between the smallest and the largest (0 to 4), for the heat map.
+ *
+ * @param {number} x
+ * @param {number} lo smallest
+ * @param {number} hi largest
+ * @returns {number}
+ */
+export const heat = (x, lo, hi) => (hi > lo ? Math.min(4, Math.floor(((x - lo) / (hi - lo)) * 5)) : 0);
+
+/**
+ * The counters of a run as text (comparisons, swaps, reads and writes of elements).
+ *
+ * @param {{compares: number, swaps: number, reads: number, writes: number}} c
+ * @param {string|null} lang
+ * @returns {string}
+ */
+export const countsText = (c, lang = null) => t('arraycounts', {compares: String(c.compares), swaps: String(c.swaps),
+    reads: String(c.reads), writes: String(c.writes)}, lang);
+
+/**
  * A value as the panel shows it.
  *
  * @param {*} v
  * @returns {string}
  */
 const show = (v) => {
+    if (isRecord(v)) {
+        return v.values.map(show).join(', ');
+    }
     if (typeof v === 'number' && !Number.isInteger(v)) {
         return String(Math.round(v * 1000) / 1000);
     }
@@ -123,12 +154,16 @@ export class ArrayView {
         this.indexes = indexNames(program);
         this.root = el('div', 'tiny_algorithm-arrays');
         this.empty = el('p', 'tiny_algorithm-arrays-empty', t('arraysempty', null, lang));
+        // Comparisons, swaps, reads and writes since the start of the run (the interpreter counts them).
+        this.counts = el('p', 'tiny_algorithm-array-counts');
+        this.counts.setAttribute('aria-live', 'off');
         this.reset();
     }
 
     /** No arrays yet (before a run). */
     reset() {
         this.boxes = new Map();
+        this.counts.textContent = '';
         this.root.replaceChildren(this.empty);
     }
 
@@ -139,8 +174,13 @@ export class ArrayView {
      */
     update(ev) {
         const arrays = (ev.arrays || []).slice(0, MAX_ARRAYS);
+        if (ev.counts) {
+            this.counts.textContent = countsText(ev.counts, this.lang);
+        }
         if (!arrays.length) {
-            this.reset();
+            // A function without arrays is running: the counters stay.
+            this.boxes = new Map();
+            this.root.replaceChildren(this.empty, ...(this.counts.textContent ? [this.counts] : []));
             return;
         }
         const ints = new Map((ev.vars || []).filter((v) => typeof v.value === 'number' && Number.isInteger(v.value))
@@ -160,7 +200,7 @@ export class ArrayView {
             return box.root;
         });
         [...this.boxes.keys()].filter((k) => !seen.has(k)).forEach((k) => this.boxes.delete(k));
-        this.root.replaceChildren(...parts);
+        this.root.replaceChildren(...parts, ...(this.counts.textContent ? [this.counts] : []));
     }
 
     /**
@@ -174,7 +214,22 @@ export class ArrayView {
         box.title = el('div', 'tiny_algorithm-array-title');
         box.note = el('div', 'tiny_algorithm-array-note');
         box.root.append(box.title);
-        if (a.dims === 2) {
+        if (a.dims === 1 && a.value.length && a.value.every(isRecord)) {
+            // An array of records: a table, a row for each element and a column for each field.
+            box.table = el('table', 'tiny_algorithm-array-table');
+            const head = el('tr');
+            head.append(el('th', '', '#'), ...a.value[0].fields.map((f) => el('th', '', f)));
+            box.table.append(el('thead'), el('tbody'));
+            box.table.tHead.append(head);
+            a.value.forEach((x, i) => {
+                const row = el('tr');
+                row.append(el('th', 'tiny_algorithm-array-index', String(i)), ...x.values.map(() => el('td')));
+                box.table.tBodies[0].append(row);
+                box.cells.push(row);
+            });
+            box.root.append(box.table);
+            box.row = box.table;
+        } else if (a.dims === 2) {
             box.grid = el('div', 'tiny_algorithm-array-grid');
             const cols = a.value[0] ? a.value[0].length : 0;
             box.grid.style.gridTemplateColumns = `repeat(${cols}, minmax(1.6rem, auto))`;
@@ -231,11 +286,33 @@ export class ArrayView {
         box.note.textContent = a.length > a.value.length ? t('arraycut', {shown: String(a.value.length),
             length: String(a.length)}, this.lang) : '';
         box.note.hidden = !box.note.textContent;
+        if (box.table) {
+            a.value.forEach((x, i) => {
+                const row = box.cells[i];
+                (isRecord(x) ? x.values : []).forEach((v, k) => {
+                    row.cells[k + 1].textContent = show(v);
+                });
+                mark(row, hitAt(i));
+                const here = pointers.filter((p) => p.value === i).map((p) => p.name);
+                row.cells[0].textContent = here.length ? `${i} ←${here.join(',')}` : String(i);
+            });
+            box.text.textContent = t('arrayvalues', {name: a.name, values: a.value.map((x) => `(${show(x)})`).join(', ')},
+                this.lang);
+            return;
+        }
         if (a.dims === 2) {
+            // A matrix of numbers is also a heat map: the larger a number, the darker its box.
+            const flat = a.value.flat().filter((x) => typeof x === 'number' && Number.isFinite(x));
+            const all = flat.length === a.value.flat().length && flat.length > 0;
+            const lo = all ? Math.min(...flat) : 0;
+            const hi = all ? Math.max(...flat) : 0;
             let k = 0;
             a.value.forEach((row, i) => row.forEach((x, j) => {
                 const c = box.cells[k++];
                 c.textContent = show(x);
+                for (let h = 0; h < 5; h++) {
+                    c.classList.toggle(`tiny_algorithm-heat${h}`, all && heat(x, lo, hi) === h);
+                }
                 mark(c, hitAt(i, j));
             }));
             box.text.textContent = t('arrayvalues', {name: a.name, values: a.value.map((r) => r.map(show).join(', '))

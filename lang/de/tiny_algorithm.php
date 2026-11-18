@@ -104,6 +104,7 @@ $string['ui_anatimes'] = '{$a->count}×';
 $string['ui_anawrong'] = 'Häufigste falsche Ausgaben';
 $string['ui_arguments'] = 'Argumente';
 $string['ui_argumentshint'] = 'Werte der Argumente, z. B. 2, 3 oder einer pro Zeile; ein Array [1, 2, 3], eine Matrix [[1, 2], [3, 4]]';
+$string['ui_arraycounts'] = 'Vergleiche: {$a->compares} · Vertauschungen: {$a->swaps} · Elemente gelesen: {$a->reads} · Elemente geschrieben: {$a->writes}';
 $string['ui_arraycut'] = 'Nur die ersten {$a->shown} von {$a->length} Elementen werden angezeigt.';
 $string['ui_arrays'] = 'Arrays';
 $string['ui_arraysempty'] = 'Die Arrays erscheinen hier, wenn der Algorithmus läuft oder schrittweise ausgeführt wird.';

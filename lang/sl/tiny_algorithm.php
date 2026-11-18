@@ -104,6 +104,7 @@ $string['ui_anatimes'] = '{$a->count}×';
 $string['ui_anawrong'] = 'Najpogostejši napačni izhodi';
 $string['ui_arguments'] = 'Argumenti';
 $string['ui_argumentshint'] = 'Vrednosti argumentov, npr. 2, 3 ali ena v vrstici; tabela [1, 2, 3], matrika [[1, 2], [3, 4]]';
+$string['ui_arraycounts'] = 'Primerjave: {$a->compares} · Zamenjave: {$a->swaps} · Branja elementov: {$a->reads} · Pisanja elementov: {$a->writes}';
 $string['ui_arraycut'] = 'Prikazanih je le prvih {$a->shown} od {$a->length} elementov.';
 $string['ui_arrays'] = 'Tabele';
 $string['ui_arraysempty'] = 'Tabele se prikažejo tukaj, ko se algoritem izvaja ali izvaja po korakih.';

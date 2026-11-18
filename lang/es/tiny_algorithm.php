@@ -104,6 +104,7 @@ $string['ui_anatimes'] = '{$a->count}×';
 $string['ui_anawrong'] = 'Salidas incorrectas más frecuentes';
 $string['ui_arguments'] = 'Argumentos';
 $string['ui_argumentshint'] = 'Valores de los argumentos, p. ej. 2, 3 o uno por línea; un arreglo [1, 2, 3], una matriz [[1, 2], [3, 4]]';
+$string['ui_arraycounts'] = 'Comparaciones: {$a->compares} · Intercambios: {$a->swaps} · Lecturas de elementos: {$a->reads} · Escrituras de elementos: {$a->writes}';
 $string['ui_arraycut'] = 'Solo se muestran los primeros {$a->shown} de {$a->length} elementos.';
 $string['ui_arrays'] = 'Arreglos';
 $string['ui_arraysempty'] = 'Los arreglos aparecen aquí cuando el algoritmo se ejecuta o avanza paso a paso.';

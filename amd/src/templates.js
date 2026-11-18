@@ -344,6 +344,178 @@ export const TEMPLATES = [
         }
     },
     {
+        id: 'insertion_sort',
+        category: 'arrays',
+        title: 'Insertion Sort',
+        desc: 'Sort an array of random numbers: each number moves left past the bigger ones to its place among the sorted ' +
+            'ones; watch the shifts and the counters in the Arrays panel.',
+        fallbackTitle: 'Insertion Sort',
+        fallbackDesc: 'Sort an array of random numbers: each number moves left past the bigger ones to its place.',
+        build: () => {
+            const prog = createProgram('InsertionSort');
+            prog.functions[0].body = [
+                createBlock('comment', {text: 'Insertion sort: a[0..i-1] is sorted; a[i] goes to its place in it'}),
+                createBlock('declare', {name: 'n', varType: 'Integer'}),
+                createBlock('assign', {target: 'n', expr: '8'}),
+                createBlock('declare', {name: 'a', varType: 'Integer', size: 'n'}),
+                createBlock('declare', {name: 'i, j, key', varType: 'Integer'}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('assign', {target: 'a[i]', expr: 'Random(100)'}),
+                ]}),
+                createBlock('for', {variable: 'i', start: '1', end: 'n - 1', step: '1', body: [
+                    createBlock('assign', {target: 'key', expr: 'a[i]'}),
+                    createBlock('assign', {target: 'j', expr: 'i - 1'}),
+                    createBlock('while', {cond: 'j >= 0 && a[j] > key', body: [
+                        createBlock('assign', {target: 'a[j + 1]', expr: 'a[j]'}),
+                        createBlock('assign', {target: 'j', expr: 'j - 1'}),
+                    ]}),
+                    createBlock('assign', {target: 'a[j + 1]', expr: 'key'}),
+                ]}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('output', {expr: 'a[i] & " "', newline: false}),
+                ]}),
+            ];
+            return prog;
+        }
+    },
+    {
+        id: 'quick_sort',
+        category: 'arrays',
+        title: 'Quick Sort',
+        desc: 'Sort with a pivot: the smaller numbers go to its left, the bigger to its right, then each part is sorted ' +
+            'the same way (recursion). Compare its counters with Bubble Sort.',
+        fallbackTitle: 'Quick Sort',
+        fallbackDesc: 'Sort with a pivot: smaller numbers to its left, bigger to its right, then sort each part.',
+        build: () => {
+            const prog = createProgram('QuickSort');
+            prog.functions[0].body = [
+                createBlock('comment', {text: 'Quick sort (Lomuto): the last element of a part is the pivot'}),
+                createBlock('declare', {name: 'n, i', varType: 'Integer'}),
+                createBlock('assign', {target: 'n', expr: '10'}),
+                createBlock('declare', {name: 'a', varType: 'Integer', size: 'n'}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('assign', {target: 'a[i]', expr: 'Random(100)'}),
+                ]}),
+                createBlock('call', {expr: 'Sort(a, 0, n - 1)'}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('output', {expr: 'a[i] & " "', newline: false}),
+                ]}),
+            ];
+            const arr = {name: 'a', type: 'Integer', array: true};
+            prog.functions.push({name: 'Sort', params: [arr, {name: 'low', type: 'Integer'}, {name: 'high', type: 'Integer'}],
+                returnType: null, body: [
+                    createBlock('declare', {name: 'pivot, i, j, temp', varType: 'Integer'}),
+                    createBlock('if', {cond: 'low < high', then: [
+                        createBlock('assign', {target: 'pivot', expr: 'a[high]'}),
+                        createBlock('assign', {target: 'i', expr: 'low'}),
+                        createBlock('for', {variable: 'j', start: 'low', end: 'high - 1', step: '1', body: [
+                            createBlock('if', {cond: 'a[j] < pivot', then: [
+                                createBlock('assign', {target: 'temp', expr: 'a[i]'}),
+                                createBlock('assign', {target: 'a[i]', expr: 'a[j]'}),
+                                createBlock('assign', {target: 'a[j]', expr: 'temp'}),
+                                createBlock('assign', {target: 'i', expr: 'i + 1'}),
+                            ], 'else': []}),
+                        ]}),
+                        createBlock('assign', {target: 'temp', expr: 'a[i]'}),
+                        createBlock('assign', {target: 'a[i]', expr: 'a[high]'}),
+                        createBlock('assign', {target: 'a[high]', expr: 'temp'}),
+                        createBlock('call', {expr: 'Sort(a, low, i - 1)'}),
+                        createBlock('call', {expr: 'Sort(a, i + 1, high)'}),
+                    ], 'else': []}),
+                ]});
+            return prog;
+        }
+    },
+    {
+        id: 'merge_sort',
+        category: 'arrays',
+        title: 'Merge Sort',
+        desc: 'Split the array in halves, sort each half (recursion) and merge the two sorted halves through a helper ' +
+            'array.',
+        fallbackTitle: 'Merge Sort',
+        fallbackDesc: 'Split in halves, sort each half and merge the sorted halves.',
+        build: () => {
+            const prog = createProgram('MergeSort');
+            prog.functions[0].body = [
+                createBlock('comment', {text: 'Merge sort: halves are sorted, then merged into tmp and copied back'}),
+                createBlock('declare', {name: 'n, i', varType: 'Integer'}),
+                createBlock('assign', {target: 'n', expr: '10'}),
+                createBlock('declare', {name: 'a, tmp', varType: 'Integer', size: 'n'}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('assign', {target: 'a[i]', expr: 'Random(100)'}),
+                ]}),
+                createBlock('call', {expr: 'Sort(a, tmp, 0, n - 1)'}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('output', {expr: 'a[i] & " "', newline: false}),
+                ]}),
+            ];
+            const arr = (name) => ({name, type: 'Integer', array: true});
+            prog.functions.push({name: 'Sort', params: [arr('a'), arr('tmp'), {name: 'low', type: 'Integer'},
+                {name: 'high', type: 'Integer'}], returnType: null, body: [
+                createBlock('declare', {name: 'mid, i, j, k', varType: 'Integer'}),
+                createBlock('if', {cond: 'low < high', then: [
+                    createBlock('assign', {target: 'mid', expr: 'Int((low + high) / 2)'}),
+                    createBlock('call', {expr: 'Sort(a, tmp, low, mid)'}),
+                    createBlock('call', {expr: 'Sort(a, tmp, mid + 1, high)'}),
+                    createBlock('assign', {target: 'i', expr: 'low'}),
+                    createBlock('assign', {target: 'j', expr: 'mid + 1'}),
+                    createBlock('for', {variable: 'k', start: 'low', end: 'high', step: '1', body: [
+                        createBlock('if', {cond: 'j > high || (i <= mid && a[i] <= a[j])', then: [
+                            createBlock('assign', {target: 'tmp[k]', expr: 'a[i]'}),
+                            createBlock('assign', {target: 'i', expr: 'i + 1'}),
+                        ], 'else': [
+                            createBlock('assign', {target: 'tmp[k]', expr: 'a[j]'}),
+                            createBlock('assign', {target: 'j', expr: 'j + 1'}),
+                        ]}),
+                    ]}),
+                    createBlock('for', {variable: 'k', start: 'low', end: 'high', step: '1', body: [
+                        createBlock('assign', {target: 'a[k]', expr: 'tmp[k]'}),
+                    ]}),
+                ], 'else': []}),
+            ]});
+            return prog;
+        }
+    },
+    {
+        id: 'counting_sort',
+        category: 'arrays',
+        title: 'Counting Sort',
+        desc: 'Sort marks from 1 to 5 without comparing them: count how many times each mark appears, then write each ' +
+            'mark that many times. The counters show how few comparisons it needs.',
+        fallbackTitle: 'Counting Sort',
+        fallbackDesc: 'Count how many times each mark appears, then write each mark that many times.',
+        build: () => {
+            const prog = createProgram('CountingSort');
+            prog.functions[0].body = [
+                createBlock('comment', {text: 'Counting sort: count[m] is how many times mark m appears'}),
+                createBlock('declare', {name: 'n, i, m, k', varType: 'Integer'}),
+                createBlock('assign', {target: 'n', expr: '12'}),
+                createBlock('declare', {name: 'a', varType: 'Integer', size: 'n'}),
+                createBlock('declare', {name: 'count', varType: 'Integer', size: '6'}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('assign', {target: 'a[i]', expr: 'Random(5) + 1'}),
+                ]}),
+                createBlock('for', {variable: 'm', start: '0', end: '5', step: '1', body: [
+                    createBlock('assign', {target: 'count[m]', expr: '0'}),
+                ]}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('assign', {target: 'count[a[i]]', expr: 'count[a[i]] + 1'}),
+                ]}),
+                createBlock('assign', {target: 'k', expr: '0'}),
+                createBlock('for', {variable: 'm', start: '1', end: '5', step: '1', body: [
+                    createBlock('for', {variable: 'i', start: '1', end: 'count[m]', step: '1', body: [
+                        createBlock('assign', {target: 'a[k]', expr: 'm'}),
+                        createBlock('assign', {target: 'k', expr: 'k + 1'}),
+                    ]}),
+                ]}),
+                createBlock('for', {variable: 'i', start: '0', end: 'n - 1', step: '1', body: [
+                    createBlock('output', {expr: 'a[i] & " "', newline: false}),
+                ]}),
+            ];
+            return prog;
+        }
+    },
+    {
         id: 'binary_search',
         category: 'arrays',
         title: 'Binary Search',

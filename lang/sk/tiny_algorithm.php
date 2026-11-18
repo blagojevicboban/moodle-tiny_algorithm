@@ -104,6 +104,7 @@ $string['ui_anatimes'] = '{$a->count}×';
 $string['ui_anawrong'] = 'Najčastejšie nesprávne výstupy';
 $string['ui_arguments'] = 'Argumenty';
 $string['ui_argumentshint'] = 'Hodnoty argumentov, napr. 2, 3 alebo jedna na riadok; pole [1, 2, 3], matica [[1, 2], [3, 4]]';
+$string['ui_arraycounts'] = 'Porovnania: {$a->compares} · Výmeny: {$a->swaps} · Čítania prvkov: {$a->reads} · Zápisy prvkov: {$a->writes}';
 $string['ui_arraycut'] = 'Zobrazených je len prvých {$a->shown} z {$a->length} prvkov.';
 $string['ui_arrays'] = 'Polia';
 $string['ui_arraysempty'] = 'Polia sa tu zobrazia, keď algoritmus beží alebo sa krokuje.';

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.28.0 – 2026-11-19 (stable)
+
+- **Counters in the Arrays panel:** under the arrays, the comparisons, swaps, element reads and element writes since
+  the start of the run (Comparisons: 38 · Swaps: 12 · …), so sorting algorithms can be compared. The interpreter counts
+  them with every step, so stepping back shows the counters of that moment. A swap is two writes in a row to the same
+  array that exchange two different values (t = a[j]; a[j] = a[j + 1]; a[j + 1] = t).
+- **Arrays of records as a table:** a row for each element and a column for each field; the row read is amber, the row
+  written green, and the index variables point at their row.
+- **Matrix heat map:** the boxes of a matrix of numbers are shaded from the smallest value (light) to the largest (dark).
+- **New templates in the Arrays group:** Insertion Sort, Quick Sort (recursive, Lomuto), Merge Sort (recursive, with a
+  helper array) and Counting Sort (marks 1 to 5); all sort, also with strict initialization.
+- 1 new string in all 15 languages; tests for the counters, the record rows, the heat map and the new templates.
+
 ## 2.27.0 – 2026-11-19 (stable)
 
 - **Strict initialization:** an algorithm can require that a variable gets a value before it is read, as in C, C++

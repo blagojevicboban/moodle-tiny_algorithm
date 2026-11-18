@@ -104,6 +104,7 @@ $string['ui_anatimes'] = '{$a->count}×';
 $string['ui_anawrong'] = 'Najčešći pogrešni izlazi';
 $string['ui_arguments'] = 'Argumenti';
 $string['ui_argumentshint'] = 'Vrijednosti argumenata, npr. 2, 3 ili jedna po retku; niz [1, 2, 3], matrica [[1, 2], [3, 4]]';
+$string['ui_arraycounts'] = 'Usporedbe: {$a->compares} · Zamjene: {$a->swaps} · Čitanja elemenata: {$a->reads} · Upisi u elemente: {$a->writes}';
 $string['ui_arraycut'] = 'Prikazano je samo prvih {$a->shown} od {$a->length} elemenata.';
 $string['ui_arrays'] = 'Nizovi';
 $string['ui_arraysempty'] = 'Nizovi se pojavljuju ovdje kada se algoritam izvršava ili ide korak po korak.';

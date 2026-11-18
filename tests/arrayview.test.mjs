@@ -24,7 +24,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createProgram, createBlock as B} from '../amd/src/model.js';
 import {execute, runSync, ARRAY_VIEW_ITEMS} from '../amd/src/interpreter.js';
-import {indexNames, usesArrays} from '../amd/src/arrayview.js';
+import {countsText, heat, indexNames, isRecord, usesArrays} from '../amd/src/arrayview.js';
 import {TEMPLATES} from '../amd/src/templates.js';
 
 /**
@@ -95,10 +95,10 @@ test('index variables of each array, and which programs have arrays', () => {
 
 test('the sorting templates sort, the binary search finds', () => {
     const build = (id) => TEMPLATES.find((t) => t.id === id).build();
-    for (const id of ['bubble_sort', 'selection_sort']) {
+    for (const id of ['bubble_sort', 'selection_sort', 'insertion_sort', 'quick_sort', 'merge_sort', 'counting_sort']) {
         for (const seed of [1, 7, 2026]) {
             const out = runSync(build(id), [], {seed}).trim().split(' ').map(Number);
-            assert.equal(out.length, 8, id);
+            assert.equal(out.length, {quick_sort: 10, merge_sort: 10, counting_sort: 12}[id] || 8, id);
             assert.deepEqual(out, [...out].sort((x, y) => x - y), `${id} with seed ${seed}`);
         }
     }
@@ -106,4 +106,33 @@ test('the sorting templates sort, the binary search finds', () => {
     assert.match(runSync(build('binary_search'), ['28']), /Not found/);
     assert.match(runSync(build('binary_search'), ['0']), /Found at index 0/);
     assert.match(runSync(build('binary_search'), ['45']), /Found at index 15/);
+});
+
+test('the counters: comparisons, element reads and writes, and swaps (equal values are no swap)', () => {
+    const p = createProgram();
+    p.functions[0].body = [B('declare', {name: 'a', varType: 'Integer', size: '3'}), B('declare', {name: 't', varType: 'Integer'}),
+        B('assign', {target: 'a[0]', expr: '5'}), B('assign', {target: 'a[1]', expr: '2'}),
+        B('if', {cond: 'a[0] > a[1]', then: [B('assign', {target: 't', expr: 'a[0]'}), B('assign', {target: 'a[0]', expr: 'a[1]'}),
+            B('assign', {target: 'a[1]', expr: 't'})], 'else': []}),
+        B('assign', {target: 'a[2]', expr: 'a[1]'}), B('assign', {target: 'a[1]', expr: 'a[2]'})];
+    let counts = null;
+    for (const ev of execute(p, {track: true})) {
+        counts = ev.counts || counts;
+    }
+    assert.deepEqual(counts, {compares: 1, reads: 6, writes: 6, swaps: 1});
+    assert.equal(countsText(counts), 'Comparisons: 1 · Swaps: 1 · Element reads: 6 · Element writes: 6');
+});
+
+test('records go to the panel as fields and values; a matrix is shaded from the smallest to the largest', () => {
+    const p = Object.assign(createProgram(), {records: [{name: 'P', fields: [{name: 'x', type: 'Integer'},
+        {name: 'n', type: 'String'}]}]});
+    p.functions[0].body = [B('declare', {name: 'ps', varType: 'P', size: '2'}), B('assign', {target: 'ps[1].x', expr: '4'})];
+    let arrays = null;
+    for (const ev of execute(p, {track: true})) {
+        arrays = ev.arrays || arrays;
+    }
+    assert.deepEqual(arrays[0].value[1], {fields: ['x', 'n'], values: [4, '']});
+    assert.ok(isRecord(arrays[0].value[1]) && !isRecord(4) && !isRecord(null));
+    assert.deepEqual([0, 2, 5, 9, 10].map((x) => heat(x, 0, 10)), [0, 1, 2, 4, 4]);
+    assert.equal(heat(3, 3, 3), 0);
 });
