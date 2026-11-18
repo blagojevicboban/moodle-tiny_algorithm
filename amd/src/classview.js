@@ -85,11 +85,34 @@ export const timeText = (seconds, now = Date.now() / 1000) => {
 };
 
 /**
+ * The grade of a copy (a quiz answer, qtype_algorithm 2.23) as a badge, or null when the copy has no grade.
+ *
+ * @param {Object} copy
+ * @param {?number} [copy.fraction] the grade from 0 to 1, missing or negative when not graded
+ * @param {string|null} lang UI language code
+ * @returns {?HTMLElement}
+ */
+const gradeBadge = (copy, lang) => {
+    if (typeof copy.fraction !== 'number' || copy.fraction < 0) {
+        return null;
+    }
+    let text = `${Math.round(copy.fraction * 100)} %`;
+    try {
+        text = new Intl.NumberFormat(lang || undefined, {style: 'percent', maximumFractionDigits: 0}).format(copy.fraction);
+    } catch (e) {
+        // An unknown language code keeps the plain number.
+    }
+    return el('span', {'class': 'tiny_algorithm-class-tests ' +
+        (copy.fraction >= 0.9999 ? 'tiny_algorithm-class-pass' : 'tiny_algorithm-class-fail')}, text);
+};
+
+/**
  * Open the class view.
  *
  * @param {HTMLElement} host widget root
  * @param {Object} opts
- * @param {Function} opts.load returns a Promise of the copies: [{userid, fullname, program (JSON), timemodified}]
+ * @param {Function} opts.load returns a Promise of the copies: [{userid, fullname, program (JSON), timemodified}],
+ *     a quiz answer also with its fraction (shown instead of the tests)
  * @param {Array} [opts.tests] the tests of the exercise
  * @param {string|null} [opts.lang] UI language code
  * @param {Object} [opts.codeConfig] code languages for the large view
@@ -131,9 +154,9 @@ export const openClassView = (host, {load, tests = [], lang = null, codeConfig =
             const summary = program ? testSummary(cache, copy.program, program, tests) : null;
             const picture = el('div', {'class': 'tiny_algorithm-class-picture', 'aria-hidden': 'true'});
             picture.innerHTML = program ? renderProgram(program) : '';
-            const badge = summary ? el('span', {'class': 'tiny_algorithm-class-tests ' +
+            const badge = gradeBadge(copy, lang) || (summary ? el('span', {'class': 'tiny_algorithm-class-tests ' +
                 (summary.passed === summary.total ? 'tiny_algorithm-class-pass' : 'tiny_algorithm-class-fail')},
-            t('classtests', {passed: String(summary.passed), total: String(summary.total)})) : '';
+            t('classtests', {passed: String(summary.passed), total: String(summary.total)})) : '');
             return el('button', {type: 'button', 'class': 'tiny_algorithm-class-card', disabled: !program,
                 'aria-label': `${label}, ${timeText(copy.timemodified)}`, onclick: () => showLarge(copy, label)},
             el('span', {'class': 'tiny_algorithm-class-head'}, el('strong', {}, label),

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.24.0 – 2026-11-18 (stable)
+
+- **Class view with grades:** a copy can carry its grade (qtype_algorithm 2.23 sends the grade of a quiz answer); the
+  card then shows it as a percent badge, green for full marks, instead of the visible tests. Used by the new Class work
+  button of the algorithm question in a quiz.
+- **Delete after a click:** a block chosen with the mouse can be deleted with the Delete (or Backspace) key, as with
+  Delete in the right-click menu. Before, the redraw after the click took the focus from the diagram and the key did
+  nothing; now the clicked block keeps the focus.
+
 ## 2.23.0 – 2026-11-17 (stable)
 
 - **Twelve new languages:** German, French, Spanish, Italian, Portuguese, Polish, Croatian, Bosnian, Slovenian,

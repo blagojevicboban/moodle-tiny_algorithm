@@ -705,6 +705,14 @@ export class AlgorithmEditor {
             this.selected = node && !['start', 'end'].includes(node.dataset.id) ? node.dataset.id : null;
             this.focusTarget = this.selected ? `n${this.selected}` : this.focusTarget;
             this.refresh();
+            // The redraw replaces the clicked block: focus the new one, so Delete and the other keys work after a click
+            // too (as Delete in the right-click menu).
+            const item = this.selected && this.canvas.querySelector(`.tiny_algorithm-node[data-id="${CSS.escape(this.selected)}"]`);
+            if (item) {
+                item.focus({preventScroll: true});
+            } else {
+                this.canvas.focus({preventScroll: true});
+            }
         }
     }
 
