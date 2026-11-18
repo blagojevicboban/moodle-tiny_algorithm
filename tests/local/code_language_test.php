@@ -52,7 +52,7 @@ final class code_language_test extends \advanced_testcase {
 
         $config = code_language::for_context($module);
         $this->assertSame(['default' => 'python', 'allowed' => code_language::LANGUAGES, 'force' => false, 'lock' => false,
-            'scope' => (string) $course->id, 'codelab' => [], 'ai' => false], $config);
+            'scope' => (string) $course->id, 'codelab' => [], 'ai' => false, 'strict' => false], $config);
 
         filter_set_local_config('algorithm', \context_coursecat::instance($category->id)->id, 'codelang', 'java');
         $this->assertSame('java', code_language::for_context($module)['default']);
