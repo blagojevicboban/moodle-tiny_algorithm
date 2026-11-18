@@ -2070,3 +2070,79 @@ html.tiny_algorithm-noscroll body {
 .tiny_algorithm-record-head {
     margin-bottom: .1rem;
 }
+
+/* Less movement: the bars, highlights and boxes change without animation when the user asks for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    [class*="tiny_algorithm-"],
+    [class*="tiny_algorithm-"] > rect,
+    [class*="tiny_algorithm-"] > polygon {
+        transition: none;
+        animation: none;
+        scroll-behavior: auto;
+    }
+}
+
+/* Forced colours (Windows high contrast): the browser sets the text colour to the system one; the blocks are drawn
+   in it (currentcolor) on the page background, the running block with a thick border, the selected and focused ones
+   with a dashed one, and the highlights of the arrays with an outline instead of a colour */
+@media (forced-colors: active) {
+    .tiny_algorithm-node > rect,
+    .tiny_algorithm-node > polygon,
+    .tiny_algorithm-node > ellipse {
+        fill: transparent;
+        stroke: currentcolor;
+    }
+
+    .tiny_algorithm-node text,
+    .tiny_algorithm-node tspan,
+    .tiny_algorithm-arrow {
+        fill: currentcolor;
+    }
+
+    .tiny_algorithm-edge > path {
+        stroke: currentcolor;
+    }
+
+    .tiny_algorithm-running > rect,
+    .tiny_algorithm-running > polygon {
+        stroke-width: 5;
+    }
+
+    .tiny_algorithm-selected > rect,
+    .tiny_algorithm-selected > polygon,
+    .tiny_algorithm-node:focus > rect,
+    .tiny_algorithm-node:focus > polygon,
+    .tiny_algorithm-misplaced > rect,
+    .tiny_algorithm-misplaced > polygon {
+        stroke-width: 3;
+        stroke-dasharray: 6 3;
+    }
+
+    .tiny_algorithm-array-read,
+    .tiny_algorithm-array-written {
+        outline: 3px solid;
+    }
+
+    .tiny_algorithm-array-bar,
+    .tiny_algorithm-ana-histbar,
+    .tiny_algorithm-ana-meterfill {
+        background: currentcolor;
+        forced-color-adjust: none;
+    }
+}
+
+/* More contrast when the user asks for it: darker borders and texts of the secondary parts */
+@media (prefers-contrast: more) {
+    .tiny_algorithm-class-note,
+    .tiny_algorithm-ana-note,
+    .tiny_algorithm-ana-times,
+    .tiny_algorithm-array-counts,
+    .tiny_algorithm-class-time {
+        color: #111827;
+    }
+
+    .tiny_algorithm-node > rect,
+    .tiny_algorithm-node > polygon {
+        stroke-width: 2;
+    }
+}

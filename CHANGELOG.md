@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.29.0 – 2026-11-19 (stable)
+
+- **Outline:** the algorithm as a tree for screen readers and the keyboard (File, Outline or Alt + O in the editor; an
+  Outline button in the viewer of a page): functions, blocks, and the Then and Else parts of an If. Up and Down move,
+  Right opens, Left closes, Home and End go to the ends, Enter shows the block in the diagram and focuses it (WAI-ARIA
+  tree pattern).
+- **The output is announced:** at the end of a run a screen reader hears Finished and the end of the output.
+- **Dialogs keep the focus:** Tab and Shift + Tab stay inside an open dialog; Escape closes it and the focus returns.
+- **High contrast:** with forced colours (Windows high contrast) the blocks, arrows and highlights use the system
+  colours, the running block has a thick border and the selected one a dashed border; with prefers-contrast the
+  secondary texts are darker; with reduced motion the bars and highlights change without animation.
+- **axe:** no violations in the viewer, the editor with the arrays panel, counters and call tree, the outline, the
+  records table and the Class work view and analysis (devtools/demo-video/axe-algorithm.mjs). Fixed on the way: the
+  name of a block with a long comment, the console and the call tree can be scrolled with the keyboard, the Class
+  work cards are named by their visible text.
+- New module outline.js and tests/outline.test.mjs; 7 new strings in all 15 languages.
+
 ## 2.28.0 – 2026-11-19 (stable)
 
 - **Counters in the Arrays panel:** under the arrays, the comparisons, swaps, element reads and element writes since

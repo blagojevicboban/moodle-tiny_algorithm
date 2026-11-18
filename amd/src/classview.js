@@ -231,8 +231,9 @@ export const openClassView = (host, {load, tests = [], lang = null, codeConfig =
             const badge = gradeBadge(copy, lang) || (summary ? el('span', {'class': 'tiny_algorithm-class-tests ' +
                 (summary.passed === summary.total ? 'tiny_algorithm-class-pass' : 'tiny_algorithm-class-fail')},
             t('classtests', {passed: String(summary.passed), total: String(summary.total)})) : '');
+            // The name is the text of the button (the visible name, the time and the result), not an aria-label.
             return el('button', {type: 'button', 'class': 'tiny_algorithm-class-card', disabled: !program,
-                'aria-label': `${label}, ${timeText(copy.timemodified)}`, onclick: () => showLarge(copy, label)},
+                onclick: () => showLarge(copy, label)},
             el('span', {'class': 'tiny_algorithm-class-head'}, el('strong', {}, label),
                 el('span', {'class': 'tiny_algorithm-class-time'}, timeText(copy.timemodified))), badge, picture);
         }));

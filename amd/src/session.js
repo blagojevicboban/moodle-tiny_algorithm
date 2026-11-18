@@ -174,6 +174,21 @@ const askValue = async(ui, run, ev) => {
  *     was entered)
  * @returns {Promise<Array>} the steps for the trace table
  */
+/** Most characters of the output a screen reader hears at the end of a run (the end of the output). */
+export const OUTPUT_ANNOUNCED = 300;
+
+/**
+ * What a screen reader hears at the end of a run: Finished, and the output (its end when it is long).
+ *
+ * @param {string} end Finished or Stopped
+ * @param {string} written the end of the output
+ * @returns {string}
+ */
+export const outputAnnouncement = (end, written) => {
+    const text = written.replace(/\s+/g, ' ').trim();
+    return text ? `${end} ${t('outputannounce', {text})}` : end;
+};
+
 export const runSession = async(ui, run) => {
     const program = ui.program;
     const trace = [];
@@ -231,7 +246,10 @@ export const runSession = async(ui, run) => {
             row().branch = ev.taken ? 'T' : 'F';
         }
     };
+    // The end of the output, for the screen reader at the end of the run.
+    let written = '';
     const onOutput = (ev) => {
+        written = (written + ev.text).slice(-OUTPUT_ANNOUNCED);
         ui.output(ev.text);
         if (row()) {
             row().output += ev.text;
@@ -302,7 +320,7 @@ export const runSession = async(ui, run) => {
         if (!run.clear) {
             ui.info(t(end));
         }
-        ui.announce(t(end));
+        ui.announce(outputAnnouncement(t(end), written));
     } catch (err) {
         ui.status('error', state.steps);
         ui.error(errorText(err), state.lastId);

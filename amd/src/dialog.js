@@ -76,6 +76,22 @@ export const openDialog = (host, title, body, actions = []) => {
         if (e.key === 'Escape') {
             e.stopPropagation();
             close();
+        } else if (e.key === 'Tab') {
+            // The focus stays in the dialog: Tab from the last control goes to the first, Shift + Tab the other way.
+            const stops = [...box.querySelectorAll('button, [href], input, select, textarea, [tabindex="0"]')]
+                .filter((n) => !n.disabled && !n.closest('[hidden]'));
+            const first = stops[0];
+            const last = stops[stops.length - 1];
+            if (!first) {
+                return;
+            }
+            if (e.shiftKey && (document.activeElement === first || document.activeElement === box)) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
         }
     }, onclick: (e) => {
         if (e.target === root) {
@@ -110,7 +126,7 @@ export const showToast = (host, text, action = null) => {
 // Keys and what they do, in the order of the shortcuts dialog.
 const SHORTCUTS = [['F5', 'scrun'], ['F10', 'scstep'], ['F8', 'scstepback'], ['F9', 'scbreakpoint'], ['↑ ↓ ← →', 'scmove'],
     ['Enter', 'scedit'], ['Alt + ↑ ↓', 'scmoveblock'], ['Ctrl + C X V D', 'scclipboard'], ['Delete', 'scdelete'],
-    ['Ctrl + Z / Y', 'scundo'], ['Esc', 'scescape'], ['?', 'scshortcuts']];
+    ['Ctrl + Z / Y', 'scundo'], ['Esc', 'scescape'], ['Alt + O', 'scoutline'], ['?', 'scshortcuts']];
 
 /**
  * Open the list of keyboard shortcuts.

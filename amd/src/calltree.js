@@ -192,6 +192,10 @@ export class CallTreeView {
         this.summary = el('p', 'tiny_algorithm-calltree-summary');
         this.summary.setAttribute('aria-live', 'polite');
         this.scroller = el('div', 'tiny_algorithm-calltree-scroll');
+        // A scrolling region takes the keyboard focus, so the tree can be scrolled with the arrow keys.
+        this.scroller.tabIndex = 0;
+        this.scroller.setAttribute('role', 'region');
+        this.scroller.setAttribute('aria-label', t('calltree', null, lang));
         this.empty = el('p', 'tiny_algorithm-calltree-empty', t('calltreeempty', null, lang));
         this.reset();
     }

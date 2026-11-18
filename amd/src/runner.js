@@ -41,6 +41,7 @@ import {Timeline, replayTo} from './timeline';
 import {openComplexity, sizeTargets} from './complexity';
 import {TEMPLATES} from './templates';
 import {applyStrict} from './model';
+import {openOutline} from './outline';
 
 const el = (tag, attrs = {}, ...kids) => {
     const e = document.createElement(tag);
@@ -107,7 +108,8 @@ export class AlgorithmRunner {
         this.speed = el('input', {
             type: 'range', min: 0, max: 1000, value: 600, 'class': 'tiny_algorithm-speed', 'aria-label': this.t('speed'),
         });
-        this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log', 'aria-live': 'polite'});
+        this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log', 'aria-live': 'polite', tabindex: '0',
+            'aria-label': this.t('console')});
         this.statusEl = el('span', {'class': 'tiny_algorithm-status', role: 'status', hidden: true});
         this.announcer = el('div', {'class': 'sr-only visually-hidden', 'aria-live': 'polite'});
         this.btnRun = btn('run', () => this.onRun());
@@ -122,7 +124,8 @@ export class AlgorithmRunner {
                 el('span', {'aria-hidden': 'true'}, this.t('fast'))),
             this.statusEl,
             el('span', {'class': 'tiny_algorithm-grow'}),
-            btn('trace', () => openTrace(this.root, this.trace, {cut: this.traceCut, select: (id) => this.showBlock(id)})));
+            btn('trace', () => openTrace(this.root, this.trace, {cut: this.traceCut, select: (id) => this.showBlock(id)})),
+            btn('outline', () => openOutline(this.root, this.program, (fn, id) => id && this.showBlock(id))));
         // How fast the algorithm grows, when it has a size n (a value it reads or an Assign such as n = 8).
         if (sizeTargets(this.program).length) {
             this.bar.append(btn('complexity', () => openComplexity(this.root, this.program, {others: TEMPLATES.map((tmpl) => ({

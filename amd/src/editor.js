@@ -33,6 +33,7 @@ import {openHelp} from './help';
 import {PEN_COLORS, TurtleView, usesTurtle} from './turtle';
 import {FilesPanel, usesFiles} from './files';
 import {ArrayView, usesArrays} from './arrayview';
+import {openOutline} from './outline';
 import {CallTreeView, usesCalls} from './calltree';
 import {aiBox, errorProblem} from './aibox';
 import {openRecords, renameRecordType, usesRecords} from './records';
@@ -235,7 +236,8 @@ export class AlgorithmEditor {
         this.canvasWrap = el('div', {'class': 'tiny_algorithm-canvaswrap'}, this.canvas, this.zoom.controls((key) => this.t(key)));
         attachNotes(this.canvas, this.canvasWrap);
         this.props = el('div', {'class': 'tiny_algorithm-props'});
-        this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log'});
+        this.consoleEl = el('div', {'class': 'tiny_algorithm-console', role: 'log', tabindex: '0',
+            'aria-label': this.t('console')});
         this.codeEl = el('pre', {'class': 'tiny_algorithm-code', tabindex: '0', title: this.t('codehint'),
             onclick: (e) => this.selectFromCode(blockAt(e)), onkeydown: (e) => this.onCodeKey(e)});
         this.codeSelect = el('select', {
@@ -1610,7 +1612,26 @@ export class AlgorithmEditor {
         } else if (e.key === '?' && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) {
             e.preventDefault();
             openShortcuts(this.root);
+        } else if (e.altKey && (e.key === 'o' || e.key === 'O' || e.code === 'KeyO')) {
+            e.preventDefault();
+            this.showOutline();
         }
+    }
+
+    /**
+     * The outline of the algorithm (a tree for screen readers and the keyboard); Enter shows the block in the diagram.
+     */
+    showOutline() {
+        openOutline(this.root, this.program, (fn, id) => {
+            if (id) {
+                this.selectFromCode(id, true);
+                return;
+            }
+            this.fnIndex = fn;
+            this.selected = null;
+            this.refresh();
+            this.canvas.focus({preventScroll: true});
+        });
     }
 
     /**
@@ -1648,7 +1669,7 @@ export class AlgorithmEditor {
             }
         }}, ...files, ...(this.parsons ? [] : [item('records', () => this.showRecords())]),
             item('trace', () => this.showTrace()), item('complexity', () => this.showComplexity()),
-            item('exprhelp', () => openHelp(this.root)),
+            item('exprhelp', () => openHelp(this.root)), item('outline', () => this.showOutline()),
             item('shortcuts', () => openShortcuts(this.root)));
         this.btnFile.after(this.fileMenu);
         // The toolbar is a flex row: an absolute child without a position would go to its start, so put it under the button.

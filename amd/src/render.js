@@ -81,7 +81,7 @@ const shapeSvg = (it, editable = false) => {
         'font-size="13" fill="#111827"';
     const text = lines
         ? `<text x="${x + w / 2}" ${attrsText}>` + lines.map((ln, i) =>
-            `<tspan x="${x + w / 2}" y="${y + h / 2 + (i - (lines.length - 1) / 2) * 16}">${esc(ln)}</tspan>`).join('') + '</text>'
+            `<tspan x="${x + w / 2}" y="${y + h / 2 + (i - (lines.length - 1) / 2) * 16}">${esc(ln)}</tspan>`).join(' ') + '</text>'
         : `<text x="${x + w / 2}" y="${y + h / 2}" ${attrsText}>${esc(it.text)}</text>`;
     const focus = editable && !['start', 'end'].includes(it.type) ?
         ` tabindex="-1" role="button" aria-label="${esc(`${tr(`b.${it.type}`)}: ${it.text}`)}"` : '';
