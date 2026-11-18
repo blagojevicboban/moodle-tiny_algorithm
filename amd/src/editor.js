@@ -22,8 +22,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import {
-    MAX_NOTE, blocksFromText, blocksToText, canMoveBlock, cloneProgram, copyBlock, createBlock, createProgram, findBlock, moveBlock,
-    renameFunction, walk,
+    MAX_NOTE, applyStrict, blocksFromText, blocksToText, canMoveBlock, cloneProgram, copyBlock, createBlock, createProgram,
+    findBlock, moveBlock, renameFunction, walk,
 } from './model';
 import {renderFunction, renderProgram, showBranch} from './render';
 import {runSession} from './session';
@@ -147,7 +147,7 @@ export class AlgorithmEditor {
         this.showCode = showCode;
         this.fileTools = fileTools;
         this.onChange = onChange;
-        this.program = program || createProgram();
+        this.program = applyStrict(program || createProgram(), this.codeConfig);
         this.fnIndex = 0;
         this.selected = null;
         this.undoStack = [];
@@ -389,7 +389,7 @@ export class AlgorithmEditor {
     setProgram(program) {
         this.stop();
         this.commit(() => {
-            this.program = cloneProgram(program);
+            this.program = applyStrict(cloneProgram(program), this.codeConfig);
             this.fnIndex = 0;
             this.selected = null;
         });
@@ -611,6 +611,7 @@ export class AlgorithmEditor {
                 })),
                 el('p', {'class': 'small mb-1'}, el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm',
                     onclick: () => this.showRecords()}, `${this.t('records')} (${(this.program.records || []).length})`)),
+                this.codeConfig.strictForce ? [] : this.strictField(),
                 el('p', {'class': 'text-muted small'}, this.t('hint')),
                 el('p', {'class': 'text-muted small'}, el('button', {type: 'button', 'class': 'btn btn-link btn-sm p-0',
                     onclick: () => openShortcuts(this.root)}, `${this.t('shortcuts')} (?)`)));
@@ -652,6 +653,25 @@ export class AlgorithmEditor {
             act(this.t('up'), () => this.move(-1)), act(this.t('down'), () => this.move(1)),
             act(this.t('duplicate'), () => this.duplicate()),
             act(this.t('delete'), () => this.deleteSelected(), 'btn-outline-danger')));
+    }
+
+    /**
+     * Strict initialization of the algorithm: a variable must get a value before it is read.
+     *
+     * @returns {HTMLElement}
+     */
+    strictField() {
+        const id = `tiny_algorithm-strict-${this.fnIndex}-${Math.random().toString(36).slice(2, 8)}`;
+        const box = el('input', {type: 'checkbox', id, 'class': 'form-check-input', checked: this.program.strictInit === true,
+            onchange: () => this.commit(() => {
+                if (box.checked) {
+                    this.program.strictInit = true;
+                } else {
+                    delete this.program.strictInit;
+                }
+            })});
+        return el('div', {'class': 'form-check small mb-1'}, box, el('label', {'for': id, 'class': 'form-check-label'},
+            this.t('strictinit')));
     }
 
     /**
@@ -1329,7 +1349,7 @@ export class AlgorithmEditor {
         file.text().then((text) => {
             const {program, warnings} = importFprg(text);
             this.commit(() => {
-                this.program = program;
+                this.program = applyStrict(program, this.codeConfig);
                 this.fnIndex = 0;
                 this.selected = null;
             });
@@ -1486,7 +1506,7 @@ export class AlgorithmEditor {
                             return;
                         }
                         this.commit(() => {
-                            this.program = cloneProgram(tmpl.build());
+                            this.program = applyStrict(cloneProgram(tmpl.build()), this.codeConfig);
                             this.selected = null;
                             this.fnIndex = 0;
                         });

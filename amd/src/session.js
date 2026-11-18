@@ -25,6 +25,7 @@ import {execute, parseInputValue} from './interpreter';
 import {findBlock} from './model';
 import {labelOf} from './layout';
 import {errorText, t} from './strings';
+import {unsetReads} from './initcheck';
 
 /** Most steps the trace table keeps. */
 export const MAX_TRACE = 2000;
@@ -95,6 +96,11 @@ export const checkProgram = (program) => {
         const names = twice(f);
         if (names.length) {
             messages.push(t('redeclared', {name: f.name, names: names.join(', ')}));
+        }
+        const unset = unsetReads(f);
+        if (unset.length) {
+            const key = program.strictInit === true ? 'noinitwarnstrict' : 'noinitwarn';
+            messages.push(t(key, {name: f.name, names: unset.join(', ')}));
         }
     });
     if (unreachable) {

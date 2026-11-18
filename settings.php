@@ -43,6 +43,12 @@ if ($ADMIN->fulltree) {
         $names
     ));
     $settings->add(new admin_setting_configcheckbox(
+        'tiny_algorithm/strictinit',
+        get_string('strictinitsetting', 'tiny_algorithm'),
+        get_string('strictinitsetting_desc', 'tiny_algorithm'),
+        0
+    ));
+    $settings->add(new admin_setting_configcheckbox(
         'tiny_algorithm/aihints',
         get_string('aihints', 'tiny_algorithm'),
         get_string('aihints_desc', 'tiny_algorithm'),

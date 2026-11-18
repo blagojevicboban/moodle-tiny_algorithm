@@ -273,6 +273,11 @@ export const STR = {
         checkorder: 'Check order',
         orderresult: 'Blocks in their place: {placed} of {total}. The marked blocks are not where they belong.',
         orderdone: 'Every block is in its place.',
+        strictinit: 'Strict: a variable must get a value before it is used (as in C, C++, Java)',
+        noinitwarn: 'In {name} these variables may be used before they get a value: {names}. ' +
+            'Here they start as 0 or empty; in C or C++ their value would be unknown.',
+        noinitwarnstrict: 'In {name} these variables may be used before they get a value: {names}. ' +
+            'With strict initialization the algorithm stops there.',
         ordererror: 'The order could not be checked.',
         arrays: 'Arrays', arraysempty: 'The arrays appear here when the algorithm runs or steps.',
         calltree: 'Call tree',
@@ -348,6 +353,9 @@ export const STR = {
         'e.assignreal': "Cannot assign '{value}' to Real {name}",
         'e.assignboolean': "Cannot assign '{value}' to Boolean {name}",
         'e.notdeclared': "Variable '{name}' is not declared", 'e.notarray': "'{name}' is not an array",
+        'e.noinit': "Variable '{name}' has no value yet (give it a value before using it)",
+        'e.noinitelement': "Element {name}[{index}] has no value yet (give it a value before using it)",
+        'e.noinitfield': "Field {name} has no value yet (give it a value before using it)",
         'e.badrecord': "The record type '{name}' is not valid (a name, and fields with names and the types Integer, Real, " +
             "String or Boolean)",
         'e.unknowntype': "Unknown type '{type}'", 'e.notrecord': "'{name}' is not a record",

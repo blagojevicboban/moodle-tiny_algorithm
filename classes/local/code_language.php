@@ -100,6 +100,8 @@ class code_language {
         $result['codelab'] = self::codelab($context);
         // AI hints about errors and failed tests (site setting, an AI provider, the capability).
         $result['ai'] = ai_hint::available($context);
+        // Strict initialization by default for new algorithms (a variable must get a value before it is read).
+        $result['strict'] = (bool) get_config('tiny_algorithm', 'strictinit');
         return $result;
     }
 

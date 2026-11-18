@@ -121,6 +121,29 @@ export const findBlock = (program, id) => {
 export const cloneProgram = (program) => JSON.parse(JSON.stringify(program));
 
 /**
+ * Strict initialization of an algorithm (a variable must get a value before it is read) from the code configuration:
+ * a quiz question sets it (strictForce), otherwise the site default applies to an algorithm that does not say. Only
+ * true is stored, so the algorithms of a site without strict initialization do not change.
+ *
+ * @param {Object} program algorithm model (changed)
+ * @param {Object} [codeConfig] {strict, strictForce}
+ * @returns {Object} the program
+ */
+export const applyStrict = (program, codeConfig = {}) => {
+    const config = codeConfig || {};
+    if (config.strictForce) {
+        if (config.strict) {
+            program.strictInit = true;
+        } else {
+            delete program.strictInit;
+        }
+    } else if (program.strictInit === undefined && config.strict) {
+        program.strictInit = true;
+    }
+    return program;
+};
+
+/**
  * Copy of a block and the blocks inside it, with new ids. Only the fields a block of its type has are kept, so the
  * copy can also be made from data pasted from outside.
  *

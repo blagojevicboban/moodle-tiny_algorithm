@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.27.0 – 2026-11-19 (stable)
+
+- **Strict initialization:** an algorithm can require that a variable gets a value before it is read, as in C, C++
+  and Java. Then a declared variable, array element or record field has no value (shown as ? in the variables panel)
+  until an assignment, Input or Read gives it one, and reading it stops the run with a clear error (Variable 'sum' has
+  no value yet). Without it a declared variable still starts as 0, an empty text or false.
+- A Strict box in the function panel of the editor turns it on for the algorithm (stored as strictInit); the new site
+  setting Strict initialization by default turns it on for algorithms that do not say. A quiz question of
+  qtype_algorithm 2.26 sets it itself.
+- **Warning before the run:** the console names the variables that may be read before they get a value (an If that
+  gives a value in one branch only, a loop that may not run), found without running, like the warning of a C compiler.
+- **Generated code:** with strict initialization C, C++, Java and C# declare simple variables without a start value
+  (int n; instead of int n = 0;) and C arrays without memset.
+- The PHP interpreter of qtype_algorithm gives the same errors (parity fixtures for variables, elements, matrix
+  elements and fields).
+- New modules initcheck.js and tests/strictinit.test.mjs; the reads of elements and fields moved out of evalNode so deep
+  recursion keeps working; 11 new strings in all 15 languages.
+
 ## 2.26.0 – 2026-11-19 (stable)
 
 - **Fill-the-gaps mode of the editor** (for qtype_algorithm 2.25): the blocks are given and stay in place; the blocks

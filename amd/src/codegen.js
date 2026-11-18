@@ -664,6 +664,9 @@ export const generateLines = (language, program) => {
     // TypeScript is the JavaScript code with the types of the variables, parameters and fields.
     const ts = language === 'typescript';
     const php = language === 'php';
+    // Strict initialization: C, C++, Java and C# declare a simple variable without a start value (the algorithm gives it
+    // one before reading it), as a programmer of those languages writes it.
+    const bare = program.strictInit === true;
     const lang = ts ? 'javascript' : language;
     // PHP variables start with $.
     const vn = (name) => (php ? `$${name}` : name);
@@ -1042,13 +1045,13 @@ export const generateLines = (language, program) => {
             emit(ind, arr ? `${b.name} = [${dv}] * ${pyFactor(ex(b.size))}` : `${b.name} = ${dv}`);
         } else if (lang === 'java' || lang === 'csharp') {
             const tn = TYPE_NAMES[lang][b.varType];
-            emit(ind, arr ? `${tn}[] ${b.name} = new ${tn}[${ex(b.size)}];` : `${tn} ${b.name} = ${dv};`);
-            if (arr && lang === 'java' && b.varType === 'String') {
+            emit(ind, arr ? `${tn}[] ${b.name} = new ${tn}[${ex(b.size)}];` : `${tn} ${b.name}${bare ? '' : ` = ${dv}`};`);
+            if (arr && lang === 'java' && b.varType === 'String' && !bare) {
                 emit(ind, `java.util.Arrays.fill(${b.name}, "");`); // Java strings start as null.
             }
         } else if (lang === 'cpp') {
             const tn = TYPE_NAMES.cpp[b.varType];
-            emit(ind, arr ? `vector<${tn}> ${b.name}(${ex(b.size)});` : `${tn} ${b.name} = ${dv};`);
+            emit(ind, arr ? `vector<${tn}> ${b.name}(${ex(b.size)});` : `${tn} ${b.name}${bare ? '' : ` = ${dv}`};`);
         } else if (lang === 'javascript') {
             const tn = ts ? `: ${tsType(b.varType, arr)}` : '';
             emit(ind, arr ? `let ${b.name}${tn} = new Array(${ex(b.size)}).fill(${dv});` : `let ${b.name}${tn} = ${dv};`);
@@ -1058,12 +1061,12 @@ export const generateLines = (language, program) => {
             // Declared in the var section; here the array gets its size and the variable its start value.
             emit(ind, arr ? `SetLength(${b.name}, ${ex(b.size)});` : `${b.name} := ${dv};`);
         } else if (b.varType === 'String') {
-            emit(ind, arr ? `char ${b.name}[${ex(b.size)}][256];` : `char ${b.name}[256] = "";`);
+            emit(ind, arr ? `char ${b.name}[${ex(b.size)}][256];` : `char ${b.name}[256]${bare ? '' : ' = ""'};`);
         } else {
             const tn = TYPE_NAMES.c[b.varType];
-            emit(ind, arr ? `${tn} ${b.name}[${ex(b.size)}];` : `${tn} ${b.name} = 0;`);
+            emit(ind, arr ? `${tn} ${b.name}[${ex(b.size)}];` : `${tn} ${b.name}${bare ? '' : ' = 0'};`);
         }
-        if (arr && lang === 'c') {
+        if (arr && lang === 'c' && !bare) {
             // A C array with a variable size cannot have an initializer: start from zeros and empty strings.
             emit(ind, `memset(${b.name}, 0, sizeof ${b.name});`);
         }

@@ -174,6 +174,12 @@ const coerce = (type, value, name) => {
 
 const defaultValue = (type) => ({Integer: 0, Real: 0, String: '', Boolean: false}[type]);
 
+/**
+ * The value of a variable, element or field that has not been given one yet, with strict initialization
+ * (program.strictInit): reading it is an error (noinit). The watch panel shows it as ?.
+ */
+export const NO_VALUE = Object.freeze({toString: () => '?'});
+
 /** The basic types; a field of a record has one of them. */
 export const BASIC_TYPES = ['Integer', 'Real', 'String', 'Boolean'];
 
@@ -185,13 +191,18 @@ export class Rec {
     /**
      * @param {Object} def {name, fields: [{name, type}]}
      * @param {Object} [values] values by lower case field name (defaults when left out)
+     * @param {boolean} [empty] without values: the fields have no value yet (strict initialization)
      */
-    constructor(def, values = null) {
+    constructor(def, values = null, empty = false) {
         this.def = def;
         this.values = Object.create(null);
         def.fields.forEach((f) => {
             const key = f.name.toLowerCase();
-            this.values[key] = values ? values[key] : defaultValue(f.type);
+            if (values) {
+                this.values[key] = values[key];
+            } else {
+                this.values[key] = empty ? NO_VALUE : defaultValue(f.type);
+            }
         });
     }
 
@@ -371,9 +382,14 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         }
         return value.copy();
     };
+    // Strict initialization: a declared variable, element or field has no value until it gets one.
+    const strict = program.strictInit === true;
     const initial = (type) => {
         const def = recordOf(type);
-        return def ? new Rec(def) : defaultValue(type);
+        if (def) {
+            return new Rec(def, null, strict);
+        }
+        return strict ? NO_VALUE : defaultValue(type);
     };
     let steps = 0;
     let depth = 0;
@@ -452,7 +468,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
             if (track) {
                 accesses.push({name: v.name, i, kind});
             }
-            return [v, v.value, i];
+            return [v, v.value, i, String(i)];
         }
         const j = yield* evalNode(n.index2, env);
         const row = v.value[i];
@@ -465,7 +481,7 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
         if (track) {
             accesses.push({name: v.name, i, j, kind});
         }
-        return [v, row, j];
+        return [v, row, j, `${i}, ${j}`];
     };
 
     const divide = (op, l, r) => {
@@ -514,8 +530,44 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
      * @param {string} name variable name
      * @returns {*}
      */
-    const readVar = (env, name) => (name.toLowerCase() === 'pi' && !Object.hasOwn(env, 'pi') ? Math.PI :
-        lookup(env, name).value);
+    const readVar = (env, name) => {
+        if (name.toLowerCase() === 'pi' && !Object.hasOwn(env, 'pi')) {
+            return Math.PI;
+        }
+        const v = lookup(env, name);
+        if (v.value === NO_VALUE) {
+            throw new AlgorithmError('noinit', {name: v.name});
+        }
+        return v.value;
+    };
+
+    /**
+     * The value of an element a[i] or m[i, j] (kept out of evalNode, whose frame must stay small for deep recursion).
+     *
+     * @param {Object} n idx node
+     * @param {Object} env environment
+     */
+    function* readElement(n, env) {
+        const [, list, i, at] = yield* arrayIndex(n, env);
+        if (list[i] === NO_VALUE) {
+            throw new AlgorithmError('noinitelement', {name: n.name, index: at});
+        }
+        return list[i];
+    }
+
+    /**
+     * The value of a field p.x.
+     *
+     * @param {Object} n fld node
+     * @param {Object} env environment
+     */
+    function* readField(n, env) {
+        const [rec, key, field] = yield* fieldOf(n, env);
+        if (rec.values[key] === NO_VALUE) {
+            throw new AlgorithmError('noinitfield', {name: `${rec.def.name}.${field.name}`});
+        }
+        return rec.values[key];
+    }
 
     /**
      * Values of a list of expressions (arguments of a call, items of an array).
@@ -546,14 +598,10 @@ export function* execute(program, {maxSteps = 1000000, call = null, seed = null,
                 return n.v;
             case 'var':
                 return readVar(env, n.name);
-            case 'idx': {
-                const [, list, i] = yield* arrayIndex(n, env);
-                return list[i];
-            }
-            case 'fld': {
-                const [rec, key] = yield* fieldOf(n, env);
-                return rec.values[key];
-            }
+            case 'idx':
+                return yield* readElement(n, env);
+            case 'fld':
+                return yield* readField(n, env);
             case 'un': {
                 const e = yield* evalNode(n.e, env);
                 if (e instanceof Rec && n.op !== '+') {

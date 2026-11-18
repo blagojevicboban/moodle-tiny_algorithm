@@ -40,6 +40,7 @@ import {readLine} from './consoleinput';
 import {Timeline, replayTo} from './timeline';
 import {openComplexity, sizeTargets} from './complexity';
 import {TEMPLATES} from './templates';
+import {applyStrict} from './model';
 
 const el = (tag, attrs = {}, ...kids) => {
     const e = document.createElement(tag);
@@ -85,6 +86,7 @@ export class AlgorithmRunner {
         this.errorId = null;
         this.trace = [];
         this.codeConfig = codeConfig || {};
+        applyStrict(this.program, this.codeConfig);
         this.codeChoice = pickLanguage(program, this.codeConfig);
         this.codeLang = this.codeChoice.lang;
         this.build(host);
