@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.25.0 – 2026-11-19 (stable)
+
+- **Analysis tab in the class view** (for qtype_algorithm 2.24): the class view of a quiz question has two tabs,
+  Answers (the cards as before) and Analysis. The analysis shows how many answers were analysed, graded and fail a
+  test, the median number of blocks and steps against the solution, the grades in ten groups of 10 %, a table of the
+  tests with the share of answers that pass each one and the most frequent wrong outputs, the most frequent errors,
+  the missing required structures, and the solution with its blocks shaded by how many wrong answers have fewer
+  blocks of that kind at that place (names and texts are not compared). Download CSV saves the tests and the errors.
+- The tabs work with the arrow keys; the analysis is loaded when its tab is opened and again with Refresh.
+- In a quiz the class view is titled Class work: the answers to this question.
+- New module classanalysis.js and tests/classanalysis.test.mjs; 32 new strings in all 15 languages.
+
 ## 2.24.0 – 2026-11-18 (stable)
 
 - **Class view with grades:** a copy can carry its grade (qtype_algorithm 2.23 sends the grade of a quiz answer); the

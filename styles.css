@@ -1113,6 +1113,191 @@ html.tiny_algorithm-noscroll body {
     max-width: 92vw;
 }
 
+/* Analysis tab of the class view of a quiz question */
+.tiny_algorithm-class-tabs {
+    display: flex;
+    gap: .25rem;
+    margin-bottom: .75rem;
+    border-bottom: 1px solid #d1d5db;
+}
+
+.tiny_algorithm-class-tab {
+    padding: .35rem .9rem;
+    border: 1px solid transparent;
+    border-bottom: 0;
+    border-radius: .4rem .4rem 0 0;
+    background: none;
+    color: #374151;
+}
+
+.tiny_algorithm-class-tab.active {
+    border-color: #d1d5db;
+    background: #fff;
+    color: #111827;
+    font-weight: 600;
+    margin-bottom: -1px;
+}
+
+.tiny_algorithm-ana-section {
+    margin: 1rem 0;
+}
+
+.tiny_algorithm-ana-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 .5rem;
+}
+
+.tiny_algorithm-ana-facts {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.tiny_algorithm-ana-facts ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.tiny_algorithm-ana-hist {
+    display: flex;
+    align-items: flex-end;
+    gap: .3rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tiny_algorithm-ana-hist li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 2.4rem;
+}
+
+.tiny_algorithm-ana-histcol {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    height: 90px;
+    background: #f3f4f6;
+}
+
+.tiny_algorithm-ana-histbar {
+    width: 100%;
+    background: #f59e0b;
+}
+
+.tiny_algorithm-ana-histbar.tiny_algorithm-ana-full {
+    background: #16a34a;
+}
+
+.tiny_algorithm-ana-histlabel {
+    font-size: .75rem;
+    color: #4b5563;
+}
+
+.tiny_algorithm-ana-scroll {
+    overflow-x: auto;
+}
+
+.tiny_algorithm-ana-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: .9rem;
+}
+
+.tiny_algorithm-ana-table th,
+.tiny_algorithm-ana-table td {
+    padding: .3rem .5rem;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    vertical-align: top;
+}
+
+.tiny_algorithm-ana-pass {
+    white-space: nowrap;
+}
+
+.tiny_algorithm-ana-meter {
+    display: inline-block;
+    width: 70px;
+    height: .6rem;
+    background: #fde68a;
+    vertical-align: middle;
+}
+
+.tiny_algorithm-ana-meterfill {
+    display: block;
+    height: 100%;
+    background: #16a34a;
+}
+
+.tiny_algorithm-ana-outputs,
+.tiny_algorithm-ana-errors {
+    margin: 0;
+    padding-left: 1.1rem;
+}
+
+.tiny_algorithm-ana-outputs code {
+    white-space: pre-wrap;
+}
+
+.tiny_algorithm-ana-times {
+    color: #4b5563;
+    font-variant-numeric: tabular-nums;
+}
+
+.tiny_algorithm-ana-err {
+    color: #b91c1c;
+}
+
+.tiny_algorithm-ana-hidden {
+    margin-left: .3rem;
+    padding: 0 .3rem;
+    border-radius: 999px;
+    background: #e5e7eb;
+    font-size: .7rem;
+    font-weight: 400;
+}
+
+.tiny_algorithm-ana-note {
+    color: #4b5563;
+    font-size: .85rem;
+}
+
+.tiny_algorithm-ana-heat {
+    max-height: 420px;
+    overflow: auto;
+    border: 1px solid #e5e7eb;
+}
+
+.tiny_algorithm-ana-heat svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.tiny_algorithm-heat-1 > rect,
+.tiny_algorithm-heat-1 > polygon {
+    fill: #fee2e2;
+}
+
+.tiny_algorithm-heat-2 > rect,
+.tiny_algorithm-heat-2 > polygon {
+    fill: #fca5a5;
+}
+
+.tiny_algorithm-heat-3 > rect,
+.tiny_algorithm-heat-3 > polygon {
+    fill: #f87171;
+}
+
+.tiny_algorithm-heat-4 > rect,
+.tiny_algorithm-heat-4 > polygon {
+    fill: #ef4444;
+}
+
 /* Files of an algorithm and the files it writes */
 .tiny_algorithm-files .tiny_algorithm-file {
     margin-bottom: .5rem;

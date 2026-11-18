@@ -27,6 +27,7 @@ import {renderProgram} from './render';
 import {runTests} from './tests';
 import {AlgorithmRunner} from './runner';
 import {t} from './strings';
+import {drawAnalysis} from './classanalysis';
 
 /** Seconds between two refreshes while the class view is open. */
 export const REFRESH_SECONDS = 10;
@@ -107,6 +108,77 @@ const gradeBadge = (copy, lang) => {
 };
 
 /**
+ * Save a text as a file.
+ *
+ * @param {string} name file name
+ * @param {string} text
+ * @param {string} type media type
+ */
+const download = (name, text, type) => {
+    const url = URL.createObjectURL(new Blob(['\ufeff' + text], {type}));
+    const a = el('a', {href: url, download: name});
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+/**
+ * The Answers and Analysis tabs of the class view of a quiz question. The analysis is loaded when its tab is first
+ * opened and again with its Refresh button.
+ *
+ * @param {HTMLElement} answers the panel of the answers
+ * @param {Function} analyse returns a Promise of the analysis
+ * @param {string|null} lang UI language code
+ * @returns {HTMLElement}
+ */
+const analysisTabs = (answers, analyse, lang) => {
+    const box = el('div', {'class': 'tiny_algorithm-ana-body', 'aria-live': 'polite'});
+    let loaded = false;
+    const reload = async() => {
+        loaded = true;
+        box.replaceChildren(el('p', {'class': 'tiny_algorithm-class-empty'}, t('classloading')));
+        try {
+            drawAnalysis(box, await analyse(), {lang, download});
+        } catch (e) {
+            box.replaceChildren(el('p', {'class': 'tiny_algorithm-class-empty'}, t('anaerror')));
+        }
+    };
+    const panel = el('div', {'class': 'tiny_algorithm-ana', id: 'tiny_algorithm-class-panel-analysis', hidden: true},
+        el('div', {'class': 'tiny_algorithm-class-bar'},
+            el('button', {type: 'button', 'class': 'btn btn-secondary btn-sm', onclick: reload}, t('anarefresh'))),
+        box);
+    const tabs = [];
+    const select = (k) => {
+        tabs.forEach((b, i) => {
+            b.setAttribute('aria-selected', String(i === k));
+            b.tabIndex = i === k ? 0 : -1;
+            b.classList.toggle('active', i === k);
+        });
+        answers.hidden = k !== 0;
+        panel.hidden = k !== 1;
+        if (k === 1 && !loaded) {
+            reload();
+        }
+    };
+    ['classanswers', 'classanalysis'].forEach((key, i) => {
+        tabs.push(el('button', {type: 'button', role: 'tab', 'class': 'tiny_algorithm-class-tab',
+            'aria-controls': i ? panel.id : answers.id, onclick: () => select(i),
+            onkeydown: (e) => {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    select(1 - i);
+                    tabs[1 - i].focus();
+                }
+            }}, t(key)));
+    });
+    answers.setAttribute('role', 'tabpanel');
+    panel.setAttribute('role', 'tabpanel');
+    select(0);
+    return el('div', {}, el('div', {'class': 'tiny_algorithm-class-tabs', role: 'tablist'}, ...tabs), answers, panel);
+};
+
+/**
  * Open the class view.
  *
  * @param {HTMLElement} host widget root
@@ -116,8 +188,10 @@ const gradeBadge = (copy, lang) => {
  * @param {Array} [opts.tests] the tests of the exercise
  * @param {string|null} [opts.lang] UI language code
  * @param {Object} [opts.codeConfig] code languages for the large view
+ * @param {Function} [opts.analyse] returns a Promise of the analysis of the answers (a quiz question, qtype_algorithm 2.24):
+ *     the view then has an Analysis tab
  */
-export const openClassView = (host, {load, tests = [], lang = null, codeConfig = {}}) => {
+export const openClassView = (host, {load, tests = [], lang = null, codeConfig = {}, analyse = null}) => {
     const cache = new Map();
     let hidden = false;
     try {
@@ -145,7 +219,7 @@ export const openClassView = (host, {load, tests = [], lang = null, codeConfig =
     };
     const draw = () => {
         if (!copies.length) {
-            grid.replaceChildren(el('p', {'class': 'tiny_algorithm-class-empty'}, t('classempty')));
+            grid.replaceChildren(el('p', {'class': 'tiny_algorithm-class-empty'}, t(analyse ? 'classemptyquiz' : 'classempty')));
             return;
         }
         grid.replaceChildren(...copies.map((copy, i) => {
@@ -177,12 +251,13 @@ export const openClassView = (host, {load, tests = [], lang = null, codeConfig =
             timer = setTimeout(refresh, REFRESH_SECONDS * 1000);
         }
     };
-    const body = el('div', {'class': 'tiny_algorithm-class'},
+    const answers = el('div', {'class': 'tiny_algorithm-class-answers', id: 'tiny_algorithm-class-panel-answers'},
         el('div', {'class': 'tiny_algorithm-class-bar'}, status,
             el('label', {'for': 'tiny_algorithm-class-names', 'class': 'tiny_algorithm-class-hide'}, names, ' ', t('classhide')),
             el('span', {'class': 'tiny_algorithm-class-note'}, t('classnote', {seconds: String(REFRESH_SECONDS)}))),
         grid);
-    dialog = openDialog(host, t('classtitle'), body);
+    const body = el('div', {'class': 'tiny_algorithm-class'}, analyse ? analysisTabs(answers, analyse, lang) : answers);
+    dialog = openDialog(host, t(analyse ? 'classtitlequiz' : 'classtitle'), body);
     dialog.root.classList.add('tiny_algorithm-class-dialog');
     grid.append(el('p', {'class': 'tiny_algorithm-class-empty'}, t('classloading')));
     // Closing the view ends the refreshing.
