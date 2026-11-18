@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.26.0 – 2026-11-19 (stable)
+
+- **Fill-the-gaps mode of the editor** (for qtype_algorithm 2.25): the blocks are given and stay in place; the blocks
+  with a gap (block.gaps lists the emptied fields) have a dashed blue border and show the blank as ___, and their
+  panel has only the fields to type. Blocks cannot be added, moved, copied, pasted or deleted, and functions cannot be
+  added or removed.
+- **Check order** marks (red border) the blocks of a Parsons problem that are out of place (used by qtype_algorithm).
+- New test tests/gaps.test.mjs; 7 new strings in all 15 languages.
+
 ## 2.25.0 – 2026-11-19 (stable)
 
 - **Analysis tab in the class view** (for qtype_algorithm 2.24): the class view of a quiz question has two tabs,

@@ -132,12 +132,16 @@ export class AlgorithmEditor {
      *     (the teacher's editors; a student's choice does not change the answer)
      * @param {Object} [options.codeConfig] code languages of the site and the course (tiny_algorithm/codelang)
      * @param {boolean} [options.parsons] a Parsons problem: the blocks can only be moved, nested and deleted
+     * @param {boolean} [options.gaps] a fill-the-gaps problem: only the emptied fields of the blocks (block.gaps) are typed
      */
     constructor(container, {program = null, lang = null, onChange = null, showCode = true, fileTools = true,
-            chooseLanguage = false, codeConfig = {}, parsons = false} = {}) {
+            chooseLanguage = false, codeConfig = {}, parsons = false, gaps = false} = {}) {
         this.lang = lang;
         // A Parsons problem (qtype_algorithm): the blocks are given; they can only be moved, nested and deleted.
-        this.parsons = parsons;
+        // A fill-the-gaps problem gives them too, but they stay in place: only their empty fields are typed. Both add no
+        // blocks and no functions (this.parsons); the gaps also move and delete none (this.gaps).
+        this.parsons = parsons || gaps;
+        this.gaps = gaps;
         this.chooseLanguage = chooseLanguage;
         this.codeConfig = codeConfig || {};
         this.showCode = showCode;
@@ -576,9 +580,10 @@ export class AlgorithmEditor {
     renderProps() {
         const found = this.selected ? findBlock(this.program, this.selected) : null;
         if (!found && this.parsons) {
-            // A Parsons problem: the functions are given; the task is said in the panel.
+            // A Parsons or fill-the-gaps problem: the functions are given; the task is said in the panel.
+            const mode = this.gaps ? 'gaps' : 'parsons';
             this.props.replaceChildren(paneTitle(this.t('function')), el('p', {}, el('strong', {}, this.fn.name)),
-                el('p', {'class': 'small'}, this.t('parsonstask')), el('p', {'class': 'text-muted small'}, this.t('parsonshint')));
+                el('p', {'class': 'small'}, this.t(`${mode}task`)), el('p', {'class': 'text-muted small'}, this.t(`${mode}hint`)));
             return;
         }
         if (!found) {
@@ -612,6 +617,17 @@ export class AlgorithmEditor {
             return;
         }
         const b = found.block;
+        if (this.gaps) {
+            // A fill-the-gaps problem: only the emptied fields of a block can be typed.
+            const open = Array.isArray(b.gaps) ? b.gaps : [];
+            const rows = FIELDS[b.type].filter(([key]) => open.includes(key)).map(([key, kind]) => this.field(
+                this.t(`f.${key}`), kind, b[key], (v) => this.commit(() => {
+                b[key] = v;
+            })));
+            this.props.replaceChildren(paneTitle(this.t(`b.${b.type}`)), ...rows,
+                el('p', {'class': 'small text-muted'}, this.t(rows.length ? 'gapsfield' : 'gapshint')));
+            return;
+        }
         if (this.parsons) {
             // The blocks of a Parsons problem keep their text: they are moved, nested or deleted.
             this.props.replaceChildren(paneTitle(this.t(`b.${b.type}`)), el('p', {'class': 'small'}, this.t('parsonshint')),
@@ -698,7 +714,7 @@ export class AlgorithmEditor {
         }
         this.closePalette();
         if (slot && this.parsons) {
-            showToast(this.root, this.t('parsonshint'));
+            showToast(this.root, this.t(this.gaps ? 'gapshint' : 'parsonshint'));
         } else if (slot) {
             this.openPalette(this.slots[Number(slot.dataset.slot)], e);
         } else {
@@ -906,6 +922,9 @@ export class AlgorithmEditor {
         this.selected = node.dataset.id;
         this.focusTarget = `n${node.dataset.id}`;
         this.refresh();
+        if (this.gaps) {
+            return;
+        }
         const id = this.selected;
         const target = () => this.canvas.querySelector(`.tiny_algorithm-node[data-id="${CSS.escape(id)}"]`);
         const copy = () => {
@@ -985,6 +1004,9 @@ export class AlgorithmEditor {
      * @param {boolean} copy true to put a copy there, false to move the block
      */
     startPlacing(id, copy) {
+        if (this.gaps) {
+            return;
+        }
         this.endPlacing();
         this.placing = {id, copy};
         this.root.classList.add('tiny_algorithm-placing');
@@ -1067,7 +1089,7 @@ export class AlgorithmEditor {
     }
 
     deleteSelected() {
-        const f = findBlock(this.program, this.selected);
+        const f = this.gaps ? null : findBlock(this.program, this.selected);
         if (f) {
             this.commit(() => {
                 f.list.splice(f.index, 1);
@@ -1170,7 +1192,7 @@ export class AlgorithmEditor {
     // ---- Dragging blocks (mouse, pen and touch) --------------------------------------------------------------------------
 
     onPointerDown(e) {
-        const node = !this.running && e.button === 0 && e.target.closest('.tiny_algorithm-node[role="button"]');
+        const node = !this.running && !this.gaps && e.button === 0 && e.target.closest('.tiny_algorithm-node[role="button"]');
         this.press = node ? {id: node.dataset.id, x: e.clientX, y: e.clientY, pointer: e.pointerId, node} : null;
         clearTimeout(this.longPress);
         if (node && e.pointerType === 'touch') {
@@ -1264,7 +1286,7 @@ export class AlgorithmEditor {
     }
 
     move(dir) {
-        const f = findBlock(this.program, this.selected);
+        const f = this.gaps ? null : findBlock(this.program, this.selected);
         const to = f ? f.index + dir : -1;
         if (f && to >= 0 && to < f.list.length) {
             this.commit(() => {

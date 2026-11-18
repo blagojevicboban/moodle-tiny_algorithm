@@ -1113,6 +1113,21 @@ html.tiny_algorithm-noscroll body {
     max-width: 92vw;
 }
 
+/* A block of a fill-the-gaps problem with a field to type */
+.tiny_algorithm-gap > rect,
+.tiny_algorithm-gap > polygon {
+    stroke: #2563eb;
+    stroke-width: 2.5;
+    stroke-dasharray: 6 3;
+}
+
+/* A block of a Parsons problem that Check order found out of place */
+.tiny_algorithm-misplaced > rect,
+.tiny_algorithm-misplaced > polygon {
+    stroke: #dc2626;
+    stroke-width: 3;
+}
+
 /* Analysis tab of the class view of a quiz question */
 .tiny_algorithm-class-tabs {
     display: flex;

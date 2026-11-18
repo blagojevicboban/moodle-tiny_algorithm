@@ -45,7 +45,17 @@ const SIMPLE_LABELS = {
     close: (b) => `Close (${b.mode === 'write' ? 'write' : 'read'})`,
 };
 
-export const labelOf = (b) => {
+/** How an empty field of a fill-the-gaps problem is drawn. */
+export const GAP = '___';
+
+export const labelOf = (block) => {
+    // The empty fields of a fill-the-gaps problem are drawn as blanks.
+    const b = Array.isArray(block.gaps) && block.gaps.length ? {...block} : block;
+    if (b !== block) {
+        block.gaps.filter((k) => String(b[k] ?? '').trim() === '').forEach((k) => {
+            b[k] = GAP;
+        });
+    }
     if (Object.hasOwn(SIMPLE_LABELS, b.type)) {
         return SIMPLE_LABELS[b.type](b);
     }
@@ -205,7 +215,8 @@ const tagBranch = (out, from, to, key) => out.slice(from, to).forEach((it) => {
 
 const shape = (out, b, cx, y, s, ctx = {}) => out.push({
     t: 'shape', shape: shapeOf(b), x: cx - s.w / 2, y, w: s.w, h: s.h, text: labelOf(b), lines: linesOf(b), id: b.id, type: b.type,
-    faded: Boolean(ctx.faded), note: typeof b.note === 'string' ? b.note.trim() : '',
+    faded: Boolean(ctx.faded), gap: Array.isArray(b.gaps) && b.gaps.length > 0,
+    note: typeof b.note === 'string' ? b.note.trim() : '',
 });
 
 // The last line gets an arrow only when a block follows the list (endArrow); otherwise it runs into another line.

@@ -85,7 +85,8 @@ const shapeSvg = (it, editable = false) => {
         : `<text x="${x + w / 2}" y="${y + h / 2}" ${attrsText}>${esc(it.text)}</text>`;
     const focus = editable && !['start', 'end'].includes(it.type) ?
         ` tabindex="-1" role="button" aria-label="${esc(`${tr(`b.${it.type}`)}: ${it.text}`)}"` : '';
-    const cls = it.faded ? 'tiny_algorithm-node tiny_algorithm-unreachable' : 'tiny_algorithm-node';
+    const cls = (it.faded ? 'tiny_algorithm-node tiny_algorithm-unreachable' : 'tiny_algorithm-node') +
+        (it.gap ? ' tiny_algorithm-gap' : '');
     // The comment: a tooltip in the editor and the viewer; a title in a saved picture.
     const note = it.note ? ` data-note="${esc(it.note)}"` : '';
     const title = it.note && !editable ? `<title>${esc(it.note)}</title>` : '';
