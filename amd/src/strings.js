@@ -299,6 +299,7 @@ export const STR = {
         callstack: 'Calls running now', inputhintinteger: 'Enter a whole number, for example 4.',
         inputhintreal: 'Enter a number, for example 2.5.', inputok: 'Confirm the value', inputhintboolean: 'Enter true or false.',
         file: 'File',
+        sound: 'Sound', soundhint: 'Short quiet tones for a step, an error and the end of a run',
         slow: 'Slow',
         fast: 'Fast',
         trace: 'Trace table',

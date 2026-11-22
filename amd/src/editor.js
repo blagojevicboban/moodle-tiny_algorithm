@@ -39,6 +39,7 @@ import {aiBox, errorProblem} from './aibox';
 import {openRecords, renameRecordType, usesRecords} from './records';
 import {openTrace} from './trace';
 import {attachNotes} from './notes';
+import {cueFor, playCue, soundButton} from './sound';
 import {markRun} from './runmarks';
 import {checkExpr} from './expr';
 import {isMatrix, languageLabels, extensionOf} from './codegen';
@@ -218,7 +219,7 @@ export class AlgorithmEditor {
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnUndo, this.btnRedo,
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnRun, this.btnBack, this.btnStep, this.btnStop,
             el('span', {'class': 'tiny_algorithm-speedbox'}, el('span', {'aria-hidden': 'true'}, this.t('slow')), this.speed,
-                el('span', {'aria-hidden': 'true'}, this.t('fast'))),
+                el('span', {'aria-hidden': 'true'}, this.t('fast'))), soundButton((key) => this.t(key)),
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnFile, this.fileInput);
         this.canvas = el('div', {'class': 'tiny_algorithm-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
             onkeydown: (e) => this.onKey(e), oncopy: (e) => this.onCopy(e, false), oncut: (e) => this.onCopy(e, true),
@@ -1889,6 +1890,7 @@ export class AlgorithmEditor {
      * @param {number} step steps so far
      */
     showStatus(state, step) {
+        playCue(cueFor(state, step, Number(this.speed.max) - Number(this.speed.value)));
         this.statusEl.hidden = state === 'running' && !step;
         this.statusEl.className = `tiny_algorithm-status tiny_algorithm-status-${state}`;
         this.statusEl.textContent = tr(`status${state}`, {step});
