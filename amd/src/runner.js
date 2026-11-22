@@ -148,7 +148,10 @@ export class AlgorithmRunner {
                 this.turtle.root));
         }
         // The arrays and matrices while the algorithm runs, only for an algorithm that has arrays.
-        this.arrayView = usesArrays(this.program) ? new ArrayView(this.program, this.lang) : null;
+        // A swap is animated while stepping or running slowly.
+        const pace = () => (!this.running || this.running.stepMode ? Infinity
+            : Number(this.speed.max) - Number(this.speed.value));
+        this.arrayView = usesArrays(this.program) ? new ArrayView(this.program, this.lang, pace) : null;
         if (this.arrayView) {
             mainParts.push(el('div', {'class': 'tiny_algorithm-view-arrays'}, el('strong', {}, this.t('arrays')),
                 this.arrayView.root));
