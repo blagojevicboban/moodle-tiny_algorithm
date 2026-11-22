@@ -799,6 +799,16 @@ html.tiny_algorithm-noscroll body {
     background: #60a5fa;
 }
 
+/* Two elements that swap move over each other (tiny_algorithm/arrayview); their bars keep their height meanwhile */
+.tiny_algorithm-array-swapping {
+    z-index: 1;
+}
+
+.tiny_algorithm-array-swapping .tiny_algorithm-array-bar,
+.tiny_algorithm-array-swapping .tiny_algorithm-array-value {
+    transition: none;
+}
+
 /* The part of an array between two index variables ("@range low high" in a comment): a bracket under its elements,
    over the gaps between them */
 .tiny_algorithm-array-inrange::after {

@@ -17,7 +17,8 @@
  * The array panel: the arrays and matrices of the running function drawn while the algorithm runs or steps. Numbers
  * are bars, other values boxes; the elements the last block read are yellow, those it wrote green, and the variables
  * used as an index of an array (i, j, low, high) point at their element. A comment "@range low high" marks the part of
- * an array between two index variables with a bracket under its elements.
+ * an array between two index variables with a bracket under its elements. A swap of two elements is animated while
+ * stepping or running slowly: they move into each other's place.
  *
  * @module tiny_algorithm/arrayview
  * @copyright  2026 Boban Blagojević
@@ -33,6 +34,12 @@ const BAR_REM = 6;
 
 /** Most arrays the panel draws. */
 const MAX_ARRAYS = 6;
+
+/** Length of the animation of a swap, in ms. */
+export const SWAP_MS = 450;
+
+/** Steps of an array kept to find a swap (t = a[i], a[i] = a[j], a[j] = t writes over two or three steps). */
+const HISTORY = 4;
 
 const hasText = (s) => s !== undefined && s !== null && String(s).trim() !== '';
 
@@ -143,6 +150,58 @@ export const rangeAt = (range, ints, length) => {
     return from <= to ? {from, to} : null;
 };
 
+/**
+ * The two elements whose values a swap exchanged: they are the only elements that differ, and each has the old value
+ * of the other.
+ *
+ * @param {?Array} before values of an earlier step
+ * @param {Array} after values now
+ * @returns {?number[]} [i, j] with i < j, or null
+ */
+export const findSwap = (before, after) => {
+    if (!Array.isArray(before) || before.length !== after.length) {
+        return null;
+    }
+    const changed = [];
+    for (let i = 0; i < after.length; i++) {
+        if (!Object.is(before[i], after[i])) {
+            changed.push(i);
+            if (changed.length > 2) {
+                return null;
+            }
+        }
+    }
+    if (changed.length !== 2) {
+        return null;
+    }
+    const [i, j] = changed;
+    return Object.is(before[i], after[j]) && Object.is(before[j], after[i]) ? [i, j] : null;
+};
+
+/**
+ * The swap that ends at this step, against the values of the last steps (newest first).
+ *
+ * @param {Array<Array>} history values of the last steps, oldest first
+ * @param {Array} after values now
+ * @returns {?number[]}
+ */
+export const swapIn = (history, after) => {
+    for (let k = history.length - 1; k >= 0; k--) {
+        const pair = findSwap(history[k], after);
+        if (pair) {
+            return pair;
+        }
+    }
+    return null;
+};
+
+/**
+ * Whether the reader asked for less motion.
+ *
+ * @returns {boolean}
+ */
+const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 const el = (tag, cls, text) => {
     const e = document.createElement(tag);
     if (cls) {
@@ -202,9 +261,12 @@ export class ArrayView {
     /**
      * @param {Object} program the algorithm (for the index variables)
      * @param {string|null} lang UI language code
+     * @param {function(): number} [pace] ms until the next step (Infinity while stepping); a swap is animated only when
+     *     there is time for it
      */
-    constructor(program, lang = null) {
+    constructor(program, lang = null, pace = () => 0) {
         this.lang = lang;
+        this.pace = pace;
         this.indexes = indexNames(program);
         this.ranges = rangeMarkers(program);
         this.root = el('div', 'tiny_algorithm-arrays');
@@ -218,6 +280,7 @@ export class ArrayView {
     /** No arrays yet (before a run). */
     reset() {
         this.boxes = new Map();
+        this.swaps = 0;
         this.counts.textContent = '';
         this.root.replaceChildren(this.empty);
     }
@@ -229,8 +292,11 @@ export class ArrayView {
      */
     update(ev) {
         const arrays = (ev.arrays || []).slice(0, MAX_ARRAYS);
+        // A swap ended at this step when the interpreter counted one more.
+        const swapped = Boolean(ev.counts) && ev.counts.swaps > this.swaps;
         if (ev.counts) {
             this.counts.textContent = countsText(ev.counts, this.lang);
+            this.swaps = ev.counts.swaps;
         }
         if (!arrays.length) {
             // A function without arrays is running: the counters stay.
@@ -257,6 +323,13 @@ export class ArrayView {
             const pointers = names.map((n) => ints.get(n)).filter(Boolean);
             const range = ranges.map((r) => ({...r, ...rangeAt(r, ints, a.value.length)})).find((r) => r.from !== undefined);
             this.fill(box, a, access, pointers, range || null);
+            if (box.row && !box.table) {
+                const pair = swapped ? swapIn(box.history, a.value) : null;
+                box.history = [...box.history, a.value.slice()].slice(-HISTORY);
+                if (pair && this.animates()) {
+                    this.animateSwap(box, pair);
+                }
+            }
             return box.root;
         });
         [...this.boxes.keys()].filter((k) => !seen.has(k)).forEach((k) => this.boxes.delete(k));
@@ -270,7 +343,7 @@ export class ArrayView {
      * @returns {Object}
      */
     build(a) {
-        const box = {root: el('div', 'tiny_algorithm-array'), cells: []};
+        const box = {root: el('div', 'tiny_algorithm-array'), cells: [], history: []};
         box.title = el('div', 'tiny_algorithm-array-title');
         box.note = el('div', 'tiny_algorithm-array-note');
         box.root.append(box.title);
@@ -319,6 +392,47 @@ export class ArrayView {
         box.text = el('span', 'sr-only visually-hidden');
         box.root.append(box.text);
         return box;
+    }
+
+    /**
+     * Is there time and room for an animation: stepping or running slowly, the reader did not ask for less motion,
+     * and the browser can animate elements.
+     *
+     * @returns {boolean}
+     */
+    animates() {
+        return this.pace() >= SWAP_MS && !reducedMotion() && typeof Element !== 'undefined' &&
+            typeof Element.prototype.animate === 'function';
+    }
+
+    /**
+     * Two elements move into each other's place, one over and one under the other: the values are already swapped, so
+     * each value starts at the place of the other and comes home.
+     *
+     * @param {Object} box
+     * @param {number[]} pair [i, j]
+     */
+    animateSwap(box, [i, j]) {
+        const first = box.cells[i];
+        const second = box.cells[j];
+        if (!first || !second || !first.isConnected) {
+            return;
+        }
+        const dx = second.offsetLeft - first.offsetLeft;
+        // The value and its bar move; the index and the pointers below stay in place.
+        const move = (cell, from, lift) => {
+            cell.classList.add('tiny_algorithm-array-swapping');
+            const animations = [cell.value, cell.bar].map((part) => part.animate([
+                {transform: `translate(${from}px, 0)`},
+                {transform: `translate(${from / 2}px, ${lift}rem)`},
+                {transform: 'translate(0, 0)'},
+            ], {duration: SWAP_MS, easing: 'ease-in-out'}));
+            const done = () => cell.classList.remove('tiny_algorithm-array-swapping');
+            animations[0].onfinish = done;
+            animations[0].oncancel = done;
+        };
+        move(first, dx, -0.75);
+        move(second, -dx, 0.75);
     }
 
     /**

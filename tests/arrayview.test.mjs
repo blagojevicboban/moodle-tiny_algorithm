@@ -24,7 +24,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createProgram, createBlock as B} from '../amd/src/model.js';
 import {execute, runSync, ARRAY_VIEW_ITEMS} from '../amd/src/interpreter.js';
-import {countsText, heat, indexNames, isRecord, rangeAt, rangeMarkers, usesArrays} from '../amd/src/arrayview.js';
+import {countsText, findSwap, heat, indexNames, isRecord, rangeAt, rangeMarkers, swapIn, usesArrays}
+    from '../amd/src/arrayview.js';
 import {TEMPLATES} from '../amd/src/templates.js';
 
 /**
@@ -164,4 +165,52 @@ test('rangeAt gives the elements between the two variables at a step', () => {
     // Empty when low passed high (the search ended), or a variable has no integer value yet.
     assert.equal(rangeAt(range, ints({low: 6, high: 5}), 10), null);
     assert.equal(rangeAt(range, ints({low: 1}), 10), null);
+});
+
+test('findSwap finds the two elements that exchanged their values', () => {
+    assert.deepEqual(findSwap([5, 1, 4, 2], [1, 5, 4, 2]), [0, 1]);
+    assert.deepEqual(findSwap([5, 1, 4, 2], [2, 1, 4, 5]), [0, 3]);
+    assert.deepEqual(findSwap(['b', 'a'], ['a', 'b']), [0, 1]);
+    // Not a swap: one write, other values, more changes, equal values, another length.
+    assert.equal(findSwap([5, 1, 4], [5, 5, 4]), null);
+    assert.equal(findSwap([5, 1, 4], [1, 6, 4]), null);
+    assert.equal(findSwap([3, 2, 1], [1, 3, 2]), null);
+    assert.equal(findSwap([2, 2, 1], [2, 2, 1]), null);
+    assert.equal(findSwap([1, 2], [1, 2, 3]), null);
+    assert.equal(findSwap(undefined, [1, 2]), null);
+});
+
+test('swapIn finds a swap written over several steps (t = a[i]; a[i] = a[j]; a[j] = t)', () => {
+    const start = [4, 3, 9];
+    const afterFirstWrite = [3, 3, 9];
+    const afterSecondWrite = [3, 4, 9];
+    assert.deepEqual(swapIn([start, start, afterFirstWrite], afterSecondWrite), [0, 1]);
+    // The newest step alone shows one write only.
+    assert.equal(swapIn([afterFirstWrite], afterSecondWrite), null);
+    assert.equal(swapIn([], afterSecondWrite), null);
+});
+
+test('in the steps of bubble sort swapIn finds every swap the interpreter counts', () => {
+    const program = TEMPLATES.find((t) => t.id === 'bubble_sort').build();
+    let history = [];
+    let swaps = 0;
+    let found = 0;
+    let counted = 0;
+    for (const ev of events(program, {track: true, seed: 7})) {
+        const a = (ev.arrays || []).find((x) => x.name === 'a');
+        if (!a || !ev.counts) {
+            continue;
+        }
+        if (ev.counts.swaps > swaps) {
+            const pair = swapIn(history, a.value);
+            assert.ok(pair, `swap ${ev.counts.swaps} found`);
+            assert.equal(pair[1] - pair[0], 1, 'bubble sort swaps neighbours');
+            found++;
+        }
+        swaps = ev.counts.swaps;
+        counted = swaps;
+        history = [...history, a.value.slice()].slice(-4);
+    }
+    assert.ok(counted > 0);
+    assert.equal(found, counted);
 });

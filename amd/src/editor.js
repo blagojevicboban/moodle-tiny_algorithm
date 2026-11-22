@@ -1967,7 +1967,9 @@ export class AlgorithmEditor {
         this.filesPanel.reset();
         this.refresh();
         // A new panel for every run: the index variables come from the algorithm as it is now.
-        this.arrayView = usesArrays(this.program) ? new ArrayView(this.program, this.lang) : null;
+        // A swap is animated while stepping or running slowly.
+        const pace = () => (run.stepMode ? Infinity : Number(this.speed.max) - Number(this.speed.value));
+        this.arrayView = usesArrays(this.program) ? new ArrayView(this.program, this.lang, pace) : null;
         this.tabArrays.replaceChildren(this.tabArrays.firstChild, ...(this.arrayView ? [this.arrayView.root] : []));
         this.callTree.reset();
         const calling = usesCalls(this.program);
