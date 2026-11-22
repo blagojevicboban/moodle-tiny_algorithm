@@ -11,9 +11,10 @@ If you work with Claude Code, the skill in `.claude/skills/algorithm-contributin
 1. Take an open issue (or open one first) and say in it that you are working on it.
 2. Create a branch from `main`: `fix/<short-name>` or `feature/<short-name>`. Never push to `main` directly.
 3. One topic per pull request; describe what changes for teachers or students and how you tested it.
-4. Merge when CI is green. Release tags `v*`, versions and the Marketplace are the maintainer's.
-5. **Do not change `version.php`, `CHANGELOG.md` or `description.html`**; say in the pull request when your change
-   needs an upgrade step, a capability, a cache or a web service.
+4. Merge when CI is green.
+5. Feature and fix pull requests do not change `version.php`, `CHANGELOG.md` or `description.html`; these change in a
+   release commit (see Releases below). Say in the pull request when your change needs an upgrade step, a capability,
+   a cache or a web service.
 
 ## Rules
 
@@ -42,6 +43,32 @@ moodle-plugin-ci phpunit --fail-on-warning
 Node tests: `node --import ./tests/register.mjs --test "tests/*.test.mjs"` (TypeScript tests need `tsc`).
 
 Commit `amd/build` together with `amd/src` (`npx grunt amd` in the Moodle root).
+
+## Releases
+
+Releases are made by the release manager (the maintainer, or a collaborator he named), after the pull requests are
+merged and CI of `main` is green. Order when several plugins change: tiny first, then filter, then qtype (dependencies
+first).
+
+1. **Version** in `version.php`: `version` = date and two digits, higher than the last one (`YYYYMMDDXX`), `release`
+   (`1.19.1`: patch for fixes, minor for features), `maturity` stays `MATURITY_STABLE`. When the plugin needs the new
+   version of tiny, raise `dependencies` to tiny's new `version` in the same release.
+2. **CHANGELOG.md**: a new section on top, `## <release> (<date>)`, what changes for teachers and students.
+3. **README.md**: describe new features; requirements with the version of tiny the plugin needs.
+4. **description.html** (the Marketplace listing): `What's New in v<release>` lists the changes since the version that
+   is on the Marketplace now (one line per earlier release, `From x.y.z: ...`); the Marketplace sanitizer keeps only
+   `p`, `div`, `a`, `img`, `ul`, `ol`, `li`, `strong`, `em`, `code`, `br`, `hr` (titles as `<p><strong>...</strong></p>`)
+   and the field allows **at most 7000 characters**: shorten older items first.
+5. Commit `Release <component> <release>`, push, wait for CI of `main`, then the tag: `git tag v<release>` and
+   `git push origin v<release>`. A pushed tag is never moved: a fix is a new patch release.
+6. **ZIP** for the Marketplace: `git archive --format=zip --prefix=<plugin folder>/ -o <component>-<release>.zip v<release>`
+   (`codelab/` for the CodeLab plugins, `algorithm/` for the Algorithm plugins). `.claude/` is left out by
+   `.gitattributes`.
+7. **Release notes** for the upload form, plain sentences and `-` bullets only: no quotes, no parentheses, no `<`, `>`,
+   `$`, `{}` and no code-like names (the upload page is behind Cloudflare and blocks such text).
+8. Send the ZIPs and the notes to the maintainer, who uploads them to the Moodle Plugins directory with his account.
+9. **Demo sites** (codelab, algorithm and aisim .tsp.edu.rs) take the plugins from `main` when their demo repository
+   gets a push; the maintainer (or whoever has write on the demo repositories) refreshes them after a release.
 
 ## Security
 
