@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.30.1 – 2026-11-22 (stable)
+
+- Same code as 2.30.0. The Marketplace test run of 2.30.0 ended without logs, so the plugin is uploaded again with a
+  new build number. The ZIP is built without .github, docs and tests again (they are export-ignored now), as before
+  2.30.0: about 1 MB instead of 6 MB.
+
 ## 2.30.0 – 2026-11-22 (stable)
 
 - **A range in the Arrays panel:** a comment "@range low high" on a block (or in a Comment block) draws a bracket under
