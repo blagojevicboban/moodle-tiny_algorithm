@@ -16,7 +16,8 @@
 /**
  * The array panel: the arrays and matrices of the running function drawn while the algorithm runs or steps. Numbers
  * are bars, other values boxes; the elements the last block read are yellow, those it wrote green, and the variables
- * used as an index of an array (i, j, low, high) point at their element.
+ * used as an index of an array (i, j, low, high) point at their element. A comment "@range low high" marks the part of
+ * an array between two index variables with a bracket under its elements.
  *
  * @module tiny_algorithm/arrayview
  * @copyright  2026 Boban Blagojević
@@ -89,6 +90,59 @@ export const indexNames = (program) => {
     return found;
 };
 
+/**
+ * The ranges marked in the comments of the blocks: "@range low high" in the comment of a block (or in a Comment block)
+ * marks the part of the arrays between the values of two index variables, as binary search and two pointers use it;
+ * "@range a low high" marks it only in the array a.
+ *
+ * @param {Object} program
+ * @returns {Array<{array: ?string, low: string, high: string}>} names in lower case, each range once
+ */
+export const rangeMarkers = (program) => {
+    const found = [];
+    const scan = (text) => {
+        const re = /@range\s+([A-Za-z_]\w*)\s+([A-Za-z_]\w*)(?:[ \t]+([A-Za-z_]\w*))?/gi;
+        let m;
+        while ((m = re.exec(String(text || '')))) {
+            const names = m.slice(1).filter(Boolean).map((n) => n.toLowerCase());
+            const range = names.length === 3 ? {array: names[0], low: names[1], high: names[2]}
+                : {array: null, low: names[0], high: names[1]};
+            if (!found.some((r) => r.array === range.array && r.low === range.low && r.high === range.high)) {
+                found.push(range);
+            }
+        }
+    };
+    const visit = (list) => (list || []).forEach((b) => {
+        scan(b.note);
+        if (b.type === 'comment') {
+            scan(b.text);
+        }
+        ['then', 'else', 'body'].forEach((k) => visit(b[k]));
+    });
+    ((program && program.functions) || []).forEach((f) => visit(f.body));
+    return found;
+};
+
+/**
+ * The elements of an array in a range at a step: from the value of the low variable to the value of the high one,
+ * inside the array.
+ *
+ * @param {{low: string, high: string}} range
+ * @param {Map<string, {value: number}>} ints integer variables of the step by lower-case name
+ * @param {number} length elements of the array
+ * @returns {?{from: number, to: number}} null when a variable has no integer value or the range is empty (low > high)
+ */
+export const rangeAt = (range, ints, length) => {
+    const low = ints.get(range.low);
+    const high = ints.get(range.high);
+    if (!low || !high) {
+        return null;
+    }
+    const from = Math.max(0, low.value);
+    const to = Math.min(length - 1, high.value);
+    return from <= to ? {from, to} : null;
+};
+
 const el = (tag, cls, text) => {
     const e = document.createElement(tag);
     if (cls) {
@@ -152,6 +206,7 @@ export class ArrayView {
     constructor(program, lang = null) {
         this.lang = lang;
         this.indexes = indexNames(program);
+        this.ranges = rangeMarkers(program);
         this.root = el('div', 'tiny_algorithm-arrays');
         this.empty = el('p', 'tiny_algorithm-arrays-empty', t('arraysempty', null, lang));
         // Comparisons, swaps, reads and writes since the start of the run (the interpreter counts them).
@@ -195,8 +250,13 @@ export class ArrayView {
                 this.boxes.set(key, box);
             }
             const access = (ev.access || []).filter((x) => x.name.toLowerCase() === a.name.toLowerCase());
-            const pointers = (this.indexes.get(a.name.toLowerCase()) || []).map((n) => ints.get(n)).filter(Boolean);
-            this.fill(box, a, access, pointers);
+            const name = a.name.toLowerCase();
+            const ranges = a.dims === 1 ? this.ranges.filter((r) => r.array === null || r.array === name) : [];
+            // The variables of a range point at their element too (low and high are often not an index).
+            const names = [...new Set([...(this.indexes.get(name) || []), ...ranges.flatMap((r) => [r.low, r.high])])];
+            const pointers = names.map((n) => ints.get(n)).filter(Boolean);
+            const range = ranges.map((r) => ({...r, ...rangeAt(r, ints, a.value.length)})).find((r) => r.from !== undefined);
+            this.fill(box, a, access, pointers, range || null);
             return box.root;
         });
         [...this.boxes.keys()].filter((k) => !seen.has(k)).forEach((k) => this.boxes.delete(k));
@@ -268,8 +328,9 @@ export class ArrayView {
      * @param {Object} a array of the step
      * @param {Array} access elements of this array the last block read or wrote
      * @param {Array} pointers integer variables used as its index
+     * @param {?Object} [range] the part marked by "@range" ({low, high, from, to}), for a one-dimensional array
      */
-    fill(box, a, access, pointers) {
+    fill(box, a, access, pointers, range = null) {
         const mark = (cell, hit) => {
             cell.classList.toggle('tiny_algorithm-array-read', hit === 'r');
             cell.classList.toggle('tiny_algorithm-array-written', hit === 'w');
@@ -338,7 +399,13 @@ export class ArrayView {
             const here = pointers.filter((p) => p.value === i).map((p) => p.name);
             cell.pointer.textContent = here.length ? `↑${here.join(',')}` : '';
             cell.classList.toggle('tiny_algorithm-array-pointed', here.length > 0);
+            const inside = Boolean(range) && i >= range.from && i <= range.to;
+            cell.classList.toggle('tiny_algorithm-array-inrange', inside);
+            cell.classList.toggle('tiny_algorithm-array-rangestart', inside && i === range.from);
+            cell.classList.toggle('tiny_algorithm-array-rangeend', inside && i === range.to);
         });
-        box.text.textContent = t('arrayvalues', {name: a.name, values: a.value.map(show).join(', ')}, this.lang);
+        const values = t('arrayvalues', {name: a.name, values: a.value.map(show).join(', ')}, this.lang);
+        box.text.textContent = range ? `${values}. ${t('arrayrange', {low: range.low, high: range.high,
+            from: String(range.from), to: String(range.to)}, this.lang)}` : values;
     }
 }

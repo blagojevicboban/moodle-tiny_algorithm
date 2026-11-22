@@ -106,6 +106,7 @@ $string['ui_arguments'] = 'Arguments';
 $string['ui_argumentshint'] = 'Values of the arguments, e.g. 2, 3 or one per line; an array [1, 2, 3], a matrix [[1, 2], [3, 4]]';
 $string['ui_arraycounts'] = 'Comparisons: {$a->compares} · Swaps: {$a->swaps} · Element reads: {$a->reads} · Element writes: {$a->writes}';
 $string['ui_arraycut'] = 'Only the first {$a->shown} of {$a->length} elements are shown.';
+$string['ui_arrayrange'] = 'Range {$a->low} to {$a->high}: elements {$a->from} to {$a->to}';
 $string['ui_arrays'] = 'Arrays';
 $string['ui_arraysempty'] = 'The arrays appear here when the algorithm runs or steps.';
 $string['ui_arrayvalues'] = '{$a->name}: {$a->values}';

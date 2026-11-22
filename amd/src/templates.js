@@ -538,7 +538,8 @@ export const TEMPLATES = [
                 createBlock('assign', {target: 'low', expr: '0'}),
                 createBlock('assign', {target: 'high', expr: 'n - 1'}),
                 createBlock('assign', {target: 'mid', expr: '(low + high) / 2'}),
-                createBlock('while', {cond: 'low <= high && a[mid] != x', body: [
+                // The comment marks the part still searched in the arrays panel.
+                createBlock('while', {cond: 'low <= high && a[mid] != x', note: '@range low high', body: [
                     createBlock('if', {cond: 'a[mid] < x', then: [
                         createBlock('assign', {target: 'low', expr: 'mid + 1'}),
                     ], 'else': [
