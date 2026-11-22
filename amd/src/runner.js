@@ -42,6 +42,7 @@ import {openComplexity, sizeTargets} from './complexity';
 import {TEMPLATES} from './templates';
 import {applyStrict} from './model';
 import {openOutline} from './outline';
+import {cueFor, playCue, soundButton} from './sound';
 
 const el = (tag, attrs = {}, ...kids) => {
     const e = document.createElement(tag);
@@ -121,7 +122,7 @@ export class AlgorithmRunner {
         this.bar = el('div', {'class': 'tiny_algorithm-view-bar'},
             this.btnRun, this.btnBack, btn('step', () => this.onStep()), btn('reset', () => this.reset()),
             el('span', {'class': 'tiny_algorithm-speedbox'}, el('span', {'aria-hidden': 'true'}, this.t('slow')), this.speed,
-                el('span', {'aria-hidden': 'true'}, this.t('fast'))),
+                el('span', {'aria-hidden': 'true'}, this.t('fast'))), soundButton((key) => this.t(key)),
             this.statusEl,
             el('span', {'class': 'tiny_algorithm-grow'}),
             btn('trace', () => openTrace(this.root, this.trace, {cut: this.traceCut, select: (id) => this.showBlock(id)})),
@@ -512,6 +513,7 @@ export class AlgorithmRunner {
      * @param {number} step steps so far
      */
     showStatus(state, step) {
+        playCue(cueFor(state, step, Number(this.speed.max) - Number(this.speed.value)));
         this.statusEl.hidden = state === 'running' && !step;
         this.statusEl.className = `tiny_algorithm-status tiny_algorithm-status-${state}`;
         this.statusEl.textContent = tr(`status${state}`, {step});
