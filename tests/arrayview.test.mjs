@@ -24,7 +24,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createProgram, createBlock as B} from '../amd/src/model.js';
 import {execute, runSync, ARRAY_VIEW_ITEMS} from '../amd/src/interpreter.js';
-import {countsText, heat, indexNames, isRecord, usesArrays} from '../amd/src/arrayview.js';
+import {countsText, heat, indexNames, isRecord, rangeAt, rangeMarkers, usesArrays} from '../amd/src/arrayview.js';
 import {TEMPLATES} from '../amd/src/templates.js';
 
 /**
@@ -105,6 +105,7 @@ test('the sorting templates sort, the binary search finds', () => {
     assert.match(runSync(build('binary_search'), ['27']), /Found at index 9/);
     assert.match(runSync(build('binary_search'), ['28']), /Not found/);
     assert.match(runSync(build('binary_search'), ['0']), /Found at index 0/);
+    assert.deepEqual(rangeMarkers(build('binary_search')), [{array: null, low: 'low', high: 'high'}]);
     assert.match(runSync(build('binary_search'), ['45']), /Found at index 15/);
 });
 
@@ -135,4 +136,32 @@ test('records go to the panel as fields and values; a matrix is shaded from the 
     assert.ok(isRecord(arrays[0].value[1]) && !isRecord(4) && !isRecord(null));
     assert.deepEqual([0, 2, 5, 9, 10].map((x) => heat(x, 0, 10)), [0, 1, 2, 4, 4]);
     assert.equal(heat(3, 3, 3), 0);
+});
+
+test('rangeMarkers reads @range from the comments of blocks and from Comment blocks', () => {
+    const program = {functions: [{name: 'Main', body: [
+        {type: 'comment', text: 'Binary search\n@range Low High'},
+        {type: 'while', cond: 'low <= high', note: 'The part still searched. @range low high', body: [
+            {type: 'assign', target: 'mid', expr: '(low + high) / 2', note: '@range b lo hi'},
+        ]},
+    ]}, {name: 'F', body: [{type: 'if', cond: 'x', then: [], else: [{type: 'output', expr: '1', note: '@RANGE i j'}]}]}]};
+    assert.deepEqual(rangeMarkers(program), [
+        {array: null, low: 'low', high: 'high'},
+        {array: 'b', low: 'lo', high: 'hi'},
+        {array: null, low: 'i', high: 'j'},
+    ]);
+    assert.deepEqual(rangeMarkers({functions: [{body: [{type: 'output', expr: '1', note: 'no marker @range low'}]}]}), []);
+    assert.deepEqual(rangeMarkers(null), []);
+});
+
+test('rangeAt gives the elements between the two variables at a step', () => {
+    const ints = (vars) => new Map(Object.entries(vars).map(([name, value]) => [name, {name, value}]));
+    const range = {array: null, low: 'low', high: 'high'};
+    assert.deepEqual(rangeAt(range, ints({low: 2, high: 5}), 10), {from: 2, to: 5});
+    assert.deepEqual(rangeAt(range, ints({low: 4, high: 4}), 10), {from: 4, to: 4});
+    // Kept inside the array (high = n before the first step of some searches).
+    assert.deepEqual(rangeAt(range, ints({low: -1, high: 10}), 10), {from: 0, to: 9});
+    // Empty when low passed high (the search ended), or a variable has no integer value yet.
+    assert.equal(rangeAt(range, ints({low: 6, high: 5}), 10), null);
+    assert.equal(rangeAt(range, ints({low: 1}), 10), null);
 });

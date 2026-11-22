@@ -285,6 +285,7 @@ export const STR = {
         calltreesummary: 'Calls: {calls} · repeated: {repeated} · deepest: {depth}',
         calltreemore: '{count} more calls are not drawn',
         arraycut: 'Only the first {shown} of {length} elements are shown.', arrayvalues: '{name}: {values}',
+        arrayrange: 'Range {low} to {high}: elements {from} to {to}',
         arraycounts: 'Comparisons: {compares} · Swaps: {swaps} · Element reads: {reads} · Element writes: {writes}',
         outline: 'Outline',
         outlinehint: 'The algorithm as a tree: arrow keys move, Right opens and Left closes a part, ' +

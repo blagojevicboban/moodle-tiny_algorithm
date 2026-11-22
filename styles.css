@@ -678,6 +678,7 @@ html.tiny_algorithm-noscroll body {
 }
 
 .tiny_algorithm-array-cell {
+    position: relative;
     flex: 1 1 0;
     min-width: 1.6rem;
     max-width: 3rem;
@@ -796,6 +797,29 @@ html.tiny_algorithm-noscroll body {
 
 .tiny_algorithm-array-box.tiny_algorithm-heat4 {
     background: #60a5fa;
+}
+
+/* The part of an array between two index variables ("@range low high" in a comment): a bracket under its elements,
+   over the gaps between them */
+.tiny_algorithm-array-inrange::after {
+    content: "";
+    position: absolute;
+    left: -1px;
+    right: -1px;
+    bottom: -.25rem;
+    height: .4rem;
+    border-bottom: 3px solid #7c3aed;
+    pointer-events: none;
+}
+
+.tiny_algorithm-array-rangestart::after {
+    left: 0;
+    border-left: 3px solid #7c3aed;
+}
+
+.tiny_algorithm-array-rangeend::after {
+    right: 0;
+    border-right: 3px solid #7c3aed;
 }
 
 /* An array of records: a table, a row for each element */
