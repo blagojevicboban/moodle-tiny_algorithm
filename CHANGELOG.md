@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.30.0 – 2026-11-22 (stable)
+
+- **A range in the Arrays panel:** a comment "@range low high" on a block (or in a Comment block) draws a bracket under
+  the elements from low to high, and low and high point at their elements, so binary search and two-pointer algorithms
+  show the part they still work on; "@range a low high" marks it only in the array a. Screen readers hear the range.
+  The Binary Search template has the comment on its While block.
+- **Swaps are animated:** while stepping or running slowly, two elements that swap move into each other's place, one
+  over and one under the other; the indexes and pointers stay. No animation when running fast or with reduced motion.
+- **Sound cues (optional):** a Sound button next to the speed in the editor and the viewer turns on short quiet tones
+  for a step, an error and the end of a run (Web Audio, no sound files). Off by default; the browser remembers it.
+- 3 new strings in English and Serbian (Latin and Cyrillic).
+
 ## 2.29.0 – 2026-11-19 (stable)
 
 - **Outline:** the algorithm as a tree for screen readers and the keyboard (File, Outline or Alt + O in the editor; an
