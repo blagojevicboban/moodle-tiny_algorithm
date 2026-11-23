@@ -20,22 +20,18 @@
   <hr>
   <p><strong>Core features</strong></p>
   <ul>
-    <li><strong>Visual editor:</strong> Declare, Assign, Input, Output, If, For, While, Do...While, Break, Continue, Call, Return, Comment; several functions, undo / redo.</li>
-    <li><strong>Drag, copy and paste:</strong> drag a block onto a + sign; Ctrl + C, X, V and D copy, cut, paste and duplicate blocks.</li>
-    <li><strong>Arrays and matrices:</strong> m[i, j] in the interpreter, the variable watch and the code in every language.</li>
-    <li><strong>Save as SVG or PNG:</strong> the diagram as a picture.</li>
-    <li><strong>Interpreter:</strong> Run / Step / Stop, console with input, variable watch, infinite-loop guard and clear error messages; the current block and the branch each condition takes are marked.</li>
-    <li><strong>Flowgorithm files:</strong> import and export real <code>.fprg</code> files.</li>
-    <li><strong>Code generation:</strong> pseudo-code and Python, C, C++, Java, C#, JavaScript, TypeScript, PHP, Pascal, Visual Basic .NET, Go, Rust and Kotlin.</li>
-    <li><strong>Editable images:</strong> the diagram is an SVG image that keeps its model; double-click to edit again.</li>
-    <li><strong>Students edit and test:</strong> with filter_algorithm, students can change their own copy of a diagram in any content and run the teacher's tests.</li>
-    <li><strong>Tests from the solution:</strong> the teacher enters only the inputs; the expected outputs are computed from the teacher's solution. A test can also call one function and check the value it returns.</li>
-    <li><strong>Class work:</strong> with filter_algorithm the teacher sees the students' copies of an exercise as small diagrams with their test results, and shows one large on the projector.</li>
-    <li><strong>Parsons problems:</strong> with qtype_algorithm a question gives the blocks of the solution in random order, with a few wrong ones, to arrange and nest.</li>
-    <li><strong>Code to diagram:</strong> paste Python code and get the flowchart; lines with no block become comments.</li>
-    <li><strong>Complexity:</strong> the algorithm runs for several sizes n, its steps are drawn beside n, n log n and n&sup2;, and the best fit is named.</li>
-    <li><strong>Arrays panel:</strong> arrays drawn as bars or boxes and matrices as a grid while the algorithm runs; read elements amber, written green.</li>
+    <li><strong>Visual editor:</strong> Declare, Assign, Input, Output, If, For, While, Do...While, Break, Continue, Call, Return, Comment; several functions, records, undo / redo, drag and drop, copy and paste.</li>
+    <li><strong>Interpreter:</strong> Run / Step / Stop, console with input, variable watch, breakpoints, call stack, trace table, infinite-loop guard and clear error messages; optional strict initialization, as in C.</li>
+    <li><strong>Arrays panel and call tree:</strong> arrays as bars or boxes, matrices as a heat map, records as a table, counters of comparisons and swaps; every recursive call drawn as a tree.</li>
     <li><strong>Step back and a timeline:</strong> a Back button (F8) and a slider take the run back to any earlier step.</li>
+    <li><strong>Turtle graphics and files:</strong> drawing blocks and Open, Read, Write and Close for text files.</li>
+    <li><strong>Code generation:</strong> pseudo-code and Python, C, C++, Java, C#, JavaScript, TypeScript, PHP, Pascal, Visual Basic .NET, Go, Rust and Kotlin; with the CodeLab plugins the code runs on Jobe or opens as a CodeLab example.</li>
+    <li><strong>Code to diagram:</strong> paste Python code and get the flowchart; lines with no block become comments.</li>
+    <li><strong>Editable images and files:</strong> the diagram is an SVG image that keeps its model (double-click to edit again), saved as SVG or PNG; Flowgorithm <code>.fprg</code> import and export.</li>
+    <li><strong>Complexity:</strong> the algorithm runs for several sizes n, its steps are drawn beside n, n log n and n&sup2;, and the best fit is named.</li>
+    <li><strong>Students edit and test:</strong> with filter_algorithm, students change their own copy and run the teacher's tests; the expected outputs come from the teacher's solution, and the teacher sees the class work as small diagrams.</li>
+    <li><strong>Quiz questions:</strong> with qtype_algorithm, automatic grading, Parsons problems, fill the gaps and Check order.</li>
+    <li><strong>AI hints (optional):</strong> through Moodle's AI subsystem, an explanation of an error or a hint for a failed test, never the solution.</li>
     <li><strong>Templates:</strong> sorting, Binary Search, recursion and records among others.</li>
   </ul>
 
@@ -51,12 +47,12 @@
   <p><strong>Requirements</strong></p>
   <ul>
     <li><strong>Moodle:</strong> 4.5 LTS to 5.3 (PHP as required by your Moodle version).</li>
-    <li><strong>Companion plugins (optional):</strong> filter_algorithm 2.15.0 (Run / Step, the student features and class work for readers), qtype_algorithm 2.14.0 (quiz question type with automatic grading and Parsons problems), and tiny_codelab 1.12.0 with a Jobe server for Run the code.</li>
+    <li><strong>Companion plugins (optional):</strong> filter_algorithm 2.20.0 (Run / Step, the student features and class work for readers), qtype_algorithm 2.26.0 (quiz questions with automatic grading), and tiny_codelab 1.12.0 or newer for Run the code.</li>
   </ul>
 
   <hr>
   <p><strong>Privacy</strong></p>
-  <p>The editor and interpreter run in the browser. Only when the site has the CodeLab plugins and the user presses Run the code is the generated program, with its input, sent to the Jobe server set up in CodeLab; nothing else is sent to external services. The diagram is stored in the text you save. The plugin keeps two display preferences (code and variable panels) and the student's own copy of an editable diagram in the browser's local storage and implements the Moodle Privacy API (no personal data stored).</p>
+  <p>The editor and interpreter run in the browser. Only when the site has the CodeLab plugins and the user presses Run the code is the generated program, with its input, sent to the server set up in CodeLab. When the administrator turns on AI hints, the algorithm and the error are sent to the AI provider of the site through the AI subsystem of Moodle; nothing else is sent to external services. The diagram is stored in the text you save. The plugin keeps two display preferences (code and variable panels) and the student's own copy of an editable diagram in the browser's local storage and implements the Moodle Privacy API (no personal data stored).</p>
 
   <hr>
   <p>Developed by <strong>Boban Blagojevi&#263;</strong>. Languages: English, Serbian, German, French, Spanish, Italian, Portuguese, Polish, Croatian, Bosnian, Slovenian, Macedonian, Slovak and Czech.<br>
