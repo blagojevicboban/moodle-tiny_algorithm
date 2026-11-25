@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.31.0 – 2026-11-25 (stable)
+
+- **Typed expected output:** each test of an exercise has Type the expected output. The teacher then types the
+  expected output, and Compute expected outputs and Insert keep it instead of computing it from the solution.
+- **Import .svg:** the File menu loads an SVG saved with Save as SVG back into the editor (the SVG keeps the algorithm).
+- **Close the code panel:** the Code panel of the editor has a close button; Show code in the toolbar opens it again.
+  The choice is remembered in the browser.
+
 ## 2.30.1 – 2026-11-22 (stable)
 
 - Same code as 2.30.0. The Marketplace test run of 2.30.0 ended without logs, so the plugin is uploaded again with a
