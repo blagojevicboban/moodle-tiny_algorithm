@@ -221,6 +221,11 @@ export class AlgorithmEditor {
             el('span', {'class': 'tiny_algorithm-speedbox'}, el('span', {'aria-hidden': 'true'}, this.t('slow')), this.speed,
                 el('span', {'aria-hidden': 'true'}, this.t('fast'))), soundButton((key) => this.t(key)),
             el('span', {'class': 'tiny_algorithm-sep'}), this.btnFile, this.fileInput);
+        // Shown only while the code panel is closed.
+        this.btnShowCode = btn('showcode', () => this.setCodeHidden(false), {hidden: true});
+        if (this.showCode) {
+            this.toolbar.append(this.btnShowCode);
+        }
         this.canvas = el('div', {'class': 'tiny_algorithm-canvas', tabindex: '0', onclick: (e) => this.onCanvasClick(e),
             onkeydown: (e) => this.onKey(e), oncopy: (e) => this.onCopy(e, false), oncut: (e) => this.onCopy(e, true),
             onpaste: (e) => this.onPaste(e), onpointerdown: (e) => this.onPointerDown(e),
@@ -273,9 +278,12 @@ export class AlgorithmEditor {
         }, '🚀 CodeLab');
         this.tabConsole = el('div', {'class': 'tiny_algorithm-pane'}, paneTitle(this.t('console'), ' ', this.statusEl),
             this.timeline.root, this.consoleEl);
-        this.tabCode = el('div', {'class': 'tiny_algorithm-pane'},
+        // The code panel can be closed; Show code in the toolbar brings it back (remembered in this browser).
+        const codeClose = el('button', {type: 'button', 'class': 'btn btn-link btn-sm tiny_algorithm-code-close',
+            onclick: () => this.setCodeHidden(true), title: this.t('hidecode'), 'aria-label': this.t('hidecode')}, '×');
+        this.tabCode = el('div', {'class': 'tiny_algorithm-pane tiny_algorithm-code-pane'},
             paneTitle(this.t('code'), ' ', this.codeSelect, ' ', this.copyBtn, ' ', this.dlBtn, ' ', this.btnCodeLab, ' ',
-                this.codeLock), this.codeEl);
+                this.codeLock, codeClose), this.codeEl);
         this.watch = new Watch(this.lang);
         this.tabWatch = el('div', {'class': 'tiny_algorithm-pane'}, paneTitle(this.t('variables')), this.watch.root);
         // The drawing of turtle graphics, only for an algorithm that uses the turtle.
@@ -329,6 +337,9 @@ export class AlgorithmEditor {
         this.root = el('div', {'class': 'tiny_algorithm-editor', onkeydown: (e) => this.onRunKey(e)}, this.toolbar,
             this.emptyBar(), this.main, this.announcer);
         container.append(this.root);
+        if (this.showCode) {
+            this.setCodeHidden(AlgorithmEditor.codeHidden(), false);
+        }
         // A wide editor (full screen) shows the code in its own column, right of the diagram.
         if (this.showCode && typeof ResizeObserver === 'function') {
             new ResizeObserver(() => this.placeCode()).observe(this.root);
@@ -477,7 +488,7 @@ export class AlgorithmEditor {
     }
 
     renderCode() {
-        if (!this.showCode) {
+        if (!this.showCode || (this.root && this.root.classList.contains('tiny_algorithm-hide-code'))) {
             return;
         }
         try {
@@ -1723,6 +1734,40 @@ export class AlgorithmEditor {
     }
 
     /** The code beside the diagram when the editor is wide, under the console and the variables when it is not. */
+    /** Whether the teacher closed the code panel of the editor (remembered in this browser). */
+    static codeHidden() {
+        try {
+            return window.localStorage.getItem('tiny_algorithm_editor_hidecode') === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * Close or open the code panel.
+     *
+     * @param {boolean} hidden true closes it
+     * @param {boolean} [remember] keep the choice for the next editor
+     */
+    setCodeHidden(hidden, remember = true) {
+        this.root.classList.toggle('tiny_algorithm-hide-code', hidden);
+        this.btnShowCode.hidden = !hidden;
+        if (hidden && this.side.dataset.sidetab === 'code') {
+            this.showTab('console');
+        }
+        if (remember) {
+            try {
+                window.localStorage.setItem('tiny_algorithm_editor_hidecode', hidden ? '1' : '0');
+            } catch (e) {
+                // Storage can be unavailable (private window); the choice then only lasts for this editor.
+            }
+            (hidden ? this.btnShowCode : this.codeSelect).focus();
+        }
+        if (!hidden) {
+            this.renderCode();
+        }
+    }
+
     placeCode() {
         const wide = this.root.clientWidth >= WIDE;
         if (wide && this.tabCode.parentElement !== this.main) {

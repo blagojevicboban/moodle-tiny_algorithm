@@ -2180,3 +2180,16 @@ html.tiny_algorithm-noscroll body {
         stroke-width: 2;
     }
 }
+
+/* The code panel of the editor can be closed (Show code in the toolbar opens it again). */
+.tiny_algorithm-editor.tiny_algorithm-hide-code .tiny_algorithm-pane.tiny_algorithm-code-pane,
+.tiny_algorithm-editor.tiny_algorithm-hide-code .tiny_algorithm-tabbar [data-sidetab="code"] {
+    display: none;
+}
+
+.tiny_algorithm-editor .tiny_algorithm-code-pane .tiny_algorithm-code-close {
+    float: right;
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 0 .4rem;
+}
