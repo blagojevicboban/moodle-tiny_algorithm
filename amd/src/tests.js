@@ -234,6 +234,10 @@ export const runTests = (program, tests, lang = null, check = {}) => tests.map((
 export const computeExpected = (solution, tests, lang = null, check = {}) => {
     const errors = [];
     const result = tests.map((tc, index) => {
+        if (tc.manual) {
+            // The teacher typed the expected output of this test: the solution does not change it.
+            return {...tc, inputs: String(tc.inputs ?? ''), expected: String(tc.expected ?? '')};
+        }
         const run = runProgram(solution, tc.inputs, lang, callText(tc));
         if (run.error) {
             errors.push({index, error: run.error});
@@ -249,8 +253,16 @@ export const computeExpected = (solution, tests, lang = null, check = {}) => {
  * @param {Array} tests [{inputs, expected}]
  * @returns {string}
  */
-export const serializeTests = (tests) => serialize(tests.map((tc) => (tc.call ?
-    {inputs: tc.inputs, expected: tc.expected, call: tc.call} : {inputs: tc.inputs, expected: tc.expected})));
+export const serializeTests = (tests) => serialize(tests.map((tc) => {
+    const out = {inputs: tc.inputs, expected: tc.expected};
+    if (tc.call) {
+        out.call = tc.call;
+    }
+    if (tc.manual) {
+        out.manual = true;
+    }
+    return out;
+}));
 
 /**
  * A test with only the fields a test has: inputs, expected, and when set hidden, weight and call.
@@ -268,6 +280,9 @@ export const cleanTest = (tc) => {
     }
     if (typeof tc.call === 'string' && /^[A-Za-z_][A-Za-z0-9_]*$/.test(tc.call)) {
         out.call = tc.call;
+    }
+    if (tc.manual) {
+        out.manual = true;
     }
     return out;
 };
@@ -475,8 +490,20 @@ export class TestsPanel {
             box.checked = Boolean(tc.hidden);
             hidden = el('label', {'class': 'tiny_algorithm-test-hidden'}, box, ' ', this.t('hiddentest'));
         }
+        const manual = el('input', {type: 'checkbox', 'class': 'form-check-input', onchange: () => {
+            if (manual.checked) {
+                tc.manual = true;
+            } else {
+                delete tc.manual;
+            }
+            this.errors = (this.errors || []).filter((e) => e.index !== i);
+            this.render();
+            this.changed();
+        }});
+        manual.checked = Boolean(tc.manual);
         return el('li', {'class': 'tiny_algorithm-test'},
             el('div', {'class': 'tiny_algorithm-test-head'}, el('span', {}, this.t('testcase', {n: i + 1})), kind, weight, hidden,
+                el('label', {'class': 'tiny_algorithm-test-manual'}, manual, ' ', this.t('manualexpected')),
                 el('button', {type: 'button', 'class': 'btn btn-link btn-sm', onclick: () => {
                     this.tests.splice(i, 1);
                     this.errors = null;
@@ -485,8 +512,29 @@ export class TestsPanel {
                 }}, tr('delete', this.lang))),
             el('div', {'class': 'tiny_algorithm-test-cols'},
                 el('label', {}, el('span', {}, this.t(label)), inputs),
-                el('div', {}, el('span', {}, this.t('expected')), el('pre', {'class': 'tiny_algorithm-test-out'}, tc.expected))),
+                this.expectedCell(tc, i)),
             error ? el('div', {'class': 'tiny_algorithm-error'}, this.t('solutionfails', {n: i + 1, error: error.error})) : '');
+    }
+
+    /**
+     * Expected output of a test in the teacher's list: computed from the solution, or typed by the teacher.
+     *
+     * @param {Object} tc test
+     * @param {number} i index of the test
+     * @returns {HTMLElement}
+     */
+    expectedCell(tc, i) {
+        if (!tc.manual) {
+            return el('div', {}, el('span', {}, this.t('expected')), el('pre', {'class': 'tiny_algorithm-test-out'}, tc.expected));
+        }
+        const area = el('textarea', {'class': 'form-control form-control-sm tiny_algorithm-test-expected', rows: 3,
+            'aria-label': `${this.t('testcase', {n: i + 1})}: ${this.t('expected')}`,
+            oninput: () => {
+                tc.expected = area.value;
+                this.changed();
+            }});
+        area.value = tc.expected ?? '';
+        return el('label', {}, el('span', {}, this.t('expected')), area);
     }
 
     studentRow(tc, i) {

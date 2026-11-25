@@ -25,7 +25,7 @@ import {
     MAX_NOTE, applyStrict, blocksFromText, blocksToText, canMoveBlock, cloneProgram, copyBlock, createBlock, createProgram,
     findBlock, moveBlock, renameFunction, walk,
 } from './model';
-import {renderFunction, renderProgram, showBranch} from './render';
+import {extractModel, renderFunction, renderProgram, showBranch} from './render';
 import {runSession} from './session';
 import {Timeline, replayTo} from './timeline';
 import {openDialog, openShortcuts, showToast} from './dialog';
@@ -193,7 +193,7 @@ export class AlgorithmEditor {
         this.speed = el('input',
             {type: 'range', min: 0, max: 1000, value: 600, 'class': 'tiny_algorithm-speed', title: this.t('speed'),
                 'aria-label': this.t('speed')});
-        this.fileInput = el('input', {type: 'file', accept: '.fprg,.xml', hidden: true, onchange: (e) => this.importFile(e)});
+        this.fileInput = el('input', {type: 'file', accept: '.fprg,.xml,.svg', hidden: true, onchange: (e) => this.importFile(e)});
         this.btnUndo = btn('undo', () => this.undo());
         this.btnRedo = btn('redo', () => this.redo());
         this.btnRun = btn('run', () => this.start(false));
@@ -1350,15 +1350,36 @@ export class AlgorithmEditor {
             return;
         }
         file.text().then((text) => {
-            const {program, warnings} = importFprg(text);
+            const svg = /\.svg$/i.test(file.name) || /^\s*(<\?xml[^>]*>\s*)?<svg[\s>]/.test(text);
+            const {program, warnings} = svg ? this.svgProgram(text) : importFprg(text);
             this.commit(() => {
                 this.program = applyStrict(program, this.codeConfig);
                 this.fnIndex = 0;
                 this.selected = null;
             });
-            this.log(warnings.length ? `${this.t('imported')}\n${warnings.join('\n')}` : this.t('imported'), 'tiny_algorithm-info');
+            const done = this.t(svg ? 'importedsvg' : 'imported');
+            this.log(warnings.length ? `${done}\n${warnings.join('\n')}` : done, 'tiny_algorithm-info');
             return null;
         }).catch((err) => this.log(err.message, 'tiny_algorithm-error'));
+    }
+
+    /**
+     * The algorithm kept in an SVG file saved with Save as SVG (or inserted in a page).
+     *
+     * @param {string} text SVG markup
+     * @returns {{program: Object, warnings: string[]}}
+     */
+    svgProgram(text) {
+        let program = null;
+        try {
+            program = extractModel(text);
+        } catch (e) {
+            program = null;
+        }
+        if (!program || typeof program !== 'object' || !Array.isArray(program.functions) || !program.functions.length) {
+            throw new Error(this.t('svgnomodel'));
+        }
+        return {program, warnings: []};
     }
 
     download(name, text, type) {
@@ -1653,7 +1674,8 @@ export class AlgorithmEditor {
         const files = this.fileTools ? [
             item('templates', () => this.showTemplates()), item('importcode', () => this.showCodeImport()),
             el('hr', {'class': 'dropdown-divider'}),
-            item('import', () => this.fileInput.click()), item('export', () => this.exportFile()),
+            item('import', () => this.fileInput.click()), item('importsvg', () => this.fileInput.click()),
+            item('export', () => this.exportFile()),
             item('copyimage', () => this.copyImage()),
             item('exportsvg', () => this.exportImage('svg')), item('exportpng', () => this.exportImage('png')),
             el('hr', {'class': 'dropdown-divider'})] : [];

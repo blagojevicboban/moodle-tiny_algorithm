@@ -113,7 +113,8 @@ in `amd/build`.
         (arrow keys, Enter to insert, Escape to close), **Enter** on a block edits it, **Enter** in a field applies the value
         and returns to the block, **Delete** removes the selected block.
 3.  **Test it**: **Run** or **Step**; the console asks for *Input* values and the variable watch shows the state.
-4.  **Import / Export**: **Import .fprg** loads a Flowgorithm file, **Export** saves one.
+4.  **Import / Export**: **Import .fprg** loads a Flowgorithm file, **Export** saves one; **Import .svg** loads
+    an SVG saved with **Save as SVG** back into the editor.
 5.  **Insert**: Optionally tick **Interactive**, then click **Insert**. Double-click the image later to edit it.
 
 ### Exercises: Students Edit and Test
@@ -124,6 +125,7 @@ in `amd/build`.
 3.  In **Tests**, add tests and type the inputs (one value per line; a line with only `""` is an
     empty value, e.g. an empty text). The expected outputs are computed from the solution
     when you click **Compute expected outputs** and again on **Insert**; if the solution fails on a test, the dialog says so.
+    Tick **Type the expected output** on a test to type its expected output yourself; the solution then does not change it.
 4.  Tick **Students can show the solution** if they may look at it, then **Insert** and save.
 
 With `filter_algorithm` enabled, students see **Edit**, **Restore original**, **Full screen**, **Show solution** (when allowed)

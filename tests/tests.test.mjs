@@ -80,6 +80,15 @@ test('computeExpected fills the outputs from the solution', () => {
     assert.deepEqual(errors.map((e) => e.index), [2]);
 });
 
+test('a test with a typed expected output keeps it and the solution is not run for it', () => {
+    const {tests, errors} = computeExpected(sum(), [{inputs: '10'}, {inputs: '', expected: 'Sum = 0\n', manual: true}], 'en');
+    assert.deepEqual(tests.map((tc) => tc.expected), ['Sum = 55\n', 'Sum = 0\n']);
+    assert.deepEqual(errors, [], 'the solution would fail without input, but it does not run for a typed test');
+    assert.deepEqual(deserializeTests(serializeTests(tests)),
+        [{inputs: '10', expected: 'Sum = 55\n'}, {inputs: '', expected: 'Sum = 0\n', manual: true}]);
+    assert.deepEqual(cleanTest({inputs: '1', expected: 'x', manual: 1}), {inputs: '1', expected: 'x', manual: true});
+});
+
 test('runTests marks passing and failing tests and finds the first different line', () => {
     const {tests} = computeExpected(sum(), [{inputs: '10'}, {inputs: '0'}]);
     const wrong = sum('i < n');
